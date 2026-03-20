@@ -1,0 +1,41 @@
+# --- Python (FastAPI) ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.python-version
+
+# Virtual Environments
+backend/.venv/
+.venv/
+venv/
+ENV/
+env/
+
+# --- Node.js (Next.js) ---
+node_modules/
+.next/
+out/
+build/
+dist/
+.pnp
+.pnp.js
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- IDEs & Editors ---
+.vscode/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
