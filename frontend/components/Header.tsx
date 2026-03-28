@@ -2,35 +2,36 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuthStore } from "@/lib/store";
+
+
 import {
-    PenLine,
-    TrendingUp,
-    Layers,
-    CalendarDays,
-    Settings2,
+    Plus,
+    Flame,
+    BellRing,
+    CalendarCheck,
+    Settings,
 } from "lucide-react";
+import Image from "next/image";
 
 const NAV_ITEMS = [
-    { href: "/create", icon: PenLine, label: "Create" },
-    { href: "/trends", icon: TrendingUp, label: "Trends" },
-    { href: "/queue", icon: Layers, label: "Queue" },
-    { href: "/schedule", icon: CalendarDays, label: "Schedule" },
-    { href: "/settings", icon: Settings2, label: "Settings" },
+    { href: "/create", icon: Plus, label: "Create" },
+    { href: "/trends", icon: Flame, label: "Trends" },
+    { href: "/queue", icon: BellRing, label: "Queue" },
+    { href: "/schedule", icon: CalendarCheck, label: "Schedule" },
+    { href: "/settings", icon: Settings, label: "Settings" },
 ] as const;
 
 export default function Header() {
     const pathname = usePathname();
-
+    const { isAuthenticated, clearUser } = useAuthStore();
     return (
         <header
             style={{
                 position: "sticky",
                 top: 0,
                 zIndex: 50,
-                backgroundColor: "var(--color-bg)",
-                borderBottom: "1px solid var(--color-border)",
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
+                backgroundColor: "var(--color-background)",
             }}
         >
             <div
@@ -45,77 +46,57 @@ export default function Header() {
                 }}
             >
                 {/* Logo */}
-                <Link
-                    href="ublic/cupid_logo.png"
-                    style={{
-                        fontFamily: "var(--font-display)",
-                        fontSize: "1.35rem",
-                        color: "var(--color-primary)",
-                        letterSpacing: "-0.02em",
-                        fontStyle: "italic",
-                        userSelect: "none",
-                    }}
-                >
-                    cupid
-                </Link>
+                <Link href="/" className="flex items-center gap-2 no-underline"><Image src="/cupid_logo.png" alt="Cupid" height={50} width={50} className="object-contain" priority /></Link>
 
-                {/* Navigation Icons */}
-                <nav aria-label="Main navigation">
-                    <ul
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.25rem",
-                            listStyle: "none",
-                        }}
-                    >
-                        {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
-                            const isActive = pathname === href;
-                            return (
-                                <li key={href}>
-                                    <Link
-                                        href={href}
-                                        aria-label={label}
-                                        title={label}
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            width: "40px",
-                                            height: "40px",
-                                            borderRadius: "var(--radius-md)",
-                                            color: isActive
-                                                ? "var(--color-primary)"
-                                                : "var(--color-text-muted)",
-                                            backgroundColor: isActive
-                                                ? "var(--color-primary-subtle)"
-                                                : "transparent",
-                                            transition: "color 0.15s ease, background-color 0.15s ease",
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            if (!isActive) {
-                                                (e.currentTarget as HTMLElement).style.color =
-                                                    "var(--color-text)";
-                                                (e.currentTarget as HTMLElement).style.backgroundColor =
-                                                    "var(--color-border)";
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (!isActive) {
-                                                (e.currentTarget as HTMLElement).style.color =
-                                                    "var(--color-text-muted)";
-                                                (e.currentTarget as HTMLElement).style.backgroundColor =
-                                                    "transparent";
-                                            }
-                                        }}
-                                    >
-                                        <Icon size={18} strokeWidth={1.5} />
-                                    </Link>
-                                </li>
-                            );
-                        })}
-                    </ul>
-                </nav>
+                {/* Right side — conditional on auth */}
+                {isAuthenticated ? (
+                    /* Authenticated — show icon nav */
+                    <nav aria-label="Main navigation">
+                        <ul
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.8rem",
+                                listStyle: "none",
+                                backgroundColor: "rgba(220, 224, 227, 0.85)",
+                                padding: "0.3rem 0.7rem",
+                                borderRadius: "10px",
+                            }}
+                        >
+                            {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+                                const isActive = pathname.startsWith(href);
+                                return (
+                                    <li key={href}>
+                                        <Link
+                                            href={href}
+                                            aria-label={label}
+                                            title={label}
+                                            style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                width: "40px",
+                                                height: "40px",
+                                                color: isActive
+                                                    ? "var(--color-secondary)"
+                                                    : "var(--color-primary)",
+                                                transition: "color 0.15s ease, background-color 0.15s ease",
+                                            }}
+                                        >
+                                            <Icon size={22} strokeWidth={2} />
+                                        </Link>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </nav>
+                ) : (
+                    /* Unauthenticated — show login / register */
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                        <Link href="/login" className="btn-secondary">Login</Link>
+                        <Link href="/register" className="btn-primary">Get started</Link>
+                    </div>
+                )}
             </div>
         </header>
     );

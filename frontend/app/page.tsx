@@ -112,45 +112,9 @@ export default function HomePage() {
             style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}
             className="animate-float-up"
           >
-            <Link
-              href="/register"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.4rem",
-                backgroundColor: "var(--color-primary)",
-                color: "#fff",
-                padding: "0.75rem 1.6rem",
-                borderRadius: "var(--radius-md)",
-                fontSize: "0.9rem",
-                fontWeight: 500,
-                fontFamily: "var(--font-body)",
-                transition: "background-color 0.15s ease",
-                letterSpacing: "0.01em",
-              }}
-            >
-              Start for free
-            </Link>
-            <Link
-              href="#how-it-works"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.4rem",
-                backgroundColor: "transparent",
-                color: "var(--color-text)",
-                padding: "0.75rem 1.6rem",
-                borderRadius: "var(--radius-md)",
-                fontSize: "0.9rem",
-                fontWeight: 400,
-                fontFamily: "var(--font-body)",
-                border: "1px solid var(--color-border)",
-                transition: "border-color 0.15s ease",
-                letterSpacing: "0.01em",
-              }}
-            >
-              See how it works
-            </Link>
+            <Link href="/register" className="btn-primary">Start for free</Link>
+            <Link href="#how-it-works" className="btn-secondary">See how it works</Link>
+
           </div>
         </div>
 
@@ -305,7 +269,7 @@ export default function HomePage() {
       {/* ─── TRAITS ───────────────────────────────────────────── */}
       <section
         style={{
-          backgroundColor: "var(--color-bg-alt)",
+          backgroundColor: "pink",
           borderTop: "1px solid var(--color-border)",
           borderBottom: "1px solid var(--color-border)",
           padding: "5rem 1.5rem",
@@ -365,89 +329,12 @@ export default function HomePage() {
           textAlign: "center",
         }}
       >
-        <h2
-          style={{
-            fontSize: "clamp(2rem, 4vw, 3rem)",
-            fontFamily: "var(--font-display)",
-            fontWeight: 400,
-            color: "var(--color-text)",
-            letterSpacing: "-0.02em",
-            marginBottom: "1.25rem",
-          }}
-        >
-          Your audience is already
-          <br />
-          <em style={{ color: "var(--color-primary)" }}>paying attention.</em>
-        </h2>
-        <p
-          style={{
-            fontSize: "1rem",
-            color: "var(--color-text-muted)",
-            marginBottom: "2.5rem",
-            fontFamily: "var(--font-body)",
-          }}
-        >
-          Set up your persona once. Let Cupid handle the rest.
-        </p>
-        <Link
-          href="/register"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            backgroundColor: "var(--color-text)",
-            color: "var(--color-bg)",
-            padding: "0.85rem 2rem",
-            borderRadius: "var(--radius-md)",
-            fontSize: "0.9rem",
-            fontWeight: 500,
-            fontFamily: "var(--font-body)",
-            letterSpacing: "0.01em",
-            transition: "opacity 0.15s ease",
-          }}
-        >
-          Create your persona
-        </Link>
+        <h2>Your audience is already<br /><em>paying attention.</em></h2>
+        <p className="text-muted-foreground mb-6 font-body">Set up your persona once. Let Cupid handle the rest.</p>
+        <Link href="/register" className="btn-primary">Create your persona</Link>
       </section>
 
-      {/* ─── FOOTER ───────────────────────────────────────────── */}
-      <footer
-        style={{
-          borderTop: "1px solid var(--color-border)",
-          padding: "2rem 1.5rem",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "1200px",
-            margin: "0 auto",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "1rem",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--font-display)",
-              fontStyle: "italic",
-              color: "var(--color-primary)",
-              fontSize: "1.1rem",
-            }}
-          >
-            cupid
-          </span>
-          <p
-            style={{
-              fontSize: "0.8rem",
-              color: "var(--color-text-faint)",
-              fontFamily: "var(--font-body)",
-            }}
-          >
-            Open source. MIT license.
-          </p>
-        </div>
-      </footer>
+
 
       {/* ─── RESPONSIVE STYLES ────────────────────────────────── */}
       <style>{`
@@ -460,7 +347,7 @@ export default function HomePage() {
           }
         }
       `}</style>
-    </main>
+    </main >
   );
 }
 
@@ -483,7 +370,6 @@ function AgentOrbit() {
       height="380"
       viewBox="0 0 380 380"
       fill="none"
-      xmlns="http://www.w3.org/2000/svg"
       style={{ maxWidth: "100%", height: "auto" }}
     >
       {/* Orbit ring */}
@@ -491,7 +377,7 @@ function AgentOrbit() {
         cx={cx}
         cy={cy}
         r={r}
-        stroke="#e8ddd0"
+        stroke="var(--secondary)"
         strokeWidth="1"
         strokeDasharray="4 6"
       />

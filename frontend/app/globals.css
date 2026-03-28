@@ -3,43 +3,26 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ─── Tailwind theme bridge (shadcn contract) ──────────────── */
+/* Tailwind theme bridge (shadcn contract) */
 @theme inline {
-  --color-background: var(--background);
+  --color-background: var(--color-background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-body);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-display);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
+  --color-ring: var(--color-outline);
+  --color-input: var(--color-input);
+  --color-border: var(--color-border);
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
+  --color-muted-foreground: var(--color-muted-foreground);
+  --color-muted: var(--color-muted);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
+  --color-secondary: var(--color-secondary);
+  --color-primary: var(--color-primary);
   --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
+  --color-card: white --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
@@ -48,121 +31,52 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* ─── Light mode ───────────────────────────────────────────── */
+/*  LIGHT MODE  */
 :root {
   /* shadcn required tokens — mapped to Cupid palette */
-  --background: #fff6ed;
-  --foreground: #2a3852;
-  --card: #ffffff;
-  --card-foreground: #2a3852;
-  --popover: #ffffff;
-  --popover-foreground: #2a3852;
-  /* --primary: #d47a03; */
-  --primary: #2a3852;
-  --primary-foreground: #ffffff;
-  --secondary: #fff1dc;
-  --secondary-foreground: #2a3852;
-  --muted: #fff9f3;
-  --muted-foreground: #6b7a96;
-  --accent: #fff1dc;
-  --accent-foreground: #2a3852;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: #e8ddd0;
-  --input: #e8ddd0;
-  --ring: #d47a03;
-  --radius: 0.625rem;
-
-  /* Chart tokens (kept neutral, override per chart if needed) */
-  --chart-1: #d47a03;
-  --chart-2: #2a3852;
-  --chart-3: #6b7a96;
-  --chart-4: #a8b3c8;
-  --chart-5: #e8ddd0;
-
-  /* Sidebar */
-  --sidebar: #fff9f3;
-  --sidebar-foreground: #2a3852;
-  --sidebar-primary: #d47a03;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #fff1dc;
-  --sidebar-accent-foreground: #2a3852;
-  --sidebar-border: #e8ddd0;
-  --sidebar-ring: #d47a03;
-
-  /* ── Cupid custom tokens (use these in your own components) ── */
   --color-primary: #2a3852;
-  --color-primary-hover: #b86a02;
-  --color-primary-subtle: #fff1dc;
-
-  --color-text: #2a3852;
-  --color-text-muted: #6b7a96;
-  --color-text-faint: #a8b3c8;
-
-  --color-bg: #fff6ed;
-  --color-bg-alt: #fff9f3;
-  --color-bg-surface: #ffffff;
-
-  --color-border: #e8ddd0;
-  --color-border-strong: #2a3852;
+  --color-primary-hover: #3e5479;
+  --color-secondary: #e99000;
+  --color-background: #fffbf6;
+  --color-border: #2a3852;
+  --color-popover: #86888d;
+  --color-text: #1d2738;
+  --color-muted: #697996;
+  --destructive: oklch(47.546% 0.1538 22.643);
+  --color-input: #3e5479;
+  --color-outline: #e99000;
+  --radius: 0.625rem;
 
   /* Fonts — populated by Next.js font variables in layout.tsx */
   --font-display: var(--font-instrument-serif, "Georgia", serif);
   --font-body: var(--font-dm-sans, system-ui, sans-serif);
 
-  /* Spacing & shape */
   --shadow-sm: 0 1px 3px rgba(42, 56, 82, 0.06);
   --shadow-md: 0 4px 16px rgba(42, 56, 82, 0.08);
 }
 
-/* ─── Dark mode ────────────────────────────────────────────── */
+/* DARK MODE */
 .dark {
-  --background: #1a2030;
+  --color-background: #1a2030;
   --foreground: #f0ece6;
   --card: #232d42;
   --card-foreground: #f0ece6;
-  --popover: #232d42;
-  --popover-foreground: #f0ece6;
-  --primary: #e8900a;
-  --primary-foreground: #1a2030;
+  --color-popover: #232d42;
+  --color-popover-foreground: #f0ece6;
+  --color-primary: #e8900a;
+  --color-primary-foreground: #1a2030;
   --secondary: #2a3852;
   --secondary-foreground: #f0ece6;
-  --muted: #2a3852;
-  --muted-foreground: #8c9ab5;
+  --color-muted: #2a3852;
+  --color-muted-foreground: #8c9ab5;
   --accent: #2a3852;
   --accent-foreground: #f0ece6;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: #e8900a;
-  --chart-1: #e8900a;
-  --chart-2: #a8b3c8;
-  --chart-3: #6b7a96;
-  --chart-4: #2a3852;
-  --chart-5: #232d42;
-  --sidebar: #232d42;
-  --sidebar-foreground: #f0ece6;
-  --sidebar-primary: #e8900a;
-  --sidebar-primary-foreground: #1a2030;
-  --sidebar-accent: #2a3852;
-  --sidebar-accent-foreground: #f0ece6;
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: #e8900a;
-
-  /* Cupid dark overrides */
-  --color-primary: #e8900a;
-  --color-primary-hover: #d47a03;
-  --color-primary-subtle: #2a2010;
-  --color-text: #f0ece6;
-  --color-text-muted: #8c9ab5;
-  --color-text-faint: #4a5670;
-  --color-bg: #1a2030;
-  --color-bg-alt: #1e2538;
-  --color-bg-surface: #232d42;
-  --color-border: rgba(255, 255, 255, 0.1);
-  --color-border-strong: #f0ece6;
+  --color-border: oklch(1 0 0 / 10%);
+  --color-input: oklch(1 0 0 / 15%);
 }
 
-/* ─── Base layer ───────────────────────────────────────────── */
+/* BASE LAYER */
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -193,6 +107,13 @@
     letter-spacing: -0.02em;
   }
 
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.6rem;
+    color: var(--color-text);
+  }
+
   a {
     color: inherit;
     text-decoration: none;
@@ -217,7 +138,71 @@
   }
 }
 
-/* ─── Animations ───────────────────────────────────────────── */
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.65rem 1.4rem;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: var(--font-body);
+  color: #ffffff;
+  background: linear-gradient(135deg, #748dbc 0%, #3d5278 25%, #2c4a6a 50%, #2a3c5b 75%, #2a3852 100%);
+  background-size: 200% 200%;
+  animation: gradient-shift 6s ease infinite;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: all 0.6s ease;
+}
+
+.btn-primary:hover {
+  transform: scale(0.90);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.75rem 1.6rem;
+  border: 1.4px solid var(--color-secondary);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 800;
+  font-family: var(--font-body);
+  color: var(--color-secondary);
+  background-color: transparent;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: all 0.6s ease;
+}
+
+.btn-secondary:hover {
+  transform: scale(0.90);
+}
+
+
+/* ANIMATIONS */
 @keyframes float-up {
   from {
     opacity: 0;
@@ -260,4 +245,40 @@
 
 .animate-fade-in {
   animation: fade-in 0.5s ease both;
+}
+
+/* ─── Animated Border Container ───────────────────────────── */
+@keyframes border-rotate {
+  0% {
+    --angle: 0deg;
+  }
+
+  100% {
+    --angle: 360deg;
+  }
+}
+
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.animated-border {
+  position: relative;
+  border-radius: 16px;
+  padding: 1px;
+  background: conic-gradient(from var(--angle),
+      #ffbf05 0%,
+      var(--color-secondary) 25%,
+      #ffbf05 50%,
+      var(--color-secondary) 75%,
+      #ffbf05 100%);
+  animation: border-rotate 23s linear infinite;
+}
+
+.animated-border-inner {
+  background: var(--color-background);
+  border-radius: 14px;
+  padding: 1.25rem;
 }
