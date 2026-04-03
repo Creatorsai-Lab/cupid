@@ -1,3 +1,9 @@
+# Database | Purpose | What's stored
+# ---
+# 1. PostgreSQL | Permanent structured data | Users, profiles, posts, settings
+# 2. Redis | Temporary cache/sessions | Rate limits, real-time data, job queues
+# 3. ChromaDB | Vector embeddings | AI persona vectors, semantic search
+
 services:
   postgres:
     image: postgres:16-alpine

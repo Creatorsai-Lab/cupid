@@ -55,8 +55,8 @@ async def upsert_profile(
             geography=geography,
             audience=audience,
         )
-        db.add(profile)
+        db.add(profile) # queues the INSERT
 
-    await db.commit()
-    await db.refresh(profile)
+    await db.commit() # sends INSERT to PostgreSQL
+    await db.refresh(profile) # updates the Python object with the DB-generated ID
     return profile

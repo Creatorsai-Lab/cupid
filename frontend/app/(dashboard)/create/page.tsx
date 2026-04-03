@@ -170,7 +170,7 @@ function SelectDropdown({
         >
             {options.map((opt) => (
                 <option key={opt} value={opt}>
-                    {label}: {opt}
+                    {opt}
                 </option>
             ))}
         </select>
@@ -181,61 +181,56 @@ function SelectDropdown({
 // ── Recommendation Slider ────────────────────────────────────
 
 function RecommendationSlider({ items }: { items: typeof RECOMMENDATIONS }) {
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const [canScrollLeft, setCanScrollLeft] = useState(false);
-    const [canScrollRight, setCanScrollRight] = useState(true);
+    const [currentIndex, setCurrentIndex] = useState(0);
 
-    const checkScroll = () => {
-        if (!scrollRef.current) return;
-        const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-        setCanScrollLeft(scrollLeft > 0);
-        setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10);
+    const canGoLeft = currentIndex > 0;
+    const canGoRight = currentIndex < items.length - 1;
+
+    const goLeft = () => {
+        if (canGoLeft) setCurrentIndex((prev) => prev - 1);
     };
 
-    const scroll = (direction: "left" | "right") => {
-        if (!scrollRef.current) return;
-        const cardWidth = 400;
-        scrollRef.current.scrollBy({
-            left: direction === "left" ? -cardWidth : cardWidth,
-            behavior: "smooth",
-        });
-        setTimeout(checkScroll, 350);
+    const goRight = () => {
+        if (canGoRight) setCurrentIndex((prev) => prev + 1);
     };
 
     return (
-        <div className="relative">
-            {/* Navigation Arrows */}
-            {canScrollLeft && (
-                <button
-                    onClick={() => scroll("left")}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-8 h-8 rounded-full bg-white border border-[var(--color-border)] flex items-center justify-center shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                >
-                    <ChevronLeft size={16} className="text-[var(--color-text)]" />
-                </button>
-            )}
-            {canScrollRight && (
-                <button
-                    onClick={() => scroll("right")}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-8 h-8 rounded-full bg-white border border-[var(--color-border)] flex items-center justify-center shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                >
-                    <ChevronRight size={16} className="text-[var(--color-text)]" />
-                </button>
-            )}
-
-            {/* Scrollable Container */}
-            <div
-                ref={scrollRef}
-                onScroll={checkScroll}
-                className="flex gap-4 overflow-x-auto scroll-smooth pb-2"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        <div className="flex items-center gap-4">
+            {/* Left Arrow */}
+            <button
+                onClick={goLeft}
+                disabled={!canGoLeft}
+                className="flex-shrink-0 w-9 h-9 rounded-full bg-white border border-[var(--color-border)] flex items-center justify-center shadow-sm hover:shadow-md transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
             >
-                {items.map((item, i) => (
-                    <SocialCard key={i} {...item} />
-                ))}
+                <ChevronLeft size={16} className="text-[var(--color-text)]" />
+            </button>
+
+            {/* Single Card Display */}
+            <div className="flex-1 overflow-hidden">
+                <div
+                    className="flex transition-transform duration-300 ease-in-out"
+                    style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+                >
+                    {items.map((item, i) => (
+                        <div key={i} className="w-full flex-shrink-0">
+                            <SocialCard {...item} />
+                        </div>
+                    ))}
+                </div>
             </div>
+
+            {/* Right Arrow */}
+            <button
+                onClick={goRight}
+                disabled={!canGoRight}
+                className="flex-shrink-0 w-9 h-9 rounded-full bg-white border border-[var(--color-border)] flex items-center justify-center shadow-sm hover:shadow-md transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+                <ChevronRight size={16} className="text-[var(--color-text)]" />
+            </button>
         </div>
     );
 }
+
 
 
 // ── Social Media Cards ───────────────────────────────────────
@@ -253,19 +248,16 @@ function SocialCard({
     const platformConfig = {
         twitter: {
             label: "𝕏 Post",
-            bg: "bg-white",
             accent: "#1da1f2",
             icon: "𝕏",
         },
         linkedin: {
             label: "LinkedIn Post",
-            bg: "bg-white",
             accent: "#0077b5",
             icon: "in",
         },
         instagram: {
             label: "Instagram Post",
-            bg: "bg-gradient-to-br from-purple-50 to-pink-50",
             accent: "#e1306c",
             icon: "📷",
         },
@@ -275,7 +267,7 @@ function SocialCard({
 
     return (
         <div
-            className={`flex-shrink-0 w-[320px] ${config.bg} rounded-xl border border-[var(--color-border)] overflow-hidden transition-transform hover:-translate-y-1 hover:shadow-md`}
+            className={`flex-shrink-0 w-full my-2 bg-white shadow-md rounded-xl transition-transform hover:scale-102`}
         >
             {/* Card Header */}
             <div className="flex items-center justify-between px-4 pt-4 pb-2">
