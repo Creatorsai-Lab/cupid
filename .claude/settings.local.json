@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "Bash(xargs grep:*)",
+      "Bash(.venv/Scripts/python -c \"import duckduckgo_search; print\\(dir\\(duckduckgo_search\\)\\); print\\(duckduckgo_search.__version__\\)\")",
+      "Bash(.venv/Scripts/python -c \"from duckduckgo_search import DDGS; print\\([m for m in dir\\(DDGS\\) if 'text' in m.lower\\(\\) or 'async' in m.lower\\(\\)]\\)\")",
+      "Bash(.venv/Scripts/python -c \"from duckduckgo_search import DDGS; d = DDGS\\(\\); print\\([m for m in dir\\(d\\) if not m.startswith\\('__'\\)]\\)\")",
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(.venv/Scripts/python -c \"import ddgs; print\\(dir\\(ddgs\\)\\); print\\(ddgs.__version__\\)\")",
+      "Bash(.venv/Scripts/python -c \"from ddgs import DDGS; d = DDGS\\(\\); print\\([m for m in dir\\(d\\) if not m.startswith\\('_'\\)]\\)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

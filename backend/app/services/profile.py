@@ -1,5 +1,5 @@
 """
-Profile service — CRUD operations for user persona data.
+Profile service — CRUD operations for user personalization data.
 """
 
 import uuid
@@ -7,15 +7,15 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.profile import UserProfile
+from app.models.profile import UserPersonalization
 
 
 async def get_profile_by_user_id(
     db: AsyncSession, user_id: uuid.UUID
-) -> UserProfile | None:
-    """Get a user's profile."""
+) -> UserPersonalization | None:
+    """Get a user's personalization row."""
     result = await db.execute(
-        select(UserProfile).where(UserProfile.user_id == user_id)
+        select(UserPersonalization).where(UserPersonalization.user_id == user_id)
     )
     return result.scalar_one_or_none()
 
@@ -23,12 +23,17 @@ async def get_profile_by_user_id(
 async def upsert_profile(
     db: AsyncSession,
     user_id: uuid.UUID,
+    name: str | None,
+    nickname: str | None,
     bio: str | None,
-    field: str | None,
-    skills: str | None,
-    geography: str | None,
-    audience: str | None,
-) -> UserProfile:
+    content_niche: str | None,
+    content_goal: str | None,
+    content_intent: str | None,
+    target_age_group: str | None,
+    target_country: str | None,
+    target_audience: str | None,
+    usp: str | None,
+) -> UserPersonalization:
     """
     Create or update a user's profile (upsert pattern).
     
@@ -40,20 +45,31 @@ async def upsert_profile(
 
     if profile:
         # Update existing
+        if name is not None:
+            profile.name = name
+        profile.nickname = nickname
         profile.bio = bio
-        profile.field = field
-        profile.skills = skills
-        profile.geography = geography
-        profile.audience = audience
+        profile.content_niche = content_niche
+        profile.content_goal = content_goal
+        profile.content_intent = content_intent
+        profile.target_age_group = target_age_group
+        profile.target_country = target_country
+        profile.target_audience = target_audience
+        profile.usp = usp
     else:
         # Create new
-        profile = UserProfile(
+        profile = UserPersonalization(
             user_id=user_id,
+            name=name or "",
+            nickname=nickname,
             bio=bio,
-            field=field,
-            skills=skills,
-            geography=geography,
-            audience=audience,
+            content_niche=content_niche,
+            content_goal=content_goal,
+            content_intent=content_intent,
+            target_age_group=target_age_group,
+            target_country=target_country,
+            target_audience=target_audience,
+            usp=usp,
         )
         db.add(profile) # queues the INSERT
 

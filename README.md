@@ -8,7 +8,7 @@ A multi-agent social media automation system that learns your voice, tracks what
 
 Cupid orchestrates four specialized AI agents through a shared state pipeline:
 
-- **Persona Agent** — Builds and maintains a living model of your voice, tone, vocabulary, and domain expertise using RAG over your writing samples.
+- ** Agent** — Builds and maintains a living model of your voice, tone, vocabulary, and domain expertise using RAG over your writing samples.
 - **Research & Ideation Agent** — Given your persona and a topic signal, autonomously researches and returns structured post angle ideas with supporting evidence.
 - **Trend Intelligence Agent** — Monitors Reddit, HackerNews, and RSS feeds in your domain. Scores trending topics by velocity and filters them against your persona.
 - **Composer Agent** — Takes all upstream context and produces platform-specific, publication-ready posts with a persona fidelity check before output.
@@ -25,16 +25,15 @@ User Intent
     ▼
 Orchestrator (LangGraph StateGraph)
     │
-    ├── Persona Agent          → retrieves user identity context
+    ├── Personalization Agent   → retrieves user identity context
     ├── Research Agent         → finds angles, sources, ideas
-    ├── Trend Intelligence Agent → trending topics, hashtags, timing
     └── Composer Agent         → assembles platform-specific post
     │
     ▼
 Structured Output → FastAPI → Next.js Frontend
 ```
 
-All agent state is typed via `CupidState`. No agent holds internal state between runs. All persistence is in PostgreSQL and ChromaDB.
+All agent state is typed via `MemoryState`. No agent holds internal state between runs. All persistence is in PostgreSQL and ChromaDB.
 
 ---
 
@@ -202,12 +201,6 @@ cupid/
 │   │   ├── main.py               # FastAPI app factory
 │   │   ├── config.py             # Pydantic settings
 │   │   ├── agents/               # LangGraph agent nodes
-│   │   │   ├── state.py          # CupidState TypedDict
-│   │   │   ├── graph.py          # StateGraph assembly
-│   │   │   ├── persona.py
-│   │   │   ├── research.py
-│   │   │   ├── trend.py
-│   │   │   └── composer.py
 │   │   ├── services/             # Non-agent algorithm services
 │   │   │   ├── analytics.py
 │   │   │   ├── scheduler.py

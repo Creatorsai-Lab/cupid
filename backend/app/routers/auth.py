@@ -26,7 +26,7 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 # Cookie configuration
 COOKIE_KEY = "cupid_access_token"
-COOKIE_MAX_AGE = 60 * 30   # 30 minutes in seconds
+COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days in seconds
 
 
 def _set_auth_cookie(response: Response, token: str) -> None:

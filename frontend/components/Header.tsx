@@ -46,7 +46,7 @@ export default function Header() {
                 }}
             >
                 {/* Logo */}
-                <Link href="/" className="flex items-center gap-2 no-underline"><Image src="/cupid_logo.png" alt="Cupid" height={50} width={50} className="object-contain" priority /></Link>
+                <Link href="/" className="flex items-center gap-2 no-underline"><Image src="/cupid_logo.webp" alt="Cupid" width={40} height={0} className="object-contain h-auto" priority /></Link>
 
                 {/* Right side — conditional on auth */}
                 {isAuthenticated ? (

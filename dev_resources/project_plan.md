@@ -22,24 +22,22 @@ User Intent
 Orchestrator (LangGraph StateGraph)
     │
     ├── Persona Agent          → retrieves user identity context
-    ├── Research/Ideation Agent → finds angles, sources, ideas
-    ├── Trend Intelligence Agent → showcases trending topics, recommended hashtags, timing suggestions
+    ├── Research/Ideation Agent → finds angles, sources, idea
     └── Composer Agent         → use content from research agent and trend agent, assembles, and create social media post content: tweet, video idea, doc, blog, etc.
     │
     ▼
 Structured Output → API → Frontend
 ```
 
-Agents share a single Persistent user persona, that contain user personalized settings, preferences, and other user-specific information. No agent holds internal state between runs. All persistence is in PostgreSQL and ChromaDB.
-
+Agents share a single Persistent user personalization info, that contain user personalized settings, preferences, and other user-specific information. No agent holds internal state between runs. All persistence is in PostgreSQL and ChromaDB
 ---
 
 ## 3. V1 Agent System
 
 ### Long Term Memory
-- User details, info, demographics, skills, interests, expertise, audience, geography, domain, past posts, writing samples, writing rules, persona prompt template.
+- user personalization info, user provided content
 
-### Agent 1 — Persona Agent
+### Agent 1 — Personalization Agent
 
 **Role:** Build, maintain, and serve a living model of the user's authentic voice, knowledge, tone, and identity.
 
@@ -60,28 +58,14 @@ Agents share a single Persistent user persona, that contain user personalized se
 - Synthesize a persona card on first setup using an LLM prompt over all user data
 - Update persona card on each new sample added (incremental re-synthesis, not full rewrite)
 
-**Persona Card Schema:**
-```json
-{
-  "user_id": "uuid",
-  "tone": "analytical and direct",
-  "bio": "tech and business content creator",
-  "formality": "semi-formal",
-  "avg_sentence_length": "medium",
-  "vocabulary_bias": ["systems thinking", "open source", "research-backed"],
-  "structural_preference": "short hook → reasoning → call-to-action",
-  "avoid": ["corporate jargon", "motivational clichés"],
-  "geography_signals": ["India", "tier-2 city", "South Asian context"],
-  "domain": "AI/ML engineering",
-  "audience": "technical professionals, indie hackers, AI researchers"
-}
-```
+
 
 **Free Tools Used:**
 - `Ollama` (local inference) + `llama3.2` or `mistral` model
 - `ChromaDB` (vector store, fully local)
 - `rank_bm25` (Python, pip install, free)
 - `nomic-embed-text` via Ollama (free local embeddings)
+- `Arcade` - Easy authentication for reading & writing to social media platforms
 
 ---
 

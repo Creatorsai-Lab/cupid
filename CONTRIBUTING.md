@@ -52,7 +52,7 @@ Features that have not been discussed and agreed upon in an issue will not be re
 
 ### For Agent or AI Logic Changes
 
-Any modification to agent prompts, the LangGraph graph topology, RAG retrieval logic, or the persona fidelity scoring must include:
+Any modification to agent prompts, the LangGraph graph topology, RAG retrieval logic, or the personalization fidelity scoring must include:
 
 - A written explanation of why the change improves output quality
 - Before/after example outputs demonstrating the improvement
@@ -87,7 +87,7 @@ Cupid uses trunk-based development. All work branches off `main` and merges back
 Types match the commit type tags defined below. Examples:
 
 ```
-feat/persona-card-synthesis
+feat/personalization-card-synthesis
 fix/chroma-namespace-isolation
 chore/update-langgraph-dependency
 docs/api-endpoint-reference
@@ -143,12 +143,12 @@ Cupid follows the Conventional Commits specification (v1.0.0), which is the same
 
 Scope refers to the subsystem being changed. Use one of:
 
-`persona` `research` `trend` `composer` `orchestrator` `analytics` `scheduler` `brand-safety` `notifications` `auth` `api` `db` `frontend` `infra` `agents`
+`personalization` `research` `trend` `composer` `orchestrator` `analytics` `scheduler` `brand-safety` `notifications` `auth` `api` `db` `frontend` `infra` `agents`
 
 ### Examples
 
 ```
-feat(persona): add incremental persona card re-synthesis on new writing sample
+feat(personalization): add incremental personalization card re-synthesis on new writing sample
 
 fix(composer): correct cosine similarity threshold comparison direction
 
@@ -181,7 +181,7 @@ BREAKING CHANGE: all existing sessions are invalidated. Clients must re-authenti
 The PR title must follow the same format as a commit message subject line:
 
 ```
-feat(persona): add hybrid BM25 + dense retrieval to persona agent
+feat(personalization): add hybrid BM25 + dense retrieval to personalization agent
 ```
 
 ### PR Description Template
@@ -203,7 +203,7 @@ if automated tests do not cover the full behavior.
 - [ ] Tests written and passing
 - [ ] Ruff check passes
 - [ ] No new dependencies added without justification in the PR description
-- [ ] No secrets, API keys, or personal data in the diff
+- [ ] No secrets, API keys, or personalizationl data in the diff
 - [ ] Documentation updated if behavior changed
 ```
 
@@ -234,7 +234,7 @@ if automated tests do not cover the full behavior.
 - No `print()` statements in application code. Use the logger from `app.core.logging`
 - No hardcoded strings for configuration values. All config goes through `app.config.settings`
 - Maximum function length is 40 lines. If a function exceeds this, it almost always should be decomposed.
-- Agent node functions must be pure with respect to the `CupidState` — they read from state, return a state update dict, and have no other side effects except logging
+- Agent node functions must be pure with respect to the `MemoryState` — they read from state, return a state update dict, and have no other side effects except logging
 
 ### TypeScript (Frontend)
 
@@ -269,7 +269,7 @@ if automated tests do not cover the full behavior.
 
 ### What Makes a Good Test
 
-A good test has one clear assertion per test function, a descriptive name that reads as a sentence (`test_persona_agent_returns_card_with_required_fields`), and no dependency on external services (mock everything that calls a network or database).
+A good test has one clear assertion per test function, a descriptive name that reads as a sentence (`test_personalization_agent_returns_card_with_required_fields`), and no dependency on external services (mock everything that calls a network or database).
 
 ---
 
@@ -289,7 +289,7 @@ The following will be closed without review:
 
 - PRs that add features not discussed in an issue
 - PRs where tests are failing
-- PRs that add API keys, credentials, or personal data to the repository
+- PRs that add API keys, credentials, or personalizationl data to the repository
 - PRs that bypass the commit message standard without explanation
 - PRs that introduce a new LLM API dependency when an existing free or local solution is sufficient for V1
 - PRs with PR descriptions that are empty or contain only "fixes bug"

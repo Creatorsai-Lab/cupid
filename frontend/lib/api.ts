@@ -6,11 +6,16 @@
  * cross-origin requests (localhost:3000 → localhost:8000).
  */
 
+// Why NEXT_PUBLIC_? Next.js only exposes env variables to the browser if they start with NEXT_PUBLIC_. Without this prefix, the variable only works on the server.
+// If the env variable is undefined/empty, use "http://localhost:8000" as fallback
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+
+//  interface is a blueprint (template), it describes the SHAPE of an object but doesn't create one
+// any object claiming to be this type MUST have these fields.
 interface ApiResponse<T> {
     success: boolean;
-    data: T;
+    data: T; // T: placeholder for generic type parameter
     error: string | null;
 }
 
@@ -22,43 +27,69 @@ interface UserData {
     created_at: string;
 }
 
+// extends means inheritance — ApiError is a special type of JavaScript's built-in Error.
+// It inherits all of Error's abilities (like .message, .stack for stack traces) and adds its own field: status.
 class ApiError extends Error {
     status: number;
 
     constructor(message: string, status: number) {
-        super(message);
-        this.status = status;
+        super(message); // super() calls the parent class's constructor. 
+        this.status = status; // `this` refers to the current object instance.
     }
 }
 
+// Shared error parser for both request functions
+function parseErrorMessage(json: any): string {
+    if (typeof json.detail === "string") return json.detail;
+    if (Array.isArray(json.detail)) return json.detail.map((e: { msg: string }) => e.msg).join(", ");
+    if (json.error) return json.error;
+    return "Something went wrong";
+}
+
+async function handle401(endpoint: string) {
+    if (endpoint !== "/api/v1/auth/login") {
+        const { useAuthStore } = await import("@/lib/store");
+        useAuthStore.getState().clearUser();
+        window.location.href = "/login";
+    }
+}
+
+// For auth/profile endpoints — backend wraps response in { success, data, error }
 async function request<T>(
     endpoint: string,
     options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
     const url = `${API_BASE}${endpoint}`;
-
     const res = await fetch(url, {
         headers: { "Content-Type": "application/json", ...options.headers },
-        credentials: "include",    // ← sends cookies cross-origin
+        credentials: "include",
         ...options,
     });
-
     const json = await res.json();
     if (!res.ok) {
-        // FastAPI returns detail as a string (401, 409) or array of objects (422)
-        let message = "Something went wrong";
-        if (typeof json.detail === "string") {
-            message = json.detail;
-        } else if (Array.isArray(json.detail)) {
-            // 422 validation errors — extract the first human-readable message
-            message = json.detail.map((e: { msg: string }) => e.msg).join(", ");
-        } else if (json.error) {
-            message = json.error;
-        }
-        throw new ApiError(message, res.status);
+        if (res.status === 401) await handle401(endpoint);
+        throw new ApiError(parseErrorMessage(json), res.status);
     }
-
     return json;
+}
+
+// For agent endpoints — backend returns the model directly (no wrapper)
+async function requestRaw<T>(
+    endpoint: string,
+    options: RequestInit = {}
+): Promise<T> {
+    const url = `${API_BASE}${endpoint}`;
+    const res = await fetch(url, {
+        headers: { "Content-Type": "application/json", ...options.headers },
+        credentials: "include",
+        ...options,
+    });
+    const json = await res.json();
+    if (!res.ok) {
+        if (res.status === 401) await handle401(endpoint);
+        throw new ApiError(parseErrorMessage(json), res.status);
+    }
+    return json as T;
 }
 
 
@@ -86,11 +117,16 @@ export const authApi = {
 // ── Profile API ──────────────────────────────────────────────
 
 interface ProfileData {
+    name: string;
+    nickname: string | null;
     bio: string | null;
-    field: string | null;
-    skills: string | null;
-    geography: string | null;
-    audience: string | null;
+    content_niche: string | null;
+    content_goal: string | null;
+    content_intent: string | null;
+    target_age_group: string | null;
+    target_country: string | null;
+    target_audience: string | null;
+    usp: string | null;
 }
 
 export const profileApi = {
@@ -98,11 +134,16 @@ export const profileApi = {
         request<ProfileData | null>("/api/v1/profile"),
 
     update: (body: {
+        name?: string;
+        nickname?: string;
         bio?: string;
-        field?: string;
-        skills?: string;
-        geography?: string;
-        audience?: string;
+        content_niche?: string;
+        content_goal?: string;
+        content_intent?: string;
+        target_age_group?: string;
+        target_country?: string;
+        target_audience?: string;
+        usp?: string;
     }) =>
         request<ProfileData>("/api/v1/profile", {
             method: "PUT",
@@ -110,6 +151,71 @@ export const profileApi = {
         }),
 };
 
-export type { ProfileData };
+// ── Agents API ───────────────────────────────────────────────
+
+interface GenerateRequest {
+    prompt: string;
+    content_type?: "Text" | "Image" | "Article" | "Video" | "Ads";
+    platform?: "All" | "Twitter" | "LinkedIn" | "Instagram" | "Facebook" | "YouTube";
+    length?: "Short" | "Medium" | "Long";
+    tone?: "Formal" | "Informative" | "Casual" | "GenZ";
+}
+
+interface GenerateResponse {
+    run_id: string;
+    status: string;
+    message: string;
+}
+
+interface SearchResult {
+    query: string;
+    title: string;
+    url: string;
+    snippet: string;
+    domain: string;
+    score: number;
+}
+
+interface PageContent {
+    url: string;
+    title: string;
+    domain: string;
+    text_content: string;
+    text_length: number;
+    image_url: string | null;
+}
+
+interface ResearchData {
+    generated_keywords: string[];
+    queries_used: string[];
+    top_search_results: SearchResult[];
+    fetched_pages: PageContent[];
+    research_summary: string;
+}
+
+interface RunStatusResponse {
+    run_id: string;
+    status: "pending" | "running" | "completed" | "failed";
+    created_at: string;
+    current_agent: string | null;
+    agents_completed: string[];
+    error: string | null;
+    research_data: ResearchData | null;
+    trend_data: any | null;
+    composer_output: any | null;
+}
+
+export const agentsApi = {
+    generate: (body: GenerateRequest): Promise<GenerateResponse> =>
+        requestRaw<GenerateResponse>("/api/v1/agents/generate", {
+            method: "POST",
+            body: JSON.stringify(body),
+        }),
+
+    getRunStatus: (runId: string): Promise<RunStatusResponse> =>
+        requestRaw<RunStatusResponse>(`/api/v1/agents/runs/${runId}`),
+};
+
+export type { ProfileData, GenerateRequest, GenerateResponse, RunStatusResponse, ResearchData, SearchResult, PageContent };
 export { ApiError };
 export type { UserData, ApiResponse };

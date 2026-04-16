@@ -1,23 +1,12 @@
 """
-UserProfile model — stores persona/personalization data.
+User personalization model.
 
-This is a one-to-one relationship with User:
-  - Each User has exactly one UserProfile
-  - The profile stores data used by the Persona Agent
+Single source of truth for persona fields used by all agents.
+Matches the frontend `PersonalizationForm` in:
+`frontend/app/(dashboard)/settings/page.tsx`.
 
-Database: cupid_db
-  ├── Table: users
-  │     ├── id (UUID, primary key)
-  │     ├── full_name
-  │     ├── email
-  │     └── hashed_password
-  └── Table: user_profiles
-        ├── id (UUID, primary key)
-        ├── user_id (foreign key → users.id)
-        ├── bio
-        ├── field
-        └── skills
-
+Relationship:
+- Each User has at most one personalization row.
 """
 
 import uuid
@@ -30,9 +19,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.user import Base
 
 
-class UserProfile(Base):
-    # __tablename__ tells SQLAlchemy: "When this Python class is converted to a database table, name it user_profiles
-    __tablename__ = "user_profiles"
+class UserPersonalization(Base):
+    __tablename__ = "user_personalization"
 
     # Mapped[uuid.UUID] tells Python's type system: "this field holds a UUID type"
     id: Mapped[uuid.UUID] = mapped_column(
@@ -51,12 +39,17 @@ class UserProfile(Base):
         index=True,
     )
 
-    # Persona fields — used by the AI agents
+    # Personalization fields (frontend `PersonalizationForm`)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    nickname: Mapped[str | None] = mapped_column(String(255), nullable=True)
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
-    field: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    skills: Mapped[str | None] = mapped_column(Text, nullable=True)
-    geography: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    audience: Mapped[str | None] = mapped_column(Text, nullable=True)
+    content_niche: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    content_goal: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    content_intent: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    target_age_group: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    target_country: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    target_audience: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    usp: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -68,8 +61,8 @@ class UserProfile(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    # Relationship — lets you access user.profile or profile.user
-    user = relationship("User", backref="profile", lazy="selectin")
+    # Relationship — lets you access user.personalization or personalization.user
+    user = relationship("User", backref="personalization", lazy="selectin")
 
     def __repr__(self) -> str:
-        return f"<UserProfile user_id={self.user_id}>"
+        return f"<UserPersonalization user_id={self.user_id}>"

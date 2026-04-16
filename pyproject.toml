@@ -1,7 +1,7 @@
 [project]
 name = "cupid-backend"
 version = "0.1.0"
-description = "Cupid — Multi-agent social media automation system"
+description = "Cupid - Multiagent ai content creation platform"
 requires-python = ">=3.11"
 
 # With pip, dependencies live in requirements.txt
