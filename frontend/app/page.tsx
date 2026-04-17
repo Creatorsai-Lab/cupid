@@ -2,17 +2,17 @@ import Link from "next/link";
 import { XCard, LinkedInCard, InstagramCard, FacebookCard, YouTubeCard, YouTubeShortsCard, PollCard } from "@/components/SocialMediaCards";
 
 const AGENTS = [
-  { n: "01", name: "Persona Agent",  desc: "Learns your voice from writing samples. Builds a living model of your tone, vocabulary, and domain depth." },
+  { n: "01", name: "Persona Agent", desc: "Learns your voice from writing samples. Builds a living model of your tone, vocabulary, and domain depth." },
   { n: "02", name: "Research Agent", desc: "Finds angles, sources, and ideas tailored to your expertise. Runs autonomously or on-demand." },
-  { n: "03", name: "Trend Agent",    desc: "Monitors Reddit, HackerNews, and RSS in your domain. Surfaces what is rising before it peaks." },
+  { n: "03", name: "Trend Agent", desc: "Monitors Reddit, HackerNews, and RSS in your domain. Surfaces what is rising before it peaks." },
   { n: "04", name: "Composer Agent", desc: "Assembles platform-specific posts. Runs a fidelity check — if it doesn't sound like you, it regenerates." },
 ];
 
 const TRAITS = [
-  { label: "Sounds exactly like you",    sub: "Not AI. Not a template." },
+  { label: "Sounds exactly like you", sub: "Not AI. Not a template." },
   { label: "Platform-native formatting", sub: "LinkedIn, X, Threads, Reddit." },
-  { label: "Trend-to-post in minutes",   sub: "Signal to publish, automated." },
-  { label: "Your data stays private",    sub: "Persona stored only for you." },
+  { label: "Trend-to-post in minutes", sub: "Signal to publish, automated." },
+  { label: "Your data stays private", sub: "Persona stored only for you." },
 ];
 
 export default function HomePage() {
@@ -36,10 +36,10 @@ export default function HomePage() {
             Cupid Agents get trained on your voice, tracks what's trending in your niche, and writes posts that sound authentically like you — across every platform, on your schedule.
           </p>
           <div className="flex gap-3 flex-wrap">
-            <Link href="/register" className="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:opacity-90 transition-opacity">
+            <Link href="/register" className="btn-primary">
               Start for free
             </Link>
-            <Link href="#agents" className="px-6 py-2.5 rounded-lg border border-border text-foreground text-sm hover:border-foreground/30 transition-colors">
+            <Link href="#agents" className="btn-secondary">
               See how it works
             </Link>
           </div>
@@ -87,64 +87,64 @@ export default function HomePage() {
       </section>
 
       <section id="agents" className="max-w-6xl mx-auto px-6 py-15 items-center ">
-      <h2 >For content creation lover and dedicated influencers!</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <XCard
-        name="Adya Prasad"
-        handle="adyaprasad"
-        content="Just shipped persona fidelity scoring for Cupid."
-        time="2h"
-      />
-      <FacebookCard
-      name="Rakul Bansal"
-      content="Just shipped persona fidelity scoring for Cupid."
-      />
-      <LinkedInCard
-      name="Rakul Bansal"
-      content="Just shipped persona fidelity scoring for Cupid."      
-      />
-      <InstagramCard
-      name="Rakul Bansal"
-      content="Just shipped persona fidelity scoring for Cupid."  />
+        <h2 >For content creation lover and dedicated influencers!</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <XCard
+            name="Adya Prasad"
+            handle="adyaprasad"
+            content="Just shipped persona fidelity scoring for Cupid."
+            time="2h"
+          />
+          <FacebookCard
+            name="Rakul Bansal"
+            content="Just shipped persona fidelity scoring for Cupid."
+          />
+          <LinkedInCard
+            name="Rakul Bansal"
+            content="Just shipped persona fidelity scoring for Cupid."
+          />
+          <InstagramCard
+            name="Rakul Bansal"
+            content="Just shipped persona fidelity scoring for Cupid." />
 
-      {/* No media — gradient placeholder */}
-      <YouTubeShortsCard
-        name="Adya Prasad"
-        handle="adyaprasad"
-        content="Just shipped persona fidelity scoring for Cupid AI. Cosine similarity hits different."
-      />
+          {/* No media — gradient placeholder */}
+          <YouTubeShortsCard
+            name="Adya Prasad"
+            handle="adyaprasad"
+            content="Just shipped persona fidelity scoring for Cupid AI. Cosine similarity hits different."
+          />
 
-      {/* With thumbnail */}
-      <YouTubeShortsCard
-        name="Adya Prasad"
-        handle="adyaprasad"
-        content="Just shipped persona fidelity scoring for Cupid AI."
-        mediaUrl="/short-thumbnail.jpg"
-      />
+          {/* With thumbnail */}
+          <YouTubeShortsCard
+            name="Adya Prasad"
+            handle="adyaprasad"
+            content="Just shipped persona fidelity scoring for Cupid AI."
+            mediaUrl="/short-thumbnail.jpg"
+          />
 
-      <YouTubeCard name="Rakul Bansal"
-      content="Just shipped persona fidelity scoring for Cupid." />
+          <YouTubeCard name="Rakul Bansal"
+            content="Just shipped persona fidelity scoring for Cupid." />
 
-      <PollCard
-        name="Adya Prasad"
-        handle="adyaprasad"
-        question="Which framework should I use for Cupid's agent layer?"
-        options={["LangGraph", "CrewAI", "AutoGen", "Build from scratch"]}
-        timeLeft="18h left"
-      />
+          <PollCard
+            name="Adya Prasad"
+            handle="adyaprasad"
+            question="Which framework should I use for Cupid's agent layer?"
+            options={["LangGraph", "CrewAI", "AutoGen", "Build from scratch"]}
+            timeLeft="18h left"
+          />
 
-      {/* Voted state — shows filled bars with winner highlighted */}
-      <PollCard
-        name="Adya Prasad"
-        handle="adyaprasad"
-        question="Which framework should I use for Cupid's agent layer?"
-        options={["LangGraph", "CrewAI", "AutoGen", "Build from scratch"]}
-        votes={[48, 27, 16, 9]}
-        totalVotes={1284}
-        timeLeft="18h left"
-      />
-       
-      </div>
+          {/* Voted state — shows filled bars with winner highlighted */}
+          <PollCard
+            name="Adya Prasad"
+            handle="adyaprasad"
+            question="Which framework should I use for Cupid's agent layer?"
+            options={["LangGraph", "CrewAI", "AutoGen", "Build from scratch"]}
+            votes={[48, 27, 16, 9]}
+            totalVotes={1284}
+            timeLeft="18h left"
+          />
+
+        </div>
       </section>
 
       {/* ── Traits ───────────────────────────────────────────── */}
@@ -255,16 +255,16 @@ function XCardImg() {
 /* ─── Agent Orbit SVG ────────────────────────────────────────── */
 function AgentOrbit() {
   const agents = [
-    { label: "Persona",  angle: 270, color: "#d47a03" },
-    { label: "Research", angle: 0,   color: "#2a3852" },
-    { label: "Trend",    angle: 90,  color: "#d47a03" },
+    { label: "Persona", angle: 270, color: "#d47a03" },
+    { label: "Research", angle: 0, color: "#2a3852" },
+    { label: "Trend", angle: 90, color: "#d47a03" },
     { label: "Composer", angle: 180, color: "#2a3852" },
   ];
   const cx = 190, cy = 190, r = 110;
 
   return (
     <svg width="340" height="340" viewBox="0 0 380 380" fill="none" className="max-w-full h-auto">
-      <circle cx={cx} cy={cy} r={r}      stroke="#e8ddd0" strokeWidth="1" strokeDasharray="4 6" />
+      <circle cx={cx} cy={cy} r={r} stroke="#e8ddd0" strokeWidth="1" strokeDasharray="4 6" />
       <circle cx={cx} cy={cy} r={r + 28} stroke="#d47a03" strokeWidth="0.5" strokeOpacity="0.2" />
       <circle cx={cx} cy={cy} r={28} fill="#fff6ed" stroke="#d47a03" strokeWidth="1" />
       <circle cx={cx} cy={cy} r={20} fill="#d47a03" fillOpacity="0.08" />

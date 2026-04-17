@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 
 const TABS = [
   { id: "personalization", label: "Personalization", icon: User },
-  { id: "integration", label: "Integration", icon: Workflow },
+  { id: "connect", label: "Connect", icon: Workflow },
   { id: "settings", label: "Settings", icon: Settings },
   { id: "plan", label: "Plan", icon: Sparkles },
   { id: "help", label: "Help", icon: HelpCircle }
@@ -90,6 +90,7 @@ export default function SettingsPage() {
           {activeTab === "personalization" && <PersonalizationTab userName={user?.full_name} userEmail={user?.email} />}
           {activeTab === "plan" && <PlanTab />}
           {activeTab === "settings" && <SettingsTab />}
+          {activeTab === "connect" && <ConnectTab />}
           {activeTab === "help" && <HelpTab />}
         </div>
       </main>
@@ -176,7 +177,7 @@ interface PersonalizationForm {
 }
 
 const EMPTY: PersonalizationForm = {
-  name: "", nickname:"", bio: "",
+  name: "", nickname: "", bio: "",
   content_niche: "", content_goal: "", content_intent: "",
   target_age_group: "", target_country: "",
   target_audience: "", usp: "",
@@ -448,6 +449,84 @@ function SettingsTab() {
           Sign out
         </button>
       </div>
+    </div>
+  );
+}
+
+// Connect Tab
+const socialPlatforms = [
+  {
+    name: "Instagram",
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
+        <path d="M7 2C4.2 2 2 4.2 2 7v10c0 2.8 2.2 5 5 5h10c2.8 0 5-2.2 5-5V7c0-2.8-2.2-5-5-5H7zm5 5a5 5 0 110 10 5 5 0 010-10zm6.5-1.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+      </svg>
+    ),
+  },
+  {
+    name: "Twitter",
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
+        <path d="M22 5.8c-.8.4-1.6.6-2.4.7a4.1 4.1 0 001.8-2.3c-.8.5-1.7.8-2.6 1a4.1 4.1 0 00-7 3.7A11.7 11.7 0 013 4.9a4.1 4.1 0 001.3 5.5c-.6 0-1.2-.2-1.7-.5 0 2 1.4 3.8 3.3 4.2-.3.1-.7.2-1 .2-.3 0-.5 0-.8-.1.5 1.7 2.1 3 3.9 3a8.3 8.3 0 01-5.1 1.8A8.6 8.6 0 002.5 20a11.7 11.7 0 006.3 1.8c7.6 0 11.7-6.3 11.7-11.7v-.5c.8-.6 1.5-1.3 2-2.1z" />
+      </svg>
+    ),
+  },
+  {
+    name: "YouTube",
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
+        <path d="M23 7.5a3 3 0 00-2.1-2.1C18.8 5 12 5 12 5s-6.8 0-8.9.4A3 3 0 001 7.5 31.5 31.5 0 001 12a31.5 31.5 0 000 4.5 3 3 0 002.1 2.1C5.2 19 12 19 12 19s6.8 0 8.9-.4a3 3 0 002.1-2.1A31.5 31.5 0 0023 12a31.5 31.5 0 000-4.5zM10 15V9l5 3-5 3z" />
+      </svg>
+    ),
+  },
+  {
+    name: "LinkedIn",
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
+        <path d="M6.94 6.5A1.94 1.94 0 115 4.56 1.94 1.94 0 016.94 6.5zM5 8.5h3.9V19H5zm6.5 0h3.7v1.4h.1a4 4 0 013.6-2c3.8 0 4.5 2.5 4.5 5.7V19h-3.9v-4.8c0-1.1 0-2.6-1.6-2.6s-1.8 1.2-1.8 2.5V19h-3.9z" />
+      </svg>
+    ),
+  },
+  {
+    name: "WhatsApp",
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
+        <path d="M12 2a10 10 0 00-8.6 15l-1.4 5 5-1.3A10 10 0 1012 2zm0 18a8 8 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1112 20zm4.3-6.2c-.2-.1-1.2-.6-1.4-.7-.2-.1-.3-.1-.5.1s-.6.7-.7.8c-.1.1-.2.2-.4.1a6.5 6.5 0 01-1.9-1.2 7.2 7.2 0 01-1.3-1.6c-.1-.2 0-.3.1-.4l.3-.4.2-.3a.4.4 0 000-.4c0-.1-.5-1.3-.7-1.8-.2-.5-.4-.4-.5-.4h-.4a.8.8 0 00-.6.3 2.5 2.5 0 00-.8 1.8 4.3 4.3 0 001 2.2 9.7 9.7 0 003.7 3.4 12.4 12.4 0 001.2.4 2.8 2.8 0 001.3.1 2.1 2.1 0 001.4-1c.2-.3.2-.6.2-.7 0-.1-.2-.2-.4-.3z" />
+      </svg>
+    ),
+  },
+  {
+    name: "Facebook",
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
+        <path d="M22 12a10 10 0 10-11.5 9.9v-7h-2.3V12h2.3V9.8c0-2.3 1.4-3.6 3.5-3.6 1 0 2 .2 2 .2v2.2h-1.1c-1.1 0-1.5.7-1.5 1.4V12h2.6l-.4 2.9h-2.2v7A10 10 0 0022 12z" />
+      </svg>
+    ),
+  },
+];
+
+function ConnectTab() {
+  return (
+    <div className="space-y-4">
+      {socialPlatforms.map((platform) => (
+        <div
+          key={platform.name}
+          className="flex items-center justify-between p-4 rounded-xl border bg-muted/40 hover:bg-muted transition"
+        >
+          {/* LEFT: ICON + NAME */}
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-background shadow-sm">
+              {platform.icon}
+            </div>
+            <span className="font-medium">{platform.name}</span>
+          </div>
+
+          {/* RIGHT: BUTTON */}
+          <button className="px-4 py-1.5 text-sm rounded-lg border hover:bg-primary hover:text-white transition">
+            Connect
+          </button>
+        </div>
+      ))}
     </div>
   );
 }

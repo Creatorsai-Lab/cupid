@@ -27,6 +27,9 @@ python_version = "3.11"
 strict = false
 ignore_missing_imports = true
 
+[tool.pyrefly]
+# ignore missing imports globally
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
