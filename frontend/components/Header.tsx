@@ -8,7 +8,7 @@ import { useAuthStore } from "@/lib/store";
 import {
     CircleFadingPlus,
     Flame,
-    BellRing,
+    History,
     CalendarCheck,
     Settings,
     CircleDollarSign,
@@ -18,7 +18,7 @@ import Image from "next/image";
 const NAV_ITEMS = [
     { href: "/create", icon: CircleFadingPlus, label: "Create" },
     { href: "/trends", icon: Flame, label: "Trends" },
-    { href: "/queue", icon: BellRing, label: "Queue" },
+    { href: "/history", icon: History, label: "History" },
     { href: "/schedule", icon: CalendarCheck, label: "Schedule" },
     { href: "/earn", icon: CircleDollarSign, label: "Earn" },
     { href: "/settings", icon: Settings, label: "Settings" },
