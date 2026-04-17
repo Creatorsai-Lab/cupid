@@ -4,6 +4,10 @@ Agent API Router - Endpoints for triggering and monitoring agent runs.
 Endpoints:
 - POST /api/v1/agents/generate → Trigger agent pipeline (async)
 - GET /api/v1/agents/runs/{run_id} → Poll run status and results
+
+Pipeline order:
+    1. Personalization Agent — generates 5 search queries via Gemini
+    2. Research Agent       — runs web search + extraction on those queries
 """
 from __future__ import annotations
 
@@ -24,23 +28,22 @@ from app.models.user import User
 from app.routers.auth import get_current_user
 from app.models.profile import UserPersonalization
 from app.agents.state import MemoryState
+from app.agents.personalization.agent import personalization_node
 from app.agents.research.agent import research_node
 
 router = APIRouter(prefix="/api/v1/agents", tags=["agents"])
 
 
-# In-memory storage for agent runs (V1 MVP)
-# In production, this should be Redis or PostgreSQL
+# In-memory run storage (V1 MVP — replace with Redis/PostgreSQL for production)
 AGENT_RUNS: dict[str, dict] = {}
 
-# Strong references to background tasks so they aren't garbage-collected
+# Strong references to background tasks so they aren't GC'd mid-flight
 _background_tasks: set[asyncio.Task] = set()
 
 
-# ── Request/Response Schemas ─────────────────────────────────
+# ── Request / Response Schemas ────────────────────────────────
 
 class GenerateRequest(BaseModel):
-    """Request body for POST /agents/generate"""
     prompt: str
     content_type: Literal["Text", "Image", "Article", "Video", "Ads", "Poll"] = "Text"
     platform: Literal["All", "Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube"] = "All"
@@ -49,26 +52,25 @@ class GenerateRequest(BaseModel):
 
 
 class GenerateResponse(BaseModel):
-    """Response for POST /agents/generate"""
     run_id: str
     status: str
     message: str
 
 
 class RunStatusResponse(BaseModel):
-    """Response for GET /agents/runs/{run_id}"""
     run_id: str
     status: Literal["pending", "running", "completed", "failed"]
     created_at: datetime
     current_agent: str | None = None
     agents_completed: list[str] = []
     error: str | None = None
+    personalization_queries: list[str] = []
     research_data: dict | None = None
     trend_data: dict | None = None
     composer_output: dict | None = None
 
 
-# ── Background Task Functions ────────────────────────────────
+# ── Background Pipeline ───────────────────────────────────────
 
 async def run_agent_pipeline(
     run_id: str,
@@ -77,57 +79,72 @@ async def run_agent_pipeline(
     personalization: dict[str, Any],
 ) -> None:
     """
-    Background task that executes the agent pipeline.
-
-    V1: Calls research_node directly (no LangGraph overhead for a
-    single-agent flow). When V2 adds more agents, swap this back
-    to the LangGraph orchestrator.
+    Sequential agent pipeline:
+        1. personalization_node  →  writes personalization_queries to state
+        2. research_node         →  reads queries, runs search + extraction
     """
     try:
-        logger.info(f"[Pipeline] Starting run {run_id} — prompt: {request.prompt[:60]!r}")
+        logger.info("[Pipeline] Starting run %s — prompt: %r", run_id, request.prompt[:60])
         AGENT_RUNS[run_id]["status"] = "running"
 
-        # Build the state dict that research_node expects
+        # ── Initial state ─────────────────────────────────────
         state: MemoryState = cast(
             MemoryState,
             {
-            "run_id": run_id,
-            "user_id": user_id,
-            "user_prompt": request.prompt,
-            "content_type": request.content_type,
-            "target_platform": request.platform,
-            "content_length": request.length,
-            "tone": request.tone,
-            "personalization": personalization,
-            "agents_completed": [],
-            "status": "running",
+                "run_id": run_id,
+                "user_id": user_id,
+                "user_prompt": request.prompt,
+                "content_type": request.content_type,
+                "target_platform": request.platform,
+                "content_length": request.length,
+                "tone": request.tone,
+                "personalization": personalization,
+                "personalization_queries": [],
+                "agents_completed": [],
+                "status": "running",
             },
         )
 
-        # Call research agent directly — no LangGraph indirection for V1
-        result = await research_node(state)
+        # ── Step 1: Personalization Agent ─────────────────────
+        logger.info("[Pipeline] Running personalization agent…")
+        AGENT_RUNS[run_id]["current_agent"] = "personalization"
 
-        # Merge the agent's output into the stored run state
-        AGENT_RUNS[run_id].update(result)
+        p_result = await personalization_node(state)
+        AGENT_RUNS[run_id].update(p_result)
 
-        # Only mark completed if the agent didn't set status to "failed"
+        # Merge output into state so Research Agent sees the queries
+        state = cast(MemoryState, {**state, **p_result})
+
+        logger.info(
+            "[Pipeline] Personalization done — %d queries generated",
+            len(p_result.get("personalization_queries", [])),
+        )
+
+        # ── Step 2: Research Agent ────────────────────────────
+        logger.info("[Pipeline] Running research agent…")
+        AGENT_RUNS[run_id]["current_agent"] = "research"
+
+        r_result = await research_node(state)
+        AGENT_RUNS[run_id].update(r_result)
+
+        rd = r_result.get("research_data") or {}
+        logger.info(
+            "[Pipeline] Research done — sources: %d | pages: %d",
+            len(rd.get("top_search_results", [])),
+            len(rd.get("fetched_pages", [])),
+        )
+
+        # Mark completed (unless an agent already set status to "failed")
         if AGENT_RUNS[run_id].get("status") != "failed":
             AGENT_RUNS[run_id]["status"] = "completed"
 
-        rd = result.get("research_data") or {}
-        logger.info(
-            f"[Pipeline] Completed run {run_id} — "
-            f"sources: {len(rd.get('top_search_results', []))} | "
-            f"pages: {len(rd.get('fetched_pages', []))}"
-        )
-
-    except Exception as e:
-        logger.error(f"[Pipeline] FAILED run {run_id}: {e}", exc_info=True)
+    except Exception as exc:
+        logger.error("[Pipeline] FAILED run %s: %s", run_id, exc, exc_info=True)
         AGENT_RUNS[run_id]["status"] = "failed"
-        AGENT_RUNS[run_id]["error"] = str(e)
+        AGENT_RUNS[run_id]["error"] = str(exc)
 
 
-# ── API Endpoints ────────────────────────────────────────────
+# ── API Endpoints ─────────────────────────────────────────────
 
 @router.post("/generate", response_model=GenerateResponse)
 async def generate_content(
@@ -138,16 +155,8 @@ async def generate_content(
     """
     Trigger the agent pipeline to generate content.
 
-    Flow:
-    1. Validate user is authenticated
-    2. Fetch user profile for personalization
-    3. Create run_id and initialize state
-    4. Trigger background task
-    5. Return run_id immediately
-
-    The client should poll GET /agents/runs/{run_id} for results.
+    Returns a run_id immediately. Poll GET /agents/runs/{run_id} for results.
     """
-    # Fetch user profile
     from sqlalchemy import select
 
     stmt = select(UserPersonalization).where(
@@ -156,7 +165,6 @@ async def generate_content(
     result = await db.execute(stmt)
     profile = result.scalar_one_or_none()
 
-    # Build personalization payload (matches Settings `PersonalizationForm`)
     personalization = {
         "name": (profile.name if profile else current_user.full_name) or "",
         "nickname": profile.nickname if profile else None,
@@ -170,11 +178,9 @@ async def generate_content(
         "usp": profile.usp if profile else None,
     }
 
-    # Create run
     run_id = str(uuid.uuid4())
 
-    # Initialize state
-    initial_state: dict[str, Any] = {
+    AGENT_RUNS[run_id] = {
         "run_id": run_id,
         "user_id": str(current_user.id),
         "created_at": datetime.now(timezone.utc),
@@ -184,14 +190,13 @@ async def generate_content(
         "content_length": request.length,
         "tone": request.tone,
         "personalization": personalization,
+        "personalization_queries": [],
         "agents_completed": [],
+        "current_agent": None,
         "status": "pending",
         "error": None,
     }
 
-    AGENT_RUNS[run_id] = initial_state  # type: ignore
-
-    # Launch as an async task with a stored reference to prevent GC
     task = asyncio.create_task(
         run_agent_pipeline(
             run_id=run_id,
@@ -215,26 +220,15 @@ async def get_run_status(
     run_id: str,
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Get the status and results of an agent run.
-
-    Returns:
-    - Status (pending/running/completed/failed)
-    - Completed agents
-    - Research data (if completed)
-    - Error message (if failed)
-    """
-    # Check if run exists
+    """Get the status and results of an agent run."""
     if run_id not in AGENT_RUNS:
         raise HTTPException(status_code=404, detail="Run not found")
 
     state = AGENT_RUNS[run_id]
 
-    # Verify user owns this run
     if state.get("user_id") != str(current_user.id):
         raise HTTPException(status_code=403, detail="Access denied")
 
-    # Build response
     return RunStatusResponse(
         run_id=run_id,
         status=state.get("status", "pending"),
@@ -242,6 +236,7 @@ async def get_run_status(
         current_agent=state.get("current_agent"),
         agents_completed=state.get("agents_completed", []),
         error=state.get("error"),
+        personalization_queries=state.get("personalization_queries", []),
         research_data=state.get("research_data"),
         trend_data=state.get("trend_data"),
         composer_output=state.get("composer_output"),

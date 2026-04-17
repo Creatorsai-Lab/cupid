@@ -22,14 +22,12 @@ Public API::
 from app.agents.research.agent import (
     research_node,
     build_research_graph,
-    generate_queries,
 )
 from app.agents.research.search import SearchPipeline, SearchResult
 
 __all__ = [
     "research_node",
     "build_research_graph",
-    "generate_queries",
     "SearchPipeline",
     "SearchResult",
 ]

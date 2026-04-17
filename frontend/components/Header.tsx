@@ -6,19 +6,21 @@ import { useAuthStore } from "@/lib/store";
 
 
 import {
-    Plus,
+    CircleFadingPlus,
     Flame,
     BellRing,
     CalendarCheck,
     Settings,
+    CircleDollarSign,
 } from "lucide-react";
 import Image from "next/image";
 
 const NAV_ITEMS = [
-    { href: "/create", icon: Plus, label: "Create" },
+    { href: "/create", icon: CircleFadingPlus, label: "Create" },
     { href: "/trends", icon: Flame, label: "Trends" },
     { href: "/queue", icon: BellRing, label: "Queue" },
     { href: "/schedule", icon: CalendarCheck, label: "Schedule" },
+    { href: "/earn", icon: CircleDollarSign, label: "Earn" },
     { href: "/settings", icon: Settings, label: "Settings" },
 ] as const;
 

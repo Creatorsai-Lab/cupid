@@ -200,6 +200,7 @@ interface RunStatusResponse {
     current_agent: string | null;
     agents_completed: string[];
     error: string | null;
+    personalization_queries: string[];
     research_data: ResearchData | null;
     trend_data: any | null;
     composer_output: any | null;

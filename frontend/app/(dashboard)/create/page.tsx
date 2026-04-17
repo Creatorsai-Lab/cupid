@@ -3,13 +3,22 @@
 import { useState, useEffect } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuthStore } from "@/lib/store";
-import { Send, Loader2, ExternalLink } from "lucide-react";
+import { Send, Loader2, ExternalLink, Search } from "lucide-react";
 import { agentsApi, type ResearchData, type PageContent, type SearchResult } from "@/lib/api";
 
 const CONTENT_TYPES = ["Text", "Image", "Article", "Video", "Ads", "Poll"] as const;
 const PLATFORMS = ["All", "Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube"] as const;
 const LENGTHS = ["Short", "Medium", "Long"] as const;
 const TONES = ["Formal", "Informative", "Casual", "GenZ"] as const;
+
+// ── Agent status label ────────────────────────────────────────
+
+function agentStatusLabel(currentAgent: string | null, status: string): string {
+    if (status === "pending") return "Starting up…";
+    if (currentAgent === "personalization") return "Personalization agent is thinking…";
+    if (currentAgent === "research") return "Research agent is searching…";
+    return status;
+}
 
 // ── Main Page ────────────────────────────────────────────────
 
@@ -24,6 +33,9 @@ export default function CreatePage() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [runId, setRunId] = useState<string | null>(null);
     const [agentStatus, setAgentStatus] = useState<string>("");
+    const [currentAgent, setCurrentAgent] = useState<string | null>(null);
+    const [agentsCompleted, setAgentsCompleted] = useState<string[]>([]);
+    const [personalizationQueries, setPersonalizationQueries] = useState<string[]>([]);
     const [researchData, setResearchData] = useState<ResearchData | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -37,6 +49,13 @@ export default function CreatePage() {
             try {
                 const res = await agentsApi.getRunStatus(runId);
                 setAgentStatus(res.status);
+                setCurrentAgent(res.current_agent);
+                setAgentsCompleted(res.agents_completed);
+
+                // Show personalization queries as soon as they land
+                if (res.personalization_queries?.length > 0) {
+                    setPersonalizationQueries(res.personalization_queries);
+                }
 
                 if (res.status === "completed") {
                     setResearchData(res.research_data);
@@ -62,6 +81,9 @@ export default function CreatePage() {
         setIsGenerating(true);
         setError(null);
         setResearchData(null);
+        setPersonalizationQueries([]);
+        setAgentsCompleted([]);
+        setCurrentAgent(null);
         setAgentStatus("pending");
 
         try {
@@ -96,7 +118,10 @@ export default function CreatePage() {
                                 fontSize: "clamp(1.6rem, 3vw, 2rem)",
                                 color: "var(--color-text)",
                             }}>
-                            What&apos;s on your mind,{" "}<em style={{ color: "var(--color-primary)", fontStyle: "italic" }}>{firstName}</em>?
+                            What&apos;s on your mind,{" "}
+                            <em style={{ color: "var(--color-primary)", fontStyle: "italic" }}>
+                                {firstName}
+                            </em>?
                         </h1>
                     </div>
 
@@ -129,7 +154,6 @@ export default function CreatePage() {
                                     {isGenerating ? (
                                         <>
                                             <Loader2 size={14} className="animate-spin" />
-                                            <span className="text-xs capitalize">{agentStatus || "running"}</span>
                                         </>
                                     ) : (
                                         <Send size={14} />
@@ -139,7 +163,7 @@ export default function CreatePage() {
                         </div>
                     </div>
 
-                    {/*  Error Status */}
+                    {/* Error */}
                     {error && (
                         <div
                             className="mb-6 p-4 rounded-xl text-sm"
@@ -154,7 +178,7 @@ export default function CreatePage() {
                         </div>
                     )}
 
-                    {/* Agent Progress Status */}
+                    {/* Agent Progress Banner */}
                     {isGenerating && (
                         <div
                             className="mb-8 flex items-center gap-3 p-4 rounded-xl"
@@ -170,22 +194,26 @@ export default function CreatePage() {
                                     style={{ backgroundColor: "var(--color-primary)" }}
                                 />
                             </span>
-                            <span
-                                className="text-sm"
-                                style={{ fontFamily: "var(--font-body)", color: "var(--color-text)" }}
-                            >
-                                Research agent is working…
+                            <span className="text-sm" style={{ fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+                                {agentStatusLabel(currentAgent, agentStatus)}
                             </span>
-                            <span
-                                className="ml-auto text-xs capitalize"
-                                style={{ color: "var(--color-muted)" }}
-                            >
-                                {agentStatus}
+                            <span className="ml-auto text-xs capitalize" style={{ color: "var(--color-muted)" }}>
+                                {agentsCompleted.length > 0
+                                    ? `${agentsCompleted.join(" → ")} ✓`
+                                    : agentStatus}
                             </span>
                         </div>
                     )}
 
-                    {/* ── Research Results ────────────────────────── */}
+                    {/* Personalization Queries — shown as soon as they arrive */}
+                    {personalizationQueries.length > 0 && (
+                        <PersonalizationQueriesPanel
+                            queries={personalizationQueries}
+                            isResearching={isGenerating && currentAgent === "research"}
+                        />
+                    )}
+
+                    {/* Research Results */}
                     {researchData && !isGenerating && (
                         <ResearchResults data={researchData} />
                     )}
@@ -193,6 +221,71 @@ export default function CreatePage() {
                 </div>
             </main>
         </ProtectedRoute>
+    );
+}
+
+// ── Personalization Queries Panel ─────────────────────────────
+
+function PersonalizationQueriesPanel({
+    queries,
+    isResearching,
+}: {
+    queries: string[];
+    isResearching: boolean;
+}) {
+    return (
+        <div
+            className="mb-8 rounded-xl overflow-hidden"
+            style={{ border: "1px solid var(--color-border)", backgroundColor: "white" }}
+        >
+            {/* Header */}
+            <div
+                className="flex items-center gap-2 px-5 py-3"
+                style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "#fff6ed" }}
+            >
+                <Search size={13} style={{ color: "var(--color-primary)" }} />
+                <span
+                    className="text-xs font-medium uppercase tracking-wide"
+                    style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}
+                >
+                    Personalization Agent — Generated Queries
+                </span>
+                {isResearching && (
+                    <span
+                        className="ml-auto text-xs flex items-center gap-1"
+                        style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
+                    >
+                        <Loader2 size={11} className="animate-spin" />
+                        Searching…
+                    </span>
+                )}
+            </div>
+
+            {/* Query list */}
+            <ul className="px-5 py-4 space-y-2">
+                {queries.map((q, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                        <span
+                            className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium mt-0.5"
+                            style={{
+                                backgroundColor: "#fff6ed",
+                                color: "var(--color-primary)",
+                                border: "1px solid var(--color-primary)",
+                                fontFamily: "var(--font-body)",
+                            }}
+                        >
+                            {i + 1}
+                        </span>
+                        <span
+                            className="text-sm leading-relaxed"
+                            style={{ color: "var(--color-text)", fontFamily: "var(--font-body)" }}
+                        >
+                            {q}
+                        </span>
+                    </li>
+                ))}
+            </ul>
+        </div>
     );
 }
 
@@ -231,12 +324,11 @@ function SelectDropdown({
     );
 }
 
-// ── Research Results container ───────────────────────────────
+// ── Research Results ─────────────────────────────────────────
 
 function ResearchResults({ data }: { data: ResearchData }) {
     const results = data.top_search_results ?? [];
     const pages = data.fetched_pages ?? [];
-    const keywords = data.generated_keywords ?? [];
     const hasResults = results.length > 0 || pages.length > 0;
 
     return (
@@ -247,47 +339,13 @@ function ResearchResults({ data }: { data: ResearchData }) {
                 style={{ border: "1px solid #bbf7d0", backgroundColor: "#f0fdf4" }}
             >
                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: "#22c55e" }} />
-                <span
-                    className="text-sm"
-                    style={{ fontFamily: "var(--font-body)", color: "#166534" }}
-                >
+                <span className="text-sm" style={{ fontFamily: "var(--font-body)", color: "#166534" }}>
                     Research complete
                 </span>
-                <span
-                    className="ml-auto text-xs"
-                    style={{ color: "#16a34a", fontFamily: "var(--font-body)" }}
-                >
+                <span className="ml-auto text-xs" style={{ color: "#16a34a", fontFamily: "var(--font-body)" }}>
                     {results.length} sources · {pages.length} pages
                 </span>
             </div>
-
-            {/* Keywords */}
-            {keywords.length > 0 && (
-                <div className="mb-6">
-                    <p
-                        className="text-xs font-medium uppercase tracking-wide mb-2"
-                        style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
-                    >
-                        Searched for
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                        {keywords.map((kw, i) => (
-                            <span
-                                key={i}
-                                className="px-3 py-1 rounded-full text-xs"
-                                style={{
-                                    border: "1px solid var(--color-primary)",
-                                    backgroundColor: "#fff6ed",
-                                    color: "var(--color-primary)",
-                                    fontFamily: "var(--font-body)",
-                                }}
-                            >
-                                {kw}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-            )}
 
             {/* Empty state */}
             {!hasResults && (
@@ -295,10 +353,7 @@ function ResearchResults({ data }: { data: ResearchData }) {
                     className="py-16 text-center rounded-xl"
                     style={{ border: "1px dashed var(--color-border)" }}
                 >
-                    <p
-                        className="text-sm"
-                        style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
-                    >
+                    <p className="text-sm" style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}>
                         No results found. Try a more specific topic.
                     </p>
                 </div>
@@ -354,30 +409,18 @@ function SourceCard({ result }: { result: SearchResult }) {
         >
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                    <span
-                        className="text-xs font-medium"
-                        style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}
-                    >
+                    <span className="text-xs font-medium" style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}>
                         {result.domain}
                     </span>
                     <span style={{ color: "var(--color-muted)", fontSize: "0.6rem" }}>·</span>
-                    <span
-                        className="text-xs"
-                        style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
-                    >
+                    <span className="text-xs" style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}>
                         score {(result.score ?? 0).toFixed(1)}
                     </span>
                 </div>
-                <p
-                    className="text-sm font-medium mb-1 line-clamp-1"
-                    style={{ color: "var(--color-text)", fontFamily: "var(--font-body)" }}
-                >
+                <p className="text-sm font-medium mb-1 line-clamp-1" style={{ color: "var(--color-text)", fontFamily: "var(--font-body)" }}>
                     {result.title}
                 </p>
-                <p
-                    className="text-xs line-clamp-2 leading-relaxed"
-                    style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
-                >
+                <p className="text-xs line-clamp-2 leading-relaxed" style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}>
                     {result.snippet}
                 </p>
             </div>
@@ -394,7 +437,6 @@ function PageCard({ page }: { page: PageContent }) {
             className="rounded-xl overflow-hidden"
             style={{ backgroundColor: "white", border: "1px solid var(--color-border)" }}
         >
-            {/* Featured image */}
             {page.image_url && (
                 <div className="w-full overflow-hidden" style={{ height: "200px", backgroundColor: "var(--color-bg-surface)" }}>
                     <img
@@ -409,19 +451,12 @@ function PageCard({ page }: { page: PageContent }) {
                 </div>
             )}
 
-            {/* Text content */}
             <div className="p-5">
                 <div className="flex items-center justify-between gap-2 mb-2">
-                    <span
-                        className="text-xs font-medium"
-                        style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}
-                    >
+                    <span className="text-xs font-medium" style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}>
                         {page.domain}
                     </span>
-                    <span
-                        className="text-xs"
-                        style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
-                    >
+                    <span className="text-xs" style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}>
                         {page.text_length.toLocaleString()} chars extracted
                     </span>
                 </div>
@@ -433,10 +468,7 @@ function PageCard({ page }: { page: PageContent }) {
                     {page.title}
                 </h4>
 
-                <p
-                    className="text-xs leading-relaxed mb-4"
-                    style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
-                >
+                <p className="text-xs leading-relaxed mb-4" style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}>
                     {page.text_content.substring(0, 400)}{page.text_content.length > 400 ? "…" : ""}
                 </p>
 

@@ -38,7 +38,8 @@ dist/
 .idea/
 *.swp
 *.swo
-
+.claude/
+.cursor/
 # ── OS files ─────────────────────────────────────────
 .DS_Store
 Thumbs.db

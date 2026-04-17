@@ -1,8 +1,8 @@
 """
-LangGraph Agent Orchestrator - Cupid's agent pipeline.
+LangGraph Agent Orchestrator — Cupid's multi-agent pipeline.
 
-For V1 (MVP), we're implementing a simple sequential flow:
-    User Input → Research Agent → Output
+Current flow (V1):
+    User Input → Personalization Agent → Research Agent → Output
 
 Future versions will add:
     User Input → Personalization → Research → Composer → Output
@@ -19,16 +19,13 @@ from langgraph.graph import StateGraph, END
 
 from app.agents.state import MemoryState
 from app.agents.research import research_node
+from app.agents.personalization import personalization_node
 
 class AgentsOrchestrator:
     """
     Orchestrates the Cupid agents pipeline using LangGraph.
-
     Current flow (V1):
-        START → research → END
-
-    Future flow (V2):
-        START (query) → personalization → research -> composer → END
+        START → personalization → research → END
     """
 
     def __init__(self):
@@ -48,20 +45,21 @@ class AgentsOrchestrator:
         workflow = StateGraph(MemoryState)
 
         # Add agent nodes
+        workflow.add_node("personalization", personalization_node)
         workflow.add_node("research", research_node)
 
         # Future nodes (commented for V1):
-        # workflow.add_node("personalization", personalization_node)
         # workflow.add_node("composer", composer_node)
 
         # Define flow
-        workflow.set_entry_point("research")
+        workflow.set_entry_point("personalization")
+        workflow.add_edge("personalization", "research")
         workflow.add_edge("research", END)
 
         # Future flow (V2):
         # workflow.set_entry_point("personalization")
         # workflow.add_edge("personalization", "research")
-        # workflow.add_edge("research", "trend")
+        # workflow.add_edge("research", "composer")
         # workflow.add_edge("composer", END)
 
         return workflow
@@ -105,6 +103,7 @@ class AgentsOrchestrator:
             "content_length": content_length,
             "tone": tone,
             "personalization": personalization or {},
+            "personalization_queries": [],
             "agents_completed": [],
             "status": "running",
             "error": None,
@@ -112,10 +111,8 @@ class AgentsOrchestrator:
 
         # Execute graph
         final_state = await self.compiled_graph.ainvoke(initial_state)
-
         # Mark as completed
         final_state["status"] = "completed"
-
         return final_state  # type: ignore
 
 

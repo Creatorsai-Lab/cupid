@@ -91,6 +91,7 @@ class MemoryState(TypedDict, total=False):
     # User profile context (from database)
     personalization: PersonalizationInfo
     # Agent outputs
+    personalization_queries: list[str]
     research_data: ResearchData
     composer_output: ComposerOutput
     # Execution tracking
