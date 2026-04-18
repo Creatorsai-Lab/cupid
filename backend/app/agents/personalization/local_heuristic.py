@@ -1,16 +1,12 @@
 """
 Local Heuristic Query Generator.
 
-Zero-LLM, deterministic query decomposition that produces personalized,
-angle-diversified search queries using structured NLP heuristics.
+Zero-LLM, deterministic query decomposition inspired by how Perplexity
+and Manus structure research lookups. Each angle uses a purpose-built
+query template — never a mechanical "topic + modifier" concat.
 
-Approach:
-    1. Extract the core entity/topic from the user prompt (noun phrase chunking)
-    2. Derive persona-aware modifiers from creator context
-    3. Template-fill 5 angle-specific query patterns
-    4. Rank and dedupe against each other
-
-Never raises — even on empty input it returns usable queries.
+The output reads like a human researcher's search history, not like
+a bag of keywords.
 
 No external dependencies beyond the standard library.
 """
@@ -20,9 +16,8 @@ import re
 from datetime import datetime
 from typing import Any
 
-# ─── Static lexicons ─────────────────────────────────────────────
+# ─── Lexicons ────────────────────────────────────────────────────
 
-# Words too generic to be the "topic" of a query
 _STOPWORDS: frozenset[str] = frozenset({
     "a", "an", "the", "this", "that", "these", "those", "and", "or", "but",
     "is", "are", "was", "were", "be", "been", "being", "have", "has", "had",
@@ -30,230 +25,227 @@ _STOPWORDS: frozenset[str] = frozenset({
     "can", "i", "you", "we", "they", "it", "he", "she", "what", "which",
     "who", "when", "where", "why", "how", "to", "of", "in", "on", "at",
     "for", "with", "by", "from", "about", "as", "into", "through", "want",
-    "need", "like", "know", "tell", "show", "make", "create", "write",
-    "post", "content", "tweet", "thread",
+    "need", "like", "know", "tell", "show", "write", "post", "content",
+    "tweet", "thread", "article", "some", "also",
 })
 
-# Filler modifiers — not useful as query terms
 _FILLER: frozenset[str] = frozenset({
-    "really", "very", "quite", "just", "simply", "basically", "actually",
-    "literally", "something", "anything", "everything", "stuff", "things",
-    "good", "bad", "nice", "great", "cool", "awesome",
+    "just", "really", "very", "simply", "basically", "actually", "literally",
+    "something", "anything", "everything", "stuff", "things", "good", "bad",
+    "great", "cool", "awesome", "nice",
 })
 
-# Niche-specific vocabulary boosters — added to queries when topic matches
-_NICHE_BOOSTERS: dict[str, dict[str, list[str]]] = {
+# Niche-specific config drives angle templates
+_NICHE_CONFIG: dict[str, dict[str, Any]] = {
     "ai/ml": {
-        "facts":      ["benchmark", "paper", "arxiv"],
-        "recency":    ["2025", "latest release"],
-        "expertise":  ["research", "ablation study"],
-        "practical":  ["implementation", "github", "tutorial"],
-        "contrarian": ["limitations", "failure modes"],
+        "expert_term":    "researchers",
+        "practical_verb": "implement",
+        "failure_term":   "limitations",
+        "recency_term":   "SOTA",
     },
     "software": {
-        "facts":      ["documentation", "specification"],
-        "recency":    ["2025", "release notes"],
-        "expertise":  ["architecture", "best practices"],
-        "practical":  ["tutorial", "example", "github"],
-        "contrarian": ["anti-pattern", "pitfalls"],
+        "expert_term":    "senior engineers",
+        "practical_verb": "build",
+        "failure_term":   "pitfalls",
+        "recency_term":   "best practices",
     },
     "fitness": {
-        "facts":      ["study", "meta-analysis", "research"],
-        "recency":    ["2025 guidelines"],
-        "expertise":  ["coach", "expert recommendation"],
-        "practical":  ["routine", "program", "how to"],
-        "contrarian": ["myths", "common mistakes"],
+        "expert_term":    "coaches",
+        "practical_verb": "train",
+        "failure_term":   "mistakes",
+        "recency_term":   "guidelines",
     },
     "finance": {
-        "facts":      ["data", "report", "statistics"],
-        "recency":    ["2025 market", "this quarter"],
-        "expertise":  ["analyst", "outlook"],
-        "practical":  ["strategy", "step by step"],
-        "contrarian": ["risks", "bear case"],
+        "expert_term":    "analysts",
+        "practical_verb": "invest in",
+        "failure_term":   "risks",
+        "recency_term":   "forecast",
     },
     "marketing": {
-        "facts":      ["case study", "benchmark"],
-        "recency":    ["2025 trends"],
-        "expertise":  ["framework", "playbook"],
-        "practical":  ["template", "example"],
-        "contrarian": ["what doesn't work"],
+        "expert_term":    "growth leads",
+        "practical_verb": "run",
+        "failure_term":   "what doesn't work",
+        "recency_term":   "trends",
     },
     "health": {
-        "facts":      ["clinical study", "research"],
-        "recency":    ["2025 guidelines"],
-        "expertise":  ["doctor", "specialist"],
-        "practical":  ["how to", "guide"],
-        "contrarian": ["side effects", "myths"],
+        "expert_term":    "doctors",
+        "practical_verb": "manage",
+        "failure_term":   "side effects",
+        "recency_term":   "guidelines",
     },
     "creator": {
-        "facts":      ["case study", "analytics"],
-        "recency":    ["2025 algorithm"],
-        "expertise":  ["creator interview", "breakdown"],
-        "practical":  ["template", "workflow"],
-        "contrarian": ["what failed"],
+        "expert_term":    "top creators",
+        "practical_verb": "grow",
+        "failure_term":   "mistakes to avoid",
+        "recency_term":   "algorithm updates",
     },
 }
 
-# Default angle modifiers — used when no niche match
-_DEFAULT_ANGLES: dict[str, list[str]] = {
-    "facts":      ["statistics", "data"],
-    "recency":    ["2025", "latest"],
-    "expertise":  ["expert analysis", "research"],
-    "practical":  ["guide", "how to"],
-    "contrarian": ["criticism", "drawbacks"],
+_DEFAULT_CONFIG: dict[str, Any] = {
+    "expert_term":    "experts",
+    "practical_verb": "use",
+    "failure_term":   "drawbacks",
+    "recency_term":   "trends",
 }
 
-# Audience sophistication mapping — affects vocabulary complexity
+# Audience sophistication modulates phrasing
 _AUDIENCE_HINTS: dict[str, str] = {
     "developer":    "technical",
     "engineer":     "technical",
     "researcher":   "academic",
+    "academic":     "academic",
     "student":      "beginner",
+    "beginner":     "beginner",
     "founder":      "strategic",
     "entrepreneur": "strategic",
+    "ceo":          "strategic",
     "marketer":     "applied",
     "designer":     "applied",
 }
 
 
-# ─── Core extraction ─────────────────────────────────────────────
-
-def _tokenize(text: str) -> list[str]:
-    """Lowercase, strip punctuation, preserve hyphenated terms."""
-    return re.findall(r"[A-Za-z0-9][A-Za-z0-9\-\+\.#]*", text.lower())
-
+# ─── Topic extraction ────────────────────────────────────────────
 
 def _extract_topic(prompt: str) -> str:
     """
-    Pull the core topic from a user prompt using noun-phrase-ish heuristics.
+    Pull core topic by stripping imperatives and noise.
 
-    Strategy:
-    - Drop imperatives ("write a post about X" → "X")
-    - Drop stopwords and fillers
-    - Keep proper nouns (capitalized in original), numbers, acronyms
-    - Preserve bigram entities (e.g. "vector database")
+    "Write a post about RAG pipelines" -> "RAG pipelines"
+    "Help me understand vector databases" -> "vector databases"
     """
-    # Remove common imperatives
     cleaned = re.sub(
-        r"^(write|create|make|generate|compose|give me|i want|help me with)\s+"
-        r"(a |an |the )?(post|tweet|thread|content|article)?\s*(about|on|for)?\s*",
+        r"^(please\s+)?(write|create|make|generate|compose|give me|"
+        r"i want|i need|help me (with|understand)|tell me about|explain)\s+"
+        r"(a |an |the )?"
+        r"(post|tweet|thread|article|content|piece|something)?\s*"
+        r"(about|on|for|regarding)?\s*",
         "",
         prompt.strip(),
         flags=re.IGNORECASE,
-    )
+    ).strip()
 
-    tokens = _tokenize(cleaned)
-    if not tokens:
-        return prompt.strip() or "the topic"
-
-    # Preserve original-case proper nouns before lowercasing
-    original_tokens = re.findall(r"[A-Za-z0-9][A-Za-z0-9\-\+\.#]*", cleaned)
+    tokens = re.findall(r"[A-Za-z0-9][A-Za-z0-9\-\+\.#]*", cleaned)
     proper_nouns = {
-        tok.lower() for tok in original_tokens
+        tok for tok in tokens
         if tok[0].isupper() and tok.lower() not in _STOPWORDS
     }
 
-    keep = [
-        tok for tok in tokens
-        if tok not in _STOPWORDS and tok not in _FILLER and len(tok) > 1
-    ]
-
-    # If we have proper nouns, they anchor the topic
-    if proper_nouns:
-        anchored = [tok for tok in keep if tok in proper_nouns]
-        remaining = [tok for tok in keep if tok not in proper_nouns]
-        keep = anchored + remaining
+    keep: list[str] = []
+    for tok in tokens:
+        if tok in proper_nouns:
+            keep.append(tok)
+        elif (
+            tok.lower() not in _STOPWORDS
+            and tok.lower() not in _FILLER
+            and len(tok) > 1
+        ):
+            keep.append(tok.lower())
 
     if not keep:
-        return cleaned.strip() or "the topic"
+        return prompt.strip() or "the topic"
 
-    # Cap to ~5 words so the topic stays crisp
     return " ".join(keep[:5])
 
 
-# ─── Persona processing ──────────────────────────────────────────
+# ─── Persona mapping ─────────────────────────────────────────────
 
-def _resolve_niche_key(niche: str) -> str:
-    """Map a user's niche string to our booster lexicon key."""
+def _resolve_niche(niche: str) -> dict[str, Any]:
     n = niche.lower()
-    if any(k in n for k in ("ai", "ml", "machine learning", "data scien")):
-        return "ai/ml"
-    if any(k in n for k in ("software", "web dev", "programming", "coding")):
-        return "software"
-    if any(k in n for k in ("fitness", "gym", "workout", "exercise")):
-        return "fitness"
-    if any(k in n for k in ("finance", "invest", "crypto", "stock", "money")):
-        return "finance"
-    if any(k in n for k in ("market", "growth", "seo", "ads")):
-        return "marketing"
-    if any(k in n for k in ("health", "wellness", "nutrition", "mental")):
-        return "health"
-    if any(k in n for k in ("creator", "content", "youtube", "podcast")):
-        return "creator"
-    return ""
+    if any(k in n for k in ("ai", "ml", "machine learning", "data scien", "llm")):
+        return _NICHE_CONFIG["ai/ml"]
+    if any(k in n for k in ("software", "web dev", "programming", "coding", "engineer")):
+        return _NICHE_CONFIG["software"]
+    if any(k in n for k in ("fitness", "gym", "workout", "exercise", "bodybuilding")):
+        return _NICHE_CONFIG["fitness"]
+    if any(k in n for k in ("finance", "invest", "crypto", "stock", "money", "trading")):
+        return _NICHE_CONFIG["finance"]
+    if any(k in n for k in ("market", "growth", "seo", "ads", "brand")):
+        return _NICHE_CONFIG["marketing"]
+    if any(k in n for k in ("health", "wellness", "nutrition", "mental", "medical")):
+        return _NICHE_CONFIG["health"]
+    if any(k in n for k in ("creator", "youtube", "podcast", "influencer")):
+        return _NICHE_CONFIG["creator"]
+    return _DEFAULT_CONFIG
 
 
-def _audience_sophistication(audience: str) -> str:
+def _audience_tier(audience: str) -> str:
     a = audience.lower()
-    for keyword, level in _AUDIENCE_HINTS.items():
+    for keyword, tier in _AUDIENCE_HINTS.items():
         if keyword in a:
-            return level
-    return ""
+            return tier
+    return "general"
 
 
-def _region_modifier(country: str) -> str:
-    """Add regional specificity only when it meaningfully narrows results."""
+def _region(country: str) -> str:
     c = country.strip().lower()
-    if not c or c in ("global", "worldwide", "all"):
-        return ""
-    # Multi-country → skip
-    if "," in c or "/" in c:
+    if not c or c in ("global", "worldwide", "all") or "," in c:
         return ""
     return country.strip()
 
 
-# ─── Query assembly ──────────────────────────────────────────────
+# ─── Per-angle query templates ───────────────────────────────────
+#
+# Each function builds one natural query phrased the way a researcher
+# would actually type it into Google. No topic+junk concatenation.
 
-def _assemble_query(topic: str, modifiers: list[str], region: str = "") -> str:
-    """Build a single query from topic + angle modifiers + optional region."""
-    parts = [topic]
-    parts.extend(m for m in modifiers if m)
+def _q_facts(topic: str, cfg: dict[str, Any], tier: str) -> str:
+    if tier == "academic":
+        return f"{topic} empirical study results"
+    if tier == "technical":
+        return f"{topic} benchmark performance data"
+    if tier == "beginner":
+        return f"{topic} explained simply"
+    if tier == "strategic":
+        return f"{topic} market size statistics"
+    return f"{topic} key statistics"
+
+
+def _q_recency(topic: str, cfg: dict[str, Any], tier: str, year: str, region: str) -> str:
+    term = cfg["recency_term"]
+    parts = [topic, year, term]
     if region:
         parts.append(region)
-
-    # Cap at 9 words; strip duplicates while preserving order
-    seen: set[str] = set()
-    words: list[str] = []
-    for part in parts:
-        for word in part.split():
-            w_lower = word.lower()
-            if w_lower not in seen:
-                seen.add(w_lower)
-                words.append(word)
-            if len(words) >= 9:
-                break
-        if len(words) >= 9:
-            break
-
-    return " ".join(words).strip()
+    return " ".join(parts)
 
 
-def _select_boosters(niche_key: str, angle: str, sophistication: str) -> list[str]:
-    """Pick the best 1-2 modifier terms for an angle, given niche + audience."""
-    table = _NICHE_BOOSTERS.get(niche_key, _DEFAULT_ANGLES)
-    candidates = table.get(angle, _DEFAULT_ANGLES[angle])
+def _q_expertise(topic: str, cfg: dict[str, Any], tier: str) -> str:
+    expert = cfg["expert_term"]
+    if tier == "academic":
+        return f"{topic} peer-reviewed research"
+    if tier == "technical":
+        return f"{topic} deep dive architecture"
+    if tier == "strategic":
+        return f"{topic} industry analysis report"
+    return f"what {expert} say about {topic}"
 
-    # Audience sophistication filters vocabulary
-    if sophistication == "academic" and angle == "expertise":
-        return ["peer-reviewed", "study"]
-    if sophistication == "beginner" and angle == "practical":
-        return ["beginner guide", "step by step"]
-    if sophistication == "technical" and angle == "practical":
-        return ["implementation", "github"]
-    if sophistication == "strategic" and angle == "contrarian":
-        return ["risks", "tradeoffs"]
 
-    return [candidates[0]]
+def _q_practical(topic: str, cfg: dict[str, Any], tier: str, region: str) -> str:
+    verb = cfg["practical_verb"]
+    if tier == "beginner":
+        base = f"how to {verb} {topic} step by step"
+    elif tier == "technical":
+        base = f"{topic} implementation example github"
+    elif tier == "strategic":
+        base = f"{topic} framework playbook"
+    else:
+        base = f"how to {verb} {topic}"
+
+    if region and tier != "technical":
+        base += f" {region}"
+    return base
+
+
+def _q_contrarian(topic: str, cfg: dict[str, Any], tier: str) -> str:
+    failure = cfg["failure_term"]
+    if tier == "academic":
+        return f"{topic} methodological criticisms"
+    if tier == "technical":
+        return f"{topic} production failure modes"
+    if tier == "strategic":
+        return f"{topic} risks tradeoffs"
+    if tier == "beginner":
+        return f"common {topic} mistakes beginners make"
+    return f"{topic} {failure}"
 
 
 # ─── Public API ──────────────────────────────────────────────────
@@ -263,69 +255,43 @@ def generate_queries(
     personalization: dict[str, Any] | None = None,
 ) -> list[str]:
     """
-    Generate 5 angle-decomposed search queries with zero LLM calls.
+    Generate 5 angle-decomposed queries using persona-aware templates.
 
-    Angles (always in this order):
-        1. FACTS      — statistics, benchmarks, definitions
-        2. RECENCY    — latest developments, current year
-        3. EXPERTISE  — expert analysis, research
-        4. PRACTICAL  — how-to, tutorials, implementation
-        5. CONTRARIAN — criticism, failures, edge cases
+    Angles (in order):
+      1. FACTS      — statistics, definitions, data
+      2. RECENCY    — current-year developments
+      3. EXPERTISE  — what authorities say
+      4. PRACTICAL  — how-to, implementation
+      5. CONTRARIAN — criticism, failure modes
 
-    Args:
-        prompt: Raw user topic/intent string.
-        personalization: Creator profile dict. Supported keys:
-            - content_niche:   maps to niche-specific vocabulary
-            - target_audience: affects query sophistication
-            - target_country:  adds regional specificity
-            - content_intent:  currently unused (reserved)
-            - usp:             currently unused (reserved)
-
-    Returns:
-        Exactly 5 search query strings, each 3-9 words long.
+    Each query reads naturally and targets distinct search results.
     """
     persona = personalization or {}
 
-    topic = _extract_topic(prompt)
-    niche_key = _resolve_niche_key(str(persona.get("content_niche") or ""))
-    sophistication = _audience_sophistication(str(persona.get("target_audience") or ""))
-    region = _region_modifier(str(persona.get("target_country") or ""))
+    topic  = _extract_topic(prompt)
+    cfg    = _resolve_niche(str(persona.get("content_niche") or ""))
+    tier   = _audience_tier(str(persona.get("target_audience") or ""))
+    region = _region(str(persona.get("target_country") or ""))
+    year   = str(datetime.now().year)
 
-    # Replace "2025" in boosters with current year dynamically
-    current_year = str(datetime.now().year)
+    queries = [
+        _q_facts(topic, cfg, tier),
+        _q_recency(topic, cfg, tier, year, region),
+        _q_expertise(topic, cfg, tier),
+        _q_practical(topic, cfg, tier, region),
+        _q_contrarian(topic, cfg, tier),
+    ]
 
-    angles = ["facts", "recency", "expertise", "practical", "contrarian"]
-    queries: list[str] = []
-
-    for angle in angles:
-        boosters = _select_boosters(niche_key, angle, sophistication)
-        boosters = [b.replace("2025", current_year) for b in boosters]
-
-        # Region applies only to recency and practical — most location-sensitive
-        use_region = region if angle in ("recency", "practical") else ""
-
-        query = _assemble_query(topic, boosters, use_region)
-        queries.append(query)
-
-    return _ensure_diversity(queries)
+    return [_clamp(q) for q in queries]
 
 
-def _ensure_diversity(queries: list[str]) -> list[str]:
-    """
-    Last-mile dedup: if two queries collapse to the same normalized form,
-    perturb the second one with a secondary modifier so they stay distinct.
-    """
-    seen: dict[str, int] = {}
-    fallback_modifiers = ["overview", "breakdown", "explained", "analysis", "review"]
-
-    out: list[str] = []
-    for i, q in enumerate(queries):
-        key = " ".join(sorted(q.lower().split()))
-        if key in seen:
-            mod = fallback_modifiers[i % len(fallback_modifiers)]
-            q = f"{q} {mod}"
-            key = " ".join(sorted(q.lower().split()))
-        seen[key] = i
-        out.append(q)
-
-    return out
+def _clamp(query: str) -> str:
+    """Clean whitespace, cap at 9 words, dedup consecutive tokens."""
+    words = query.split()
+    cleaned: list[str] = []
+    prev = ""
+    for w in words:
+        if w.lower() != prev.lower():
+            cleaned.append(w)
+            prev = w
+    return " ".join(cleaned[:9])
