@@ -1,28 +1,27 @@
 """
 Search Pipeline — async web search + content extraction in one pass.
 
-Replaces the old three-file split (web_search / keyword_gen / content_extractor)
-with a single pipeline class.
-
 Architecture (inspired by Perplexity's multi-stage retrieval):
 
-    parallel DDG queries
-        → deduplicate by URL
-        → domain diversity cap
+    dedupe queries
+        → parallel DDG searches (with retry + backoff)
+        → deduplicate results by URL
         → concurrent page fetch + extraction
-        → quality filter (min content length)
-        → ordered results
+        → content-quality filter + domain diversity
+        → ranked results
 
 Design decisions:
-- Trust DDG's native ranking instead of manual scoring heuristics.
-- Domain diversity (max N per domain) prevents source concentration.
-- trafilatura → BeautifulSoup fallback for content extraction.
+- DDG rate-limiting is real — retry with exponential backoff + jitter.
+- Domain diversity applied *after* extraction so dead pages don't eat quota.
+- Realistic Chrome User-Agent to avoid 403 from CF-protected sites.
+- trafilatura for content extraction, BS4 only as true fallback.
 - Entire pipeline is async; DDG's sync API runs in a thread pool.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
+import random
 import re
 from dataclasses import dataclass
 from html import unescape
@@ -34,36 +33,39 @@ from ddgs import DDGS
 
 try:
     from langsmith import traceable
-except ImportError:                       # langsmith optional at dev time
-    def traceable(**kw):                  # type: ignore[misc]
+except ImportError:
+    def traceable(**kw):  # type: ignore[misc]
         return lambda fn: fn
 
 try:
     import trafilatura
 except ImportError:
-    trafilatura = None                    # graceful degradation → BS4 only
+    trafilatura = None
 
 logger = logging.getLogger(__name__)
+
+# Realistic browser UA — stops 403s from Cloudflare-protected sites
+_CHROME_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+)
+
 
 # ── Internal data object ──────────────────────────────────────
 
 @dataclass
 class SearchResult:
-    """
-    Internal result flowing through the pipeline.
-
-    Converted to state-compatible TypedDicts in agent.py so that
-    search.py stays decoupled from the shared MemoryState schema.
-    """
+    """Internal result flowing through the pipeline."""
     url: str
     title: str
     snippet: str
     domain: str
-    rank: int           # DDG's original position — our primary relevance signal
+    rank: int           # DDG's original position — primary relevance signal
     query: str
     text_content: str = ""
-    text_length: int = 0
+    text_length: int = 0     # word count, not char count
     image_url: str | None = None
+    score: float = 0.0       # rank-based composite, computed at the end
 
 
 # ── Pipeline ──────────────────────────────────────────────────
@@ -76,31 +78,36 @@ class SearchPipeline:
 
         pipeline = SearchPipeline()
         results  = await pipeline.run(["async python", "asyncio fastapi"])
-        for r in results:
-            print(r.title, r.text_length)
     """
 
     def __init__(
         self,
         results_per_query: int = 5,
-        max_pages_to_fetch: int = 5,
+        max_pages_to_fetch: int = 12,
         max_domain_hits: int = 2,
-        min_content_length: int = 200,
+        min_word_count: int = 80,
         max_content_chars: int = 10_000,
         fetch_timeout: float = 12.0,
-        concurrency: int = 4,
+        overall_budget: float = 30.0,
+        fetch_concurrency: int = 8,
+        search_concurrency: int = 3,
+        search_retries: int = 2,
     ) -> None:
         self.results_per_query = results_per_query
         self.max_pages = max_pages_to_fetch
         self.max_domain_hits = max_domain_hits
-        self.min_content_length = min_content_length
+        self.min_word_count = min_word_count
         self.max_content_chars = max_content_chars
         self.fetch_timeout = fetch_timeout
-        self._sem = asyncio.Semaphore(concurrency)
+        self.overall_budget = overall_budget
+        self.search_retries = search_retries
+        self._fetch_sem = asyncio.Semaphore(fetch_concurrency)
+        self._search_sem = asyncio.Semaphore(search_concurrency)
         self._headers = {
-            "User-Agent": "CupidResearch/1.0",
-            "Accept": "text/html,application/xhtml+xml",
+            "User-Agent": _CHROME_UA,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
         }
 
     # ── Public entry point ────────────────────────────────────
@@ -110,44 +117,68 @@ class SearchPipeline:
         """
         Execute full pipeline.
 
-        Returns results ordered by original DDG rank, filtered for
+        Returns results ordered by composite score, filtered for
         content quality and domain diversity.
         """
+        try:
+            return await asyncio.wait_for(
+                self._run_inner(queries),
+                timeout=self.overall_budget,
+            )
+        except asyncio.TimeoutError:
+            logger.warning("[search] overall budget %.1fs exceeded", self.overall_budget)
+            return []
+
+    async def _run_inner(self, queries: list[str]) -> list[SearchResult]:
+        queries = _dedupe_queries(queries)
+        logger.debug("[search] queries after dedupe: %d", len(queries))
+
         # 1 — Parallel search across all queries
         raw = await self._search_all(queries)
         logger.debug("[search] raw results: %d", len(raw))
+        if not raw:
+            return []
 
         # 2 — Deduplicate by normalized URL, keep first seen (highest rank)
         seen: set[str] = set()
         deduped: list[SearchResult] = []
         for r in raw:
-            key = r.url.rstrip("/").lower()
+            key = _normalize_url(r.url)
             if key not in seen:
                 seen.add(key)
                 deduped.append(r)
 
-        # 3 — Domain diversity cap
-        domain_counts: dict[str, int] = {}
-        diverse: list[SearchResult] = []
-        for r in deduped:
-            count = domain_counts.get(r.domain, 0)
-            if count < self.max_domain_hits:
-                diverse.append(r)
-                domain_counts[r.domain] = count + 1
-
-        # 4 — Fetch + extract content from top candidates
-        candidates = diverse[: self.max_pages]
+        # 3 — Fetch more candidates than needed (domain cap drops some later)
+        candidates = deduped[: self.max_pages * 2]
         await self._extract_all(candidates)
 
-        # 5 — Drop pages where extraction failed or content is too thin
-        results = [r for r in candidates if r.text_length >= self.min_content_length]
-        logger.debug("[search] final results: %d", len(results))
+        # 4 — Keep only pages with real content
+        with_content = [r for r in candidates if r.text_length >= self.min_word_count]
+        logger.debug("[search] pages with content: %d", len(with_content))
+
+        # 5 — Domain diversity (applied AFTER extraction — dead pages don't eat quota)
+        domain_counts: dict[str, int] = {}
+        diverse: list[SearchResult] = []
+        for r in with_content:
+            if domain_counts.get(r.domain, 0) < self.max_domain_hits:
+                diverse.append(r)
+                domain_counts[r.domain] = domain_counts.get(r.domain, 0) + 1
+
+        # 6 — Composite score + final sort
+        for r in diverse:
+            r.score = _compute_score(r)
+        diverse.sort(key=lambda r: r.score, reverse=True)
+
+        results = diverse[: self.max_pages]
+        logger.info(
+            "[search] final: %d pages across %d domains",
+            len(results), len({r.domain for r in results}),
+        )
         return results
 
-    # ── DDG search ────────────────────────────────────────────
+    # ── DDG search with retry ─────────────────────────────────
 
     async def _search_all(self, queries: list[str]) -> list[SearchResult]:
-        """Fan-out all queries concurrently."""
         tasks = [self._search_one(q) for q in queries]
         batches = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -158,28 +189,54 @@ class SearchPipeline:
         return combined
 
     async def _search_one(self, query: str) -> list[SearchResult]:
-        """
-        Run a single DDG text search in a thread pool.
+        """Run a single DDG text search in a thread pool with retry + backoff."""
 
-        duckduckgo-search v6+ is sync-only — asyncio.to_thread()
-        keeps the event loop responsive.
-        """
         def _sync() -> list[dict]:
             with DDGS() as ddgs:
                 return list(ddgs.text(query, max_results=self.results_per_query))
 
-        try:
-            raw = await asyncio.wait_for(
-                asyncio.to_thread(_sync),
-                timeout=15.0,
-            )
-        except Exception as exc:
-            logger.warning("[search] query=%s failed: %s", query, exc)
+        async with self._search_sem:
+            for attempt in range(self.search_retries + 1):
+                try:
+                    raw = await asyncio.wait_for(
+                        asyncio.to_thread(_sync),
+                        timeout=15.0,
+                    )
+                    return self._format_results(raw, query)
+
+                except Exception as exc:
+                    err_str = str(exc).lower()
+                    is_rate_limit = (
+                        "ratelimit" in err_str
+                        or "429" in err_str
+                        or "too many requests" in err_str
+                    )
+                    is_last_attempt = attempt >= self.search_retries
+
+                    if is_last_attempt:
+                        logger.warning(
+                            "[search] query=%r gave up after %d attempts: %s",
+                            query, attempt + 1, str(exc)[:120],
+                        )
+                        return []
+
+                    # Exponential backoff with jitter; longer for rate limits
+                    base = 3.0 if is_rate_limit else 1.0
+                    delay = base * (2 ** attempt) + random.uniform(0, 0.5)
+                    logger.debug(
+                        "[search] query=%r %s, retrying in %.1fs",
+                        query,
+                        "rate-limited" if is_rate_limit else "failed",
+                        delay,
+                    )
+                    await asyncio.sleep(delay)
+
             return []
 
+    def _format_results(self, raw: list[dict], query: str) -> list[SearchResult]:
         results: list[SearchResult] = []
         for rank, item in enumerate(raw):
-            url = (item.get("href") or "").strip()
+            url = (item.get("href") or item.get("url") or "").strip()
             title = (item.get("title") or "").strip()
             if not url or not title:
                 continue
@@ -203,6 +260,7 @@ class SearchPipeline:
                 connect=5.0, read=self.fetch_timeout, write=10.0, pool=5.0,
             ),
             follow_redirects=True,
+            http2=False,  # some sites behave badly with h2
         ) as client:
             tasks = [self._extract_one(client, r) for r in results]
             await asyncio.gather(*tasks, return_exceptions=True)
@@ -210,48 +268,122 @@ class SearchPipeline:
     async def _extract_one(
         self, client: httpx.AsyncClient, result: SearchResult,
     ) -> None:
-        """Fetch a single page and parse its content into the result object."""
-        async with self._sem:
+        async with self._fetch_sem:
             try:
                 resp = await client.get(result.url)
                 resp.raise_for_status()
-                ct = resp.headers.get("content-type", "")
-                if "html" not in ct and "text" not in ct:
+                if "html" not in resp.headers.get("content-type", "").lower():
+                    logger.debug("[extract] %s: non-html content", result.domain)
+                    self._apply_snippet_fallback(result)
                     return
                 html = resp.text
-            except Exception:
+            except httpx.HTTPStatusError as exc:
+                logger.debug("[extract] %s: http %s", result.domain, exc.response.status_code)
+                self._apply_snippet_fallback(result)
+                return
+            except Exception as exc:
+                logger.debug("[extract] %s: %s", result.domain, type(exc).__name__)
+                self._apply_snippet_fallback(result)
                 return
 
-            title, text, image = _parse_html(html, result.url)
-            if title:
-                result.title = title
-            result.text_content = text[: self.max_content_chars]
-            result.text_length = len(result.text_content)
-            result.image_url = image
+        title, text, image = _parse_html(html, result.url)
+        if title:
+            result.title = title
+        text = _smart_truncate(text, self.max_content_chars)
+        result.text_content = text
+        result.text_length = len(text.split())
+        result.image_url = image
+
+        if result.text_length < self.min_word_count:
+            self._apply_snippet_fallback(result)
+
+    def _apply_snippet_fallback(self, result: SearchResult) -> None:
+        """When extraction fails or is too thin, use the DDG snippet."""
+        if result.snippet and not result.text_content:
+            result.text_content = result.snippet
+            result.text_length = len(result.snippet.split())
 
 
-# ── HTML parsing (module-level, stateless) ────────────────────
+# ── Helpers ────────────────────────────────────────────────────
+
+def _dedupe_queries(queries: list[str]) -> list[str]:
+    """Remove near-duplicate queries (case + whitespace normalized)."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for q in queries:
+        key = " ".join(q.lower().split())
+        if key and key not in seen:
+            seen.add(key)
+            out.append(q)
+    return out
+
+
+def _normalize_url(url: str) -> str:
+    """Normalize for dedup: strip trailing slash, lowercase host, drop fragments."""
+    try:
+        p = urlparse(url)
+        return f"{p.scheme}://{p.netloc.lower()}{p.path.rstrip('/')}".lower()
+    except Exception:
+        return url.rstrip("/").lower()
+
+
+def _compute_score(r: SearchResult) -> float:
+    """
+    Composite relevance score:
+    - Base: inverse of DDG rank (1.0 for rank 0, 0.5 for rank 1, ...)
+    - Boost: log-scaled content depth (word count)
+    - Boost: authority domains (gov/edu/org/known-good)
+    """
+    import math
+    base = 1.0 / (r.rank + 1)
+    depth = min(math.log(max(r.text_length, 1)) / 10, 0.5)
+    authority = 0.0
+    domain = r.domain
+    if domain.endswith((".gov", ".edu")):
+        authority = 0.3
+    elif domain.endswith(".org"):
+        authority = 0.15
+    elif any(h in domain for h in (
+        "github.com", "arxiv.org", "stackoverflow.com",
+        "docs.python.org", "mozilla.org", "wikipedia.org",
+    )):
+        authority = 0.2
+    return base + depth + authority
+
+
+def _smart_truncate(text: str, max_chars: int) -> str:
+    """Cut at sentence boundary within budget, not mid-word."""
+    if len(text) <= max_chars:
+        return text
+    cut = text[:max_chars]
+    # Prefer ending at sentence boundary
+    last_period = max(cut.rfind(". "), cut.rfind("! "), cut.rfind("? "))
+    if last_period > max_chars * 0.7:
+        return cut[: last_period + 1]
+    # Fallback: last whitespace
+    last_space = cut.rfind(" ")
+    return cut[:last_space] if last_space > 0 else cut
+
+
+# ── HTML parsing ──────────────────────────────────────────────
 
 def _parse_html(html: str, url: str) -> tuple[str, str, str | None]:
-    """
-    Extract (title, body_text, og_image) from raw HTML.
-
-    Strategy: trafilatura first (best for articles), BeautifulSoup fallback.
-    """
+    """Extract (title, body_text, og_image) from raw HTML."""
     if trafilatura is not None:
         text = trafilatura.extract(
             html,
             include_comments=False,
             include_tables=False,
-            no_fallback=False,
+            favor_precision=True,
         )
         if text:
+            # Trafilatura gave us clean text — one BS4 pass for metadata
             soup = BeautifulSoup(html, "html.parser")
             return _title(soup), _clean(text), _og_image(soup, url)
 
     # Fallback — manual paragraph extraction
     soup = BeautifulSoup(html, "html.parser")
-    for tag in soup.select("script,style,nav,header,footer,aside,iframe"):
+    for tag in soup.select("script,style,nav,header,footer,aside,iframe,noscript"):
         tag.decompose()
 
     paragraphs = [
@@ -263,7 +395,6 @@ def _parse_html(html: str, url: str) -> tuple[str, str, str | None]:
 
 
 def _title(soup: BeautifulSoup) -> str:
-    """og:title → <title> → first <h1>."""
     og = soup.find("meta", property="og:title")
     if og and og.get("content"):
         return _clean(str(og["content"]))
@@ -274,7 +405,6 @@ def _title(soup: BeautifulSoup) -> str:
 
 
 def _og_image(soup: BeautifulSoup, base_url: str) -> str | None:
-    """First usable image: og:image → article img."""
     og = soup.find("meta", property="og:image")
     if og and og.get("content"):
         return str(og["content"])
@@ -288,5 +418,4 @@ def _og_image(soup: BeautifulSoup, base_url: str) -> str | None:
 
 
 def _clean(text: str) -> str:
-    """Normalize whitespace and decode HTML entities."""
     return re.sub(r"\s+", " ", unescape(text)).strip()

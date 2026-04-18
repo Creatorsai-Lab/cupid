@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuthStore } from "@/lib/store";
-import { Send, Loader2, ExternalLink, Search } from "lucide-react";
+import { Send, Loader2, ExternalLink, Compass, Mic, ArrowUpToLine, Link, ChevronDown, UserRoundPen } from "lucide-react";
 import { agentsApi, type ResearchData, type PageContent, type SearchResult } from "@/lib/api";
 
 const CONTENT_TYPES = ["Text", "Image", "Article", "Video", "Ads", "Poll"] as const;
@@ -38,8 +38,26 @@ export default function CreatePage() {
     const [personalizationQueries, setPersonalizationQueries] = useState<string[]>([]);
     const [researchData, setResearchData] = useState<ResearchData | null>(null);
     const [error, setError] = useState<string | null>(null);
+    
+    // Dropdown states
+    const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+    const optionsMenuRef = useRef<HTMLDivElement>(null);
 
     const firstName = user?.full_name?.split(" ")[0] || "Creator";
+
+    // Handle clicking outside the options menu to close it
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (optionsMenuRef.current && !optionsMenuRef.current.contains(event.target as Node)) {
+                setIsOptionsOpen(false);
+            }
+        }
+    
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     // Poll run status every 2 seconds until complete or failed
     useEffect(() => {
@@ -126,8 +144,8 @@ export default function CreatePage() {
                     </div>
 
                     {/* Input Box */}
-                    <div className="animated-border mb-8">
-                        <div className="animated-border-inner">
+                    <div className="animated-gradient-border mb-8">
+                        <div className="animated-gradient-border-inner relative">
                             <textarea
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
@@ -140,21 +158,43 @@ export default function CreatePage() {
                                 rows={4}
                             />
 
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <SelectDropdown label="Type" options={CONTENT_TYPES} value={contentType} onChange={setContentType} />
-                                <SelectDropdown label="Platform" options={PLATFORMS} value={platform} onChange={setPlatform} />
-                                <SelectDropdown label="Length" options={LENGTHS} value={length} onChange={setLength} />
-                                <SelectDropdown label="Tone" options={TONES} value={tone} onChange={setTone} />
+                            <div className="flex items-center gap-3 flex-wrap">
+                                {/* --- OPTIONS MENU --- */}
+                                <div className="relative" ref={optionsMenuRef}>
+                                    <button
+                                        onClick={() => setIsOptionsOpen(!isOptionsOpen)}
+                                        className="flex items-center gap-2 text-[13px] text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors border-dashed border-2 px-2 rounded-lg"
+                                        title="Content Options"
+                                    >
+                                        <span>Options</span>
+                                    </button>
 
+                                    {/* Popover Menu */}
+                                    {isOptionsOpen && (
+                                        <div className="absolute top-full left-0 mt-3 w-48 p-3 bg-white dark:bg-red-900 border border-gray-200 dark:border-neutral-800 rounded-xl shadow-lg flex flex-col gap-3 z-50">
+                                            <SelectDropdown label="Type" options={CONTENT_TYPES} value={contentType} onChange={setContentType} />
+                                            <SelectDropdown label="Platform" options={PLATFORMS} value={platform} onChange={setPlatform} />
+                                            <SelectDropdown label="Length" options={LENGTHS} value={length} onChange={setLength} />
+                                            <SelectDropdown label="Tone" options={TONES} value={tone} onChange={setTone} />
+                                        </div>
+                                    )}
+                                </div>
+                                {/* ------------------------ */}
+
+                                {/* Standard Icons */}
+                                <ArrowUpToLine size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors" />
+                                <Link size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors" />
+                                <Mic size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 hover:bg-(--inline-bg) hover:rounded-5xl transition-colors hover:p-2" />
+
+                                {/* Generate Button */}
                                 <button
                                     onClick={handleGenerate}
                                     disabled={!prompt.trim() || isGenerating}
                                     className="btn-primary ml-auto flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                                    style={{ padding: "0.5rem 1rem" }}>
+                                    style={{ padding: "0.5rem 1rem" }}
+                                >
                                     {isGenerating ? (
-                                        <>
-                                            <Loader2 size={14} className="animate-spin" />
-                                        </>
+                                        <Loader2 size={14} className="animate-spin" />
                                     ) : (
                                         <Send size={14} />
                                     )}
@@ -178,39 +218,27 @@ export default function CreatePage() {
                         </div>
                     )}
 
+                    {/* Personalization Queries — shown as soon as they arrive */}
+                    {personalizationQueries.length > 0 && (
+                        <PersonalizationQueriesPanel
+                            queries={personalizationQueries}
+                        />
+                    )}
+
                     {/* Agent Progress Banner */}
                     {isGenerating && (
-                        <div
-                            className="mb-8 flex items-center gap-3 p-4 rounded-xl"
-                            style={{ border: "1px solid var(--color-border)", backgroundColor: "white" }}
-                        >
+                        <div className="flex items-center gap-3 mb-5 p-3 rounded-lg px-5 py-2 bg-(--inline-bg)">
                             <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-                                <span
-                                    className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
-                                    style={{ backgroundColor: "var(--color-primary)" }}
-                                />
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-blue-500" />
                                 <span
                                     className="relative inline-flex rounded-full h-2.5 w-2.5"
                                     style={{ backgroundColor: "var(--color-primary)" }}
                                 />
                             </span>
-                            <span className="text-sm" style={{ fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+                            <span className=" text-xs text-(--color-input) font-bold">
                                 {agentStatusLabel(currentAgent, agentStatus)}
                             </span>
-                            <span className="ml-auto text-xs capitalize" style={{ color: "var(--color-muted)" }}>
-                                {agentsCompleted.length > 0
-                                    ? `${agentsCompleted.join(" → ")} ✓`
-                                    : agentStatus}
-                            </span>
                         </div>
-                    )}
-
-                    {/* Personalization Queries — shown as soon as they arrive */}
-                    {personalizationQueries.length > 0 && (
-                        <PersonalizationQueriesPanel
-                            queries={personalizationQueries}
-                            isResearching={isGenerating && currentAgent === "research"}
-                        />
                     )}
 
                     {/* Research Results */}
@@ -228,63 +256,38 @@ export default function CreatePage() {
 
 function PersonalizationQueriesPanel({
     queries,
-    isResearching,
 }: {
     queries: string[];
-    isResearching: boolean;
 }) {
-    return (
-        <div
-            className="mb-8 rounded-xl overflow-hidden"
-            style={{ border: "1px solid var(--color-border)", backgroundColor: "white" }}
-        >
-            {/* Header */}
-            <div
-                className="flex items-center gap-2 px-5 py-3"
-                style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "#fff6ed" }}
-            >
-                <Search size={13} style={{ color: "var(--color-primary)" }} />
-                <span
-                    className="text-xs font-medium uppercase tracking-wide"
-                    style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}
-                >
-                    Personalization Agent — Generated Queries
-                </span>
-                {isResearching && (
-                    <span
-                        className="ml-auto text-xs flex items-center gap-1"
-                        style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
-                    >
-                        <Loader2 size={11} className="animate-spin" />
-                        Searching…
-                    </span>
-                )}
-            </div>
+    const [open, setOpen] = useState(false);
 
+    return (
+        <div className="mb-5 rounded-lg overflow-hidden">
+            {/* Toggle header */}
+            <button
+                onClick={() => setOpen((p) => !p)}
+                className="w-full flex items-center gap-2.5 px-5 py-2 bg-(--inline-bg)">
+                <UserRoundPen size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
+    
+                <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-input)">
+                    Personalization agent generated the queries ✓
+                </span>
+    
+                <ChevronDown
+                    size={14}
+                    style={{ color: "var(--color-primary)" }}
+                    className={`flex-shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+                />
+            </button>
+    
             {/* Query list */}
-            <ul className="px-5 py-4 space-y-2">
-                {queries.map((q, i) => (
-                    <li key={i} className="flex items-start gap-3">
-                        <span
-                            className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium mt-0.5"
-                            style={{
-                                backgroundColor: "#fff6ed",
-                                color: "var(--color-primary)",
-                                border: "1px solid var(--color-primary)",
-                                fontFamily: "var(--font-body)",
-                            }}
-                        >
-                            {i + 1}
-                        </span>
-                        <span
-                            className="text-sm leading-relaxed"
-                            style={{ color: "var(--color-text)", fontFamily: "var(--font-body)" }}
-                        >
-                            {q}
-                        </span>
-                    </li>
-                ))}
-            </ul>
+            {open && (
+                <div className="px-5 py-3 space-y-2 space-x-2">
+                    {queries.map((q, i) => (
+                        <span key={i} className="inline-table text-xs px-3 py-1 rounded-lg text-(--color-input) bg-(--inline-bg)">{q}</span>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
@@ -335,28 +338,26 @@ function ResearchResults({ data }: { data: ResearchData }) {
         <div>
             {/* Completion banner */}
             <div
-                className="flex items-center gap-3 mb-6 p-3 rounded-xl"
-                style={{ border: "1px solid #bbf7d0", backgroundColor: "#f0fdf4" }}
-            >
-                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: "#22c55e" }} />
-                <span className="text-sm" style={{ fontFamily: "var(--font-body)", color: "#166534" }}>
-                    Research complete
+                className="flex items-center gap-3 mb-5 p-3 rounded-lg px-5 py-2 bg-(--inline-bg)">
+                <Compass size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
+    
+                <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-input)">
+                Research complete ✓
                 </span>
-                <span className="ml-auto text-xs" style={{ color: "#16a34a", fontFamily: "var(--font-body)" }}>
+                <span className="ml-auto text-xs text-(--color-input)">
                     {results.length} sources · {pages.length} pages
                 </span>
             </div>
 
             {/* Empty state */}
             {!hasResults && (
-                <div
-                    className="py-16 text-center rounded-xl"
-                    style={{ border: "1px dashed var(--color-border)" }}
-                >
-                    <p className="text-sm" style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}>
-                        No results found. Try a more specific topic.
-                    </p>
-                </div>
+                <>
+                <Compass size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
+    
+                <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-grayish-red)">
+                No results found ✗ Try a more specific topic.
+                </span>
+                </>
             )}
 
             {/* Sources */}

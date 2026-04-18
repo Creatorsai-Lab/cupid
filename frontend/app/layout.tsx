@@ -18,9 +18,9 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "Cupid — Post like yourself",
+  title: "Cupid",
   description:
-    "Multi-agent social media automation that learns your voice and posts authentically on your behalf.",
+    "Multi-agent content creation plaform, let ai team create content in your voice.",
   icons: {
     icon: "/favicon/favicon.ico",
     apple: "/favicon/apple-touch-icon.png",

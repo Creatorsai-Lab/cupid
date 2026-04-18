@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 SYSTEM_PROMPT = """\
 You are a research query strategist for social media creators. You decompose a topic \
 into exactly 5 search queries, each targeting a distinct retrieval angle so together \
-they surface comprehensive, non-overlapping information.
+they surface comprehensive, non-overlapping information and all info should be latest year 2026.
 
 THE 5 ANGLES (in order, one query per angle):
   1. FACTS      — statistics, data points, definitions, benchmarks
