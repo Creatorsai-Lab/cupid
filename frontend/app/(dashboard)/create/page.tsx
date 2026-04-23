@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { ComposerResults } from "@/components/ComposerResults";
 import { useAuthStore } from "@/lib/store";
 import { Send, Loader2, ExternalLink, Compass, Mic, ArrowUpToLine, Link, ChevronDown, UserRoundPen } from "lucide-react";
 import { agentsApi, type ResearchData, type PageContent, type SearchResult } from "@/lib/api";
@@ -243,6 +244,14 @@ export default function CreatePage() {
                     {researchData && !isGenerating && (
                         <ResearchResults data={researchData} />
                     )}
+
+                    {run?.composer_output && run.composer_output.length > 0 && (
+                    <ComposerResults
+                        variants={run.composer_output}
+                        evidence={run.composer_evidence}
+                        sources={run.composer_sources}
+                    />
+)}
 
                 </div>
             </main>

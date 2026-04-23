@@ -30,7 +30,7 @@ import {
     Heart,
     Bookmark,
     MoreHorizontal,
-    Globe,
+    Earth,
     Repeat2,
     Play,
     Bell,
@@ -38,7 +38,11 @@ import {
     ImageIcon,
     Video,
     Users,
-    MoreVertical
+    MoreVertical,
+    ChartNoAxesColumn,
+    EllipsisVertical,
+    MessageCircleMore,
+    CornerUpRight
 } from "lucide-react";
 
 // ─── Shared types ──────────────────────────────────────────────
@@ -177,13 +181,13 @@ export function FacebookCard({
                 <Avatar name={name} avatarUrl={avatarUrl} size={40} />
                 <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold">{name}</p>
-                    <div className="flex items-center gap-1 mt-0.5">
+                    <div className="flex items-center gap-1 m-0">
                         <span className="text-xs text-[#65676b]">{time}</span>
                         <span className="text-[#65676b]">·</span>
-                        <Globe size={11} className="text-[#65676b]" />
+                        <Earth size={11} className="text-[#65676b]" />
                     </div>
                 </div>
-                <MoreHorizontal size={18} className="text-[#65676b] mt-0.5 flex-shrink-0" />
+                <MoreHorizontal size={18} className="text-[#65676b] flex-shrink-0" />
             </div>
 
             <p className="px-3 pb-2.5 text-sm leading-relaxed whitespace-pre-line">{content}</p>
@@ -196,7 +200,7 @@ export function FacebookCard({
                 platformLabel="Photo"
             />
 
-            <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#ced0d4]">
+            <div className="flex items-center justify-between px-3 py-1.5">
                 <div className="flex items-center gap-1">
                     <div className="flex -space-x-1">
                         <div className="w-[18px] h-[18px] rounded-full bg-[#1877f2] flex items-center justify-center border border-white">
@@ -214,17 +218,10 @@ export function FacebookCard({
                 </div>
             </div>
 
-            <div className="flex divide-x divide-[#ced0d4]">
-                {[
-                    { icon: ThumbsUp, label: "Like" },
-                    { icon: MessageCircle, label: "Comment" },
-                    { icon: Share2, label: "Share" },
-                ].map(({ icon: Icon, label }) => (
-                    <button key={label} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[#65676b] text-xs font-semibold hover:bg-[#f2f2f2] transition-colors">
-                        <Icon size={16} strokeWidth={1.75} />
-                        {label}
-                    </button>
-                ))}
+            <div className="flex p-3 gap-4 color-gray-500">
+                <ThumbsUp size={15}/>
+                <MessageCircle size={15}/>
+                <CornerUpRight size={15} />
             </div>
         </div>
     );
@@ -342,8 +339,8 @@ export function XCard({
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="#1d9bf0">
                                     <path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91-1.01-1-2.52-1.26-3.9-.8-.66-1.31-1.9-2.19-3.34-2.19-1.44 0-2.68.88-3.34 2.19-1.38-.46-2.9-.2-3.91.81-1 1.01-1.26 2.52-.8 3.91C1.63 9.33.75 10.57.75 12c0 1.43.88 2.67 2.19 3.34-.46 1.39-.2 2.9.81 3.91 1.01 1 2.52 1.26 3.91.81.67 1.31 1.9 2.19 3.34 2.19 1.43 0 2.67-.88 3.33-2.19 1.39.45 2.9.19 3.91-.81 1.01-1.01 1.27-2.52.81-3.91 1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.36-6.2 6.77z" />
                                 </svg>
+                                <p className="text-xs text-[#71767b]">@{user}</p>
                             </div>
-                            <p className="text-xs text-[#71767b]">@{user}</p>
                         </div>
                         <MoreHorizontal size={18} className="text-[#71767b]" />
                     </div>
@@ -358,18 +355,14 @@ export function XCard({
                 aspectRatio="16/9"
                 platformColor="#1d9bf0"
                 platformLabel="Media"
-                className="mx-4 rounded-2xl overflow-hidden mb-3"
+                className="rounded-2xl m-1 mb-3"
             />
-
-            <div className="px-4 pb-1">
-                <p className="text-xs text-[#71767b]">{time} · X</p>
-            </div>
-
-            <div className="flex items-center justify-between px-4 py-2 border-t border-[#2f3336]">
+            <div className="flex items-center justify-between px-4 py-2">
                 {[
                     { icon: MessageCircle, count: "24" },
                     { icon: Repeat2, count: "18" },
                     { icon: Heart, count: "247" },
+                    { icon: ChartNoAxesColumn, count: "3K" },
                     { icon: Bookmark, count: null },
                     { icon: Share2, count: null },
                 ].map(({ icon: Icon, count }, i) => (
@@ -400,17 +393,17 @@ export function LinkedInCard({
                 <Avatar name={name} avatarUrl={avatarUrl} size={48} />
                 <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold">{name}</p>
-                    <p className="text-xs text-[#666] mt-0.5 truncate">{subtitle}</p>
-                    <div className="flex items-center gap-1 mt-0.5">
+                    <p className="text-xs text-[#666] truncate">{subtitle}</p>
+                    <div className="flex items-center gap-1">
                         <span className="text-xs text-[#666]">{time} ·</span>
-                        <Globe size={11} className="text-[#666]" />
+                        <Earth size={11} className="text-[#666]" />
                     </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                    <button className="text-xs font-semibold text-[#0a66c2] border border-[#0a66c2] rounded-full px-3 py-1 hover:bg-[#0a66c2]/5 transition-colors">
+                    <button className="text-[12px] font-semibold text-[#0a66c2]">
                         + Follow
                     </button>
-                    <MoreHorizontal size={18} className="text-[#666]" />
+                    <EllipsisVertical size={16} className="text-[#666]" />
                 </div>
             </div>
 
@@ -434,7 +427,7 @@ export function LinkedInCard({
             <div className="flex items-center justify-between px-4 py-2 border-t border-[#e0e0e0] border-b text-xs text-[#666]">
                 <div className="flex items-center gap-1.5">
                     <div className="flex -space-x-0.5">
-                        {["#0a66c2", "#7fc15e", "#e7a33e"].map((c, i) => (
+                        {["#368ee7", "#df704d", "#68a84a"].map((c, i) => (
                             <div key={i} className="w-4 h-4 rounded-full border border-white flex items-center justify-center" style={{ background: c }}>
                                 <ThumbsUp size={7} className="text-white" strokeWidth={2.5} />
                             </div>
@@ -445,18 +438,12 @@ export function LinkedInCard({
                 <span>87 comments · 34 reposts</span>
             </div>
 
-            <div className="flex divide-x divide-[#e0e0e0]">
-                {[
-                    { icon: ThumbsUp, label: "Like" },
-                    { icon: MessageCircle, label: "Comment" },
-                    { icon: Repeat2, label: "Repost" },
-                    { icon: Send, label: "Send" },
-                ].map(({ icon: Icon, label }) => (
-                    <button key={label} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[#666] text-xs font-semibold hover:bg-[#f2f2f2] transition-colors">
-                        <Icon size={15} strokeWidth={1.75} />
-                        {label}
-                    </button>
-                ))}
+            <div className="flex p-4 justify-between">
+            <ThumbsUp size={15} strokeWidth={1.75} />
+              <MessageCircleMore size={15} strokeWidth={1.75} />
+              <Repeat2 size={15} strokeWidth={1.75} />
+              <Send size={15} strokeWidth={1.75} />
+
             </div>
         </div>
     );

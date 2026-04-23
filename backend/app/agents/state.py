@@ -53,13 +53,42 @@ class ResearchData(TypedDict, total=False):
     fetched_pages: list[PageContent]
     research_summary: str
 
-class ComposerOutput(TypedDict, total=False):
-    """Output from the Composer Agent."""
+# ── Composer types ──────────────────────────────────────────────
+ 
+class QualityBreakdown(TypedDict):
+    """Multi-axis quality score for a variant."""
+    composite: float
+    length_fit: float
+    grounding: float
+    persona_match: float
+    hook_strength: float
+    passes: bool
+ 
+ 
+class ComposerVariant(TypedDict):
+    """One generated post variant, scored and packaged."""
+    angle: Literal["hook_first", "data_driven", "story_led"]
     platform: str
     content: str
     hashtags: list[str]
-    confidence_score: float
-    personalization_fidelity_score: float
+    char_count: int
+    quality: QualityBreakdown
+ 
+ 
+class ComposerDistilledFact(TypedDict):
+    """One atomic fact extracted from source material."""
+    fact: str
+    source: int
+    type: Literal["stat", "quote", "entity", "claim", "relationship"]
+ 
+ 
+class ComposerSource(TypedDict):
+    """Compact reference to a source used for composition."""
+    title: str | None
+    url: str | None
+    domain: str | None
+    rank_score: float | None
+
 
 
 class MemoryState(TypedDict, total=False):
@@ -93,7 +122,9 @@ class MemoryState(TypedDict, total=False):
     # Agent outputs
     personalization_queries: list[str]
     research_data: ResearchData
-    composer_output: ComposerOutput
+    composer_output: list[ComposerVariant]
+    composer_evidence: list[ComposerDistilledFact]
+    composer_sources: list[ComposerSource]
     # Execution tracking
     current_agent: str
     agents_completed: list[str]

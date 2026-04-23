@@ -25,12 +25,8 @@ export default function HomePage() {
           <p className="text-[11px] font-semibold tracking-[0.14em] uppercase text-primary">
             For creators & influencers
           </p>
-          <h1
-            className="text-[clamp(2.5rem,5vw,3.8rem)] font-normal leading-[1.08] tracking-tight text-foreground"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            Post like yourself,<br />
-            <em className="text-primary">not like everyone else.</em>
+          <h1 className="text-[clamp(2.5rem,5vw,3.8rem)] font-normal leading-[1.08]">Post like yourself,<br />
+            <em className="animated-gradient-text">not like everyone else.</em>
           </h1>
           <p className="text-base text-muted-foreground leading-relaxed max-w-md">
             Cupid Agents get trained on your voice, tracks what's trending in your niche, and writes posts that sound authentically like you — across every platform, on your schedule.
@@ -56,10 +52,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Divider ──────────────────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-6"><div className="h-px bg-border" /></div>
-
-      {/* ── Agents ───────────────────────────────────────────── */}
+      {/* AGENTS PIPELINE */}
       <section id="agents" className="max-w-6xl mx-auto px-6 py-24 grid lg:grid-cols-2 gap-16 items-center">
         <div className="flex justify-center order-2 lg:order-1">
           <AgentOrbit />
@@ -148,11 +141,11 @@ export default function HomePage() {
       </section>
 
       {/* ── Traits ───────────────────────────────────────────── */}
-      <section className="border-y border-border bg-muted/20 py-14">
-        <div className="max-w-6xl mx-auto px-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <section className="animated-gradient-bg animated-gradient-bg-inner text-white py-10 ">
+        <div className="max-w-6xl mx-auto px-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-8 text-[15px]">
           {TRAITS.map((t) => (
             <div key={t.label}>
-              <div className="w-6 h-0.5 bg-primary rounded mb-3" />
+              <div className="w-6 h-0.5 bg-white rounded mb-3" />
               <p className="text-sm font-medium text-foreground mb-1" style={{ fontFamily: "var(--font-display)" }}>{t.label}</p>
               <p className="text-xs text-muted-foreground">{t.sub}</p>
             </div>
