@@ -34,7 +34,7 @@
 /*  LIGHT MODE  */
 :root {
   /* shadcn required tokens — mapped to Cupid palette */
-  --color-primary: #2a3852;
+  --color-primary: #545986;
   --color-primary-hover: #3e5479;
   --color-secondary: #e99000;
   --color-background: #fffbf6;
@@ -42,7 +42,7 @@
   --inline-bg: #e1e5e6;  
   --color-border: #2a3852;
   --color-popover: #86888d;
-  --color-text: #1d2738;
+  --color-text: #2f2f31;
   --color-muted: #697996;
   --destructive: oklch(47.546% 0.1538 22.643);
   --color-grayish-red: #953c37;
@@ -195,7 +195,7 @@
 .animated-gradient-border-inner {
   background: var(--color-background);
   border-radius: calc(16px - var(--border-width, 2px));
-  padding: 1.25rem;
+  padding: 0.65rem;
 }
 
 .btn-primary {

@@ -163,7 +163,7 @@ export default function CreatePage() {
                                 <div className="relative" ref={optionsMenuRef}>
                                     <button
                                         onClick={() => setIsOptionsOpen(!isOptionsOpen)}
-                                        className="flex items-center gap-2 text-[13px] text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors border-dashed border-2 px-2 rounded-lg"
+                                        className="flex items-center gap-2 text-[13px] text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors border-dashed border-2 px-2 border-gray-300 rounded-2xl"
                                         title="Content Options"
                                     >
                                         <span>Options</span>
@@ -171,7 +171,7 @@ export default function CreatePage() {
 
                                     {/* Popover Menu */}
                                     {isOptionsOpen && (
-                                        <div className="absolute top-full left-0 mt-3 w-48 p-3 bg-white dark:bg-red-900 border border-gray-200 dark:border-neutral-800 rounded-xl shadow-lg flex flex-col gap-3 z-50">
+                                        <div className="absolute top-full left-0 mt-3 w-38 bg-white dark:bg-red-900 border border-gray-200 dark:border-neutral-800 rounded-3xl shadow-lg flex flex-col z-50">
                                             <SelectDropdown label="Type" options={CONTENT_TYPES} value={contentType} onChange={setContentType} />
                                             <SelectDropdown label="Platform" options={PLATFORMS} value={platform} onChange={setPlatform} />
                                             <SelectDropdown label="Length" options={LENGTHS} value={length} onChange={setLength} />
@@ -179,9 +179,7 @@ export default function CreatePage() {
                                         </div>
                                     )}
                                 </div>
-                                {/* ------------------------ */}
-
-                                {/* Standard Icons */}
+                                {/* Add on Icons */}
                                 <ArrowUpToLine size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors" />
                                 <Link size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors" />
                                 <Mic size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 hover:bg-(--inline-bg) hover:rounded-5xl transition-colors hover:p-2" />
@@ -220,7 +218,7 @@ export default function CreatePage() {
 
                     {/* Personalization Queries — shown as soon as they arrive */}
                     {personalizationQueries.length > 0 && (
-                        <PersonalizationQueriesPanel
+                        <PersonalizationQueriesItems
                             queries={personalizationQueries}
                         />
                     )}
@@ -252,9 +250,45 @@ export default function CreatePage() {
     );
 }
 
-// ── Personalization Queries Panel ─────────────────────────────
+// SELECT DROPDOWN
 
-function PersonalizationQueriesPanel({
+function SelectDropdown({
+    label,
+    options,
+    value,
+    onChange,
+}: {
+    label: string;
+    options: readonly string[];
+    value: string;
+    onChange: (v: string) => void;
+}) {
+    return (
+        <select
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            title={label}
+            className="border-b outline-none cursor-pointer"
+            style={{
+                backgroundColor: "var(--color-background)",
+                color: "var(--color-text)",
+                padding: "0.375rem 0.625rem",
+                margin: 0,
+                fontSize: "0.75rem",
+                fontFamily: "var(--font-body)",
+            }}
+        >
+            {options.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+            ))}
+        </select>
+    );
+}
+
+
+// Generated Personalization Queries Panel
+
+function PersonalizationQueriesItems({
     queries,
 }: {
     queries: string[];
@@ -292,152 +326,11 @@ function PersonalizationQueriesPanel({
     );
 }
 
-// ── Select Dropdown ──────────────────────────────────────────
+// RESEARCH SOURCE CARD
 
-function SelectDropdown({
-    label,
-    options,
-    value,
-    onChange,
-}: {
-    label: string;
-    options: readonly string[];
-    value: string;
-    onChange: (v: string) => void;
-}) {
+function SourceCard({ page }: { page: PageContent }) {
     return (
-        <select
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            title={label}
-            className="border rounded-2xl outline-none cursor-pointer"
-            style={{
-                backgroundColor: "var(--color-background)",
-                color: "var(--color-text)",
-                borderColor: "var(--color-border)",
-                padding: "0.375rem 0.625rem",
-                fontSize: "0.75rem",
-                fontFamily: "var(--font-body)",
-            }}
-        >
-            {options.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-            ))}
-        </select>
-    );
-}
-
-// ── Research Results ─────────────────────────────────────────
-
-function ResearchResults({ data }: { data: ResearchData }) {
-    const results = data.top_search_results ?? [];
-    const pages = data.fetched_pages ?? [];
-    const hasResults = results.length > 0 || pages.length > 0;
-
-    return (
-        <div>
-            {/* Completion banner */}
-            <div
-                className="flex items-center gap-3 mb-5 p-3 rounded-lg px-5 py-2 bg-(--inline-bg)">
-                <Compass size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
-    
-                <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-input)">
-                Research complete ✓
-                </span>
-                <span className="ml-auto text-xs text-(--color-input)">
-                    {results.length} sources · {pages.length} pages
-                </span>
-            </div>
-
-            {/* Empty state */}
-            {!hasResults && (
-                <>
-                <Compass size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
-    
-                <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-grayish-red)">
-                No results found ✗ Try a more specific topic.
-                </span>
-                </>
-            )}
-
-            {/* Sources */}
-            {results.length > 0 && (
-                <div className="mb-8">
-                    <p
-                        className="text-xs font-medium uppercase tracking-wide mb-3"
-                        style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
-                    >
-                        Sources ({results.length})
-                    </p>
-                    <div className="space-y-2">
-                        {results.map((r, i) => (
-                            <SourceCard key={i} result={r} />
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Fetched pages */}
-            {pages.length > 0 && (
-                <div>
-                    <p
-                        className="text-xs font-medium uppercase tracking-wide mb-3"
-                        style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
-                    >
-                        Extracted content ({pages.length} pages)
-                    </p>
-                    <div className="space-y-4">
-                        {pages.map((p, i) => (
-                            <PageCard key={i} page={p} />
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
-// ── Source Card ──────────────────────────────────────────────
-
-function SourceCard({ result }: { result: SearchResult }) {
-    return (
-        <a
-            href={result.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-start justify-between gap-3 p-4 rounded-xl transition-shadow hover:shadow-sm"
-            style={{ backgroundColor: "white", border: "1px solid var(--color-border)" }}
-        >
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-medium" style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}>
-                        {result.domain}
-                    </span>
-                    <span style={{ color: "var(--color-muted)", fontSize: "0.6rem" }}>·</span>
-                    <span className="text-xs" style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}>
-                        score {(result.score ?? 0).toFixed(1)}
-                    </span>
-                </div>
-                <p className="text-sm font-medium mb-1 line-clamp-1" style={{ color: "var(--color-text)", fontFamily: "var(--font-body)" }}>
-                    {result.title}
-                </p>
-                <p className="text-xs line-clamp-2 leading-relaxed" style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}>
-                    {result.snippet}
-                </p>
-            </div>
-            <ExternalLink size={13} className="flex-shrink-0 mt-0.5" style={{ color: "var(--color-muted)" }} />
-        </a>
-    );
-}
-
-// ── Page Card ────────────────────────────────────────────────
-
-function PageCard({ page }: { page: PageContent }) {
-    return (
-        <div
-            className="rounded-xl overflow-hidden"
-            style={{ backgroundColor: "white", border: "1px solid var(--color-border)" }}
-        >
+        <div className="rounded-xl overflow-hidden bg-[var(--inline-bg)] grid grid-cols-2">
             {page.image_url && (
                 <div className="w-full overflow-hidden" style={{ height: "200px", backgroundColor: "var(--color-bg-surface)" }}>
                     <img
@@ -483,6 +376,53 @@ function PageCard({ page }: { page: PageContent }) {
                     Read full article <ExternalLink size={11} />
                 </a>
             </div>
+        </div>
+    );
+}
+
+// RESEARCH RESULTS
+
+function ResearchResults({ data }: { data: ResearchData }) {
+    const results = data.top_search_results ?? [];
+    const pages = data.fetched_pages ?? [];
+    const hasResults = results.length > 0 || pages.length > 0;
+
+    return (
+        <div>
+            <div
+                className="flex items-center gap-3 mb-5 p-3 rounded-lg px-5 py-2 bg-(--inline-bg)">
+                <Compass size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
+    
+                <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-input)">
+                Research completed ✓
+                </span>
+                <span className="ml-auto text-xs text-(--color-input)">{results.length} sources</span>
+            </div>
+
+            {/* Empty state */}
+            {!hasResults && (
+                <>
+                <Compass size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
+    
+                <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-grayish-red)">
+                No results found ✗ Try a more specific topic.
+                </span>
+                </>
+            )}
+
+            {/* Fetched Sources */}
+            {pages.length > 0 && (
+                <div>
+                    <p className="text-xs font-medium uppercase tracking-wide mb-3 text-[var(--color-muted)] "                    >
+                        Extracted content ({pages.length} pages)
+                    </p>
+                    <div className="space-y-4">
+                        {pages.map((p, i) => (
+                            <SourceCard key={i} page={p} />
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
