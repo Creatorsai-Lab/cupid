@@ -66,6 +66,9 @@ def _get_groq_llm() -> Any | None:
     except ImportError:
         logger.warning("[composer] langchain-groq not installed")
         return None
+    except Exception as exc:
+        logger.warning("[composer] Groq init failed: %s", str(exc)[:200])
+        return None
 
 
 class _HFLLM:
@@ -193,14 +196,17 @@ async def composer_node(state: MemoryState) -> dict[str, Any]:
     persona       = state.get("personalization") or {}
     research      = state.get("research_data") or {}
     platform      = state.get("target_platform") or "All"
+    tone          = state.get("tone") or "Casual"
+    content_length = state.get("content_length") or "Medium"
     completed     = state.get("agents_completed", [])
 
     pages = research.get("fetched_pages", [])
     rule  = rule_for(platform)
 
     logger.info(
-        "[composer] start — platform=%s pages=%d persona_niche=%s",
-        rule.name, len(pages), persona.get("content_niche") or "-",
+        "[composer] start — platform=%s tone=%s length=%s pages=%d niche=%s",
+        rule.name, tone, content_length, len(pages),
+        persona.get("content_niche") or "-",
     )
 
     if not pages:
@@ -230,8 +236,16 @@ async def composer_node(state: MemoryState) -> dict[str, Any]:
     logger.info("[composer] using LLM: %s", llm_name)
     facts = await distill_evidence(llm, prompt, top_sources)
 
-    # 3 — Build the shared user message once
-    user_message = build_user_message(prompt, facts, persona, rule)
+    # 3 — Build the shared user message once (tone + length + raw prompt)
+    user_message = build_user_message(
+        topic=prompt,
+        facts=facts,
+        personalization=persona,
+        rule=rule,
+        tone=tone,
+        content_length=content_length,
+        raw_prompt=prompt,
+    )
 
     # 4 — Generate 3 variants in parallel
     gen_tasks = [_generate_variant(llm, angle, user_message) for angle in ANGLES]

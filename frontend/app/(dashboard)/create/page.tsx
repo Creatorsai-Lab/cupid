@@ -42,7 +42,7 @@ export default function CreatePage() {
     const [composerEvidence, setComposerEvidence] = useState<any[]>([]);
     const [composerSources, setComposerSources] = useState<any[]>([]);
     const [error, setError] = useState<string | null>(null);
-    
+
     // Dropdown states
     const [isOptionsOpen, setIsOptionsOpen] = useState(false);
     const optionsMenuRef = useRef<HTMLDivElement>(null);
@@ -56,7 +56,7 @@ export default function CreatePage() {
                 setIsOptionsOpen(false);
             }
         }
-    
+
         document.addEventListener("mousedown", handleClickOutside);
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
@@ -107,9 +107,9 @@ export default function CreatePage() {
         setError(null);
         setResearchData(null);
         setPersonalizationQueries([]);
-        setComposerOutput([]);         
-        setComposerEvidence([]);        
-        setComposerSources([]);        
+        setComposerOutput([]);
+        setComposerEvidence([]);
+        setComposerSources([]);
         setAgentsCompleted([]);
         setAgentsCompleted([]);
         setCurrentAgent(null);
@@ -191,7 +191,7 @@ export default function CreatePage() {
                                     )}
                                 </div>
                                 {/* Add on Icons */}
-                                <ArrowUpToLine size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors"/>
+                                <ArrowUpToLine size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors" />
                                 <Link size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors" />
                                 <Mic size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors" />
 
@@ -321,18 +321,18 @@ function PersonalizationQueriesItems({
                 onClick={() => setOpen((p) => !p)}
                 className="w-full flex items-center gap-2.5 px-5 py-2 bg-(--inline-bg)">
                 <UserRoundPen size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
-    
+
                 <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-input)">
                     Personalization agent generated the queries ✓
                 </span>
-    
+
                 <ChevronDown
                     size={14}
                     style={{ color: "var(--color-primary)" }}
                     className={`flex-shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
                 />
             </button>
-    
+
             {/* Query list */}
             {open && (
                 <div className="px-5 py-3 space-y-2 space-x-2">
@@ -411,9 +411,9 @@ function ResearchResults({ data }: { data: ResearchData }) {
             <div
                 className="flex items-center gap-3 mb-5 p-3 rounded-lg px-5 py-2 bg-(--inline-bg)">
                 <Compass size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
-    
+
                 <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-input)">
-                Research completed ✓
+                    Research completed ✓
                 </span>
                 <span className="ml-auto text-xs text-(--color-input)">{results.length} sources</span>
             </div>
@@ -421,11 +421,11 @@ function ResearchResults({ data }: { data: ResearchData }) {
             {/* Empty state */}
             {!hasResults && (
                 <>
-                <Compass size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
-    
-                <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-grayish-red)">
-                No results found ✗ Try a more specific topic.
-                </span>
+                    <Compass size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
+
+                    <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-grayish-red)">
+                        No results found ✗ Try a more specific topic.
+                    </span>
                 </>
             )}
 
