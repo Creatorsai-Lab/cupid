@@ -24,7 +24,9 @@
 
 import {
     ThumbsUp,
+    ThumbsDown,
     MessageCircle,
+    MessageSquareText,
     Share2,
     Send,
     Heart,
@@ -42,7 +44,9 @@ import {
     ChartNoAxesColumn,
     EllipsisVertical,
     MessageCircleMore,
-    CornerUpRight
+    CornerUpRight,
+    ArrowLeft,
+    Square
 } from "lucide-react";
 
 // ─── Shared types ──────────────────────────────────────────────
@@ -452,7 +456,7 @@ export function LinkedInCard({
 // ─── 5. YouTube wide Card ─────────────────────────────────
 
 export function YouTubeCard({
-    name, handle, content, time = "2 hours ago", avatarUrl, mediaUrl,
+    name, content, time = "2 hours ago", avatarUrl, mediaUrl,
 }: CardProps) {
     return (
         <div className="bg-white border border-[#e5e5e5] rounded-xl max-w-[540px] w-full font-sans text-[#0f0f0f] overflow-hidden h-fit">
@@ -503,35 +507,23 @@ export function YouTubeCard({
 // 6. YouTube Short Card
 
 export function YouTubeShortsCard({
-    name, handle, content, time, avatarUrl, mediaUrl,
+    name, handle, content, avatarUrl, mediaUrl,
   }: CardProps) {
     const user = handle ?? name.toLowerCase().replace(/\s/g, "");
   
     return (
       <div
         className="relative bg-black rounded-2xl overflow-hidden font-sans text-white h-fit"
-        style={{ width: 260, aspectRatio: "10/16" }}
+        style={{ width: 320, aspectRatio: "10/16" }}
       >
         {/* Background media or placeholder */}
         {mediaUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={mediaUrl} alt="Short" className="absolute inset-0 w-full h-full object-cover" />
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4"
-            style={{ background: "linear-gradient(160deg,#1a1a2e,#16213e,#0f3460)" }}>
-            <div className="rounded-full p-6 border-2 border-red-600/40"
-              style={{ background: "rgba(255,0,0,.15)" }}>
-              <Play size={42} className="text-[#ff0000]" fill="#ff0000" strokeWidth={0} />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+              <Play size={28} fill="#ffffffff" strokeWidth={0} />
             </div>
-            <div className="flex items-center gap-2">
-              {/* Shorts wordmark */}
-              <svg width="18" height="14" viewBox="0 0 90 90">
-                <path d="M43.4 2.3C20.5 3.2 2 22.2 2 45c0 23.7 19.3 43 43 43 23.7 0 43-19.3 43-43 0-4.2-.6-8.3-1.7-12.2L74 45.4c.1.9.2 1.8.2 2.8C74.2 66.6 61 79.2 45 79.2S15.8 66.6 15.8 48 29 16.8 45 16.8c4.6 0 8.9 1.1 12.7 3.1L69.5 8.2C62 4.2 53 2 43.4 2.3z" fill="#ff0000"/>
-                <path d="M88.3 1.7L45 45 32 32 22.8 41.2 45 63.4l56.7-56.7z" fill="#ff0000"/>
-              </svg>
-              <span className="text-sm font-bold tracking-wide text-[#ff0000]">Shorts</span>
-            </div>
-          </div>
         )}
   
         {/* Gradient overlays */}
@@ -541,66 +533,41 @@ export function YouTubeShortsCard({
         {/* Top bar */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-3.5 pt-3.5">
           <div className="flex items-center gap-2">
-            <svg width="20" height="14" viewBox="0 0 90 90">
-              <path d="M43.4 2.3C20.5 3.2 2 22.2 2 45c0 23.7 19.3 43 43 43 23.7 0 43-19.3 43-43 0-4.2-.6-8.3-1.7-12.2L74 45.4c.1.9.2 1.8.2 2.8C74.2 66.6 61 79.2 45 79.2S15.8 66.6 15.8 48 29 16.8 45 16.8c4.6 0 8.9 1.1 12.7 3.1L69.5 8.2C62 4.2 53 2 43.4 2.3z" fill="#fff"/>
-              <path d="M88.3 1.7L45 45 32 32 22.8 41.2 45 63.4l56.7-56.7z" fill="#fff"/>
-            </svg>
-            <span className="text-sm font-bold tracking-wide">Shorts</span>
+          <ArrowLeft size={18} strokeWidth={2} />
           </div>
           <div className="flex gap-3.5 text-white">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
-            <MoreHorizontal size={19} />
+            <MoreVertical size={19} />
           </div>
         </div>
   
         {/* Right action column */}
-        <div className="absolute right-2.5 bottom-28 flex flex-col items-center gap-5">
-  
-          {/* Avatar + subscribe button */}
-          <div className="flex flex-col items-center">
-            <Avatar name={name} avatarUrl={avatarUrl} size={36} ringColor="#fff" />
-            {/* Red plus badge */}
-            <div className="w-[18px] h-[18px] rounded-full bg-[#ff0000] flex items-center justify-center -mt-2 border-2 border-black z-10">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-            </div>
-          </div>
-  
+        <div className="absolute right-2.5 bottom-2 flex flex-col items-center gap-2">  
           {/* Like */}
-          <ActionIcon icon={Heart} count="47K" />
+          <ActionIcon icon={ThumbsUp} count="47K" />
           {/* Comment */}
-          <ActionIcon icon={MessageCircle} count="1.2K" />
-          {/* Share */}
-          <ActionIcon icon={Share2} count="Share" />
-          {/* More */}
-          <div className="bg-white/15 rounded-full p-2.5 backdrop-blur-sm">
-            <MoreVertical size={22} className="text-white" />
-          </div>
-  
-          {/* Spinning record disc */}
-          <div className="w-9 h-9 rounded-full flex items-center justify-center border-[3px] border-white/30"
-            style={{ background: "linear-gradient(135deg,#1a1a1a,#333)" }}>
-            <div className="w-3 h-3 rounded-full"
-              style={{ background: "linear-gradient(135deg,#667eea,#764ba2)" }} />
-          </div>
+          <ActionIcon icon={ThumbsDown} count="Dislike" />
+          <ActionIcon icon={MessageSquareText} count="100" />
+          <ActionIcon icon={CornerUpRight} count="Share" />
         </div>
   
         {/* Bottom info */}
-        <div className="absolute bottom-0 left-0 right-0 px-3.5 pb-5 pr-14">
-          <p className="text-sm font-bold mb-1 drop-shadow">@{user}</p>
-          <p className="text-xs leading-relaxed text-white/90 drop-shadow line-clamp-2">{content}</p>
-          <div className="flex items-center gap-1.5 mt-2">
-            <Music2 size={12} className="text-white/80 flex-shrink-0" />
-            <span className="text-xs text-white/80 truncate">Original audio · {name}</span>
-          </div>
-          {/* Progress bar */}
-          <div className="mt-3 h-[2px] rounded-full bg-white/25 overflow-hidden">
-            <div className="h-full w-[38%] rounded-full bg-white" />
-          </div>
-        </div>
+        <div className="absolute bottom-0 left-0 right-0 px-3 pb-4 pr-16">
+                {/* Username row */}
+                <div className="flex items-center gap-2 mb-2">
+                    <Avatar name={name} avatarUrl={avatarUrl} size={28} />
+                    <span className="text-sm drop-shadow">@{user}</span>
+                    <button className="text-[11px] text-black bg-white rounded-2xl px-2.5 py-0.5">
+                        Subscribe
+                    </button>
+                </div>
+                {/* Caption */}
+                <p className="text-xs leading-relaxed text-white/90 drop-shadow line-clamp-2">
+                    {content}
+                </p>
+            </div>
       </div>
     );
   }
@@ -608,9 +575,9 @@ export function YouTubeShortsCard({
   // helper used only inside YouTubeShortsCard
   function ActionIcon({ icon: Icon, count }: { icon: React.ElementType; count: string }) {
     return (
-      <div className="flex flex-col items-center gap-1">
-        <div className="bg-white/15 rounded-full p-2.5 backdrop-blur-sm">
-          <Icon size={24} strokeWidth={1.75} className="text-white" />
+      <div className="flex flex-col items-center">
+        <div className="p-2.5 backdrop-blur-sm">
+          <Icon size={15} strokeWidth={1.75} className="text-white" />
         </div>
         <span className="text-[11px] font-bold drop-shadow">{count}</span>
       </div>

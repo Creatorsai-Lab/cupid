@@ -30,6 +30,7 @@ from app.models.profile import UserPersonalization
 from app.agents.state import MemoryState
 from app.agents.personalization.agent import personalization_node
 from app.agents.research.agent import research_node
+from app.agents.composer.agent import composer_node
 
 router = APIRouter(prefix="/api/v1/agents", tags=["agents"])
 
@@ -67,7 +68,9 @@ class RunStatusResponse(BaseModel):
     personalization_queries: list[str] = []
     research_data: dict | None = None
     trend_data: dict | None = None
-    composer_output: dict | None = None
+    composer_output: list | None = None
+    composer_evidence: list | None = None
+    composer_sources: list | None = None
 
 
 # ── Background Pipeline ───────────────────────────────────────
@@ -127,11 +130,27 @@ async def run_agent_pipeline(
         r_result = await research_node(state)
         AGENT_RUNS[run_id].update(r_result)
 
+        # Merge output into state so Composer Agent sees the research data
+        state = cast(MemoryState, {**state, **r_result})
+
         rd = r_result.get("research_data") or {}
         logger.info(
             "[Pipeline] Research done — sources: %d | pages: %d",
             len(rd.get("top_search_results", [])),
             len(rd.get("fetched_pages", [])),
+        )
+
+        # ── Step 3: Composer Agent ────────────────────────────
+        logger.info("[Pipeline] Running composer agent…")
+        AGENT_RUNS[run_id]["current_agent"] = "composer"
+
+        c_result = await composer_node(state)
+        AGENT_RUNS[run_id].update(c_result)
+
+        co = c_result.get("composer_output") or []
+        logger.info(
+            "[Pipeline] Composer done — %d variants generated",
+            len(co),
         )
 
         # Mark completed (unless an agent already set status to "failed")
@@ -240,4 +259,6 @@ async def get_run_status(
         research_data=state.get("research_data"),
         trend_data=state.get("trend_data"),
         composer_output=state.get("composer_output"),
+        composer_evidence= state.get("composer_evidence", []),
+        composer_sources= state.get("composer_sources", []),
     )

@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     gemini_api_key: str = ""
     groq_api_key: str = ""
+    huggingface_api_key: str = ""
     reddit_client_id: str = ""
     reddit_client_secret: str = ""
     reddit_user_agent: str = "cupid/1.0"

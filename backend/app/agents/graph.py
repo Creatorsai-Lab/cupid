@@ -20,6 +20,7 @@ from langgraph.graph import StateGraph, END
 from app.agents.state import MemoryState
 from app.agents.research import research_node
 from app.agents.personalization import personalization_node
+from app.agents.composer import composer_node
 
 class AgentsOrchestrator:
     """
@@ -47,20 +48,13 @@ class AgentsOrchestrator:
         # Add agent nodes
         workflow.add_node("personalization", personalization_node)
         workflow.add_node("research", research_node)
-
-        # Future nodes (commented for V1):
-        # workflow.add_node("composer", composer_node)
+        workflow.add_node("composer", composer_node)
 
         # Define flow
         workflow.set_entry_point("personalization")
         workflow.add_edge("personalization", "research")
-        workflow.add_edge("research", END)
-
-        # Future flow (V2):
-        # workflow.set_entry_point("personalization")
-        # workflow.add_edge("personalization", "research")
-        # workflow.add_edge("research", "composer")
-        # workflow.add_edge("composer", END)
+        workflow.add_edge("research", "composer")
+        workflow.add_edge("composer", END)
 
         return workflow
 

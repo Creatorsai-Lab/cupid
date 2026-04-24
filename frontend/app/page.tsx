@@ -86,7 +86,6 @@ export default function HomePage() {
             name="Adya Prasad"
             handle="adyaprasad"
             content="Just shipped persona fidelity scoring for Cupid."
-            time="2h"
           />
           <FacebookCard
             name="Rakul Bansal"
@@ -98,13 +97,13 @@ export default function HomePage() {
           />
           <InstagramCard
             name="Rakul Bansal"
-            content="Just shipped persona fidelity scoring for Cupid." />
+            content="Just shipped persona fidelity scoring for Cupid."
+            mediaUrl="/public/media/boy_profile.webp"/>
 
           {/* No media — gradient placeholder */}
           <YouTubeShortsCard
             name="Adya Prasad"
-            handle="adyaprasad"
-            content="Just shipped persona fidelity scoring for Cupid AI. Cosine similarity hits different."
+            content="Cute Couple Status."
           />
 
           {/* With thumbnail */}

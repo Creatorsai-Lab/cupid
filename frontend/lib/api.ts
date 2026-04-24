@@ -204,6 +204,8 @@ interface RunStatusResponse {
     research_data: ResearchData | null;
     trend_data: any | null;
     composer_output: any | null;
+    composer_evidence: any | null;
+    composer_sources: any | null;
 }
 
 export const agentsApi = {

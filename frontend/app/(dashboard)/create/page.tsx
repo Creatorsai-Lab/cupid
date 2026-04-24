@@ -21,7 +21,7 @@ function agentStatusLabel(currentAgent: string | null, status: string): string {
     return status;
 }
 
-// ── Main Page ────────────────────────────────────────────────
+// MAIN PAGE
 
 export default function CreatePage() {
     const { user } = useAuthStore();
@@ -38,6 +38,9 @@ export default function CreatePage() {
     const [agentsCompleted, setAgentsCompleted] = useState<string[]>([]);
     const [personalizationQueries, setPersonalizationQueries] = useState<string[]>([]);
     const [researchData, setResearchData] = useState<ResearchData | null>(null);
+    const [composerOutput, setComposerOutput] = useState<any[]>([]);
+    const [composerEvidence, setComposerEvidence] = useState<any[]>([]);
+    const [composerSources, setComposerSources] = useState<any[]>([]);
     const [error, setError] = useState<string | null>(null);
     
     // Dropdown states
@@ -79,6 +82,9 @@ export default function CreatePage() {
                 if (res.status === "completed") {
                     setResearchData(res.research_data);
                     setIsGenerating(false);
+                    setComposerOutput(res.composer_output || []);
+                    setComposerEvidence(res.composer_evidence || []);
+                    setComposerSources(res.composer_sources || []);
                     clearInterval(interval);
                 } else if (res.status === "failed") {
                     setError(res.error || "Agent execution failed");
@@ -101,6 +107,10 @@ export default function CreatePage() {
         setError(null);
         setResearchData(null);
         setPersonalizationQueries([]);
+        setComposerOutput([]);         
+        setComposerEvidence([]);        
+        setComposerSources([]);        
+        setAgentsCompleted([]);
         setAgentsCompleted([]);
         setCurrentAgent(null);
         setAgentStatus("pending");
@@ -181,9 +191,9 @@ export default function CreatePage() {
                                     )}
                                 </div>
                                 {/* Add on Icons */}
-                                <ArrowUpToLine size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors" />
+                                <ArrowUpToLine size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors"/>
                                 <Link size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors" />
-                                <Mic size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 hover:bg-(--inline-bg) hover:rounded-5xl transition-colors hover:p-2" />
+                                <Mic size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors" />
 
                                 {/* Generate Button */}
                                 <button
@@ -245,13 +255,13 @@ export default function CreatePage() {
                         <ResearchResults data={researchData} />
                     )}
 
-                    {run?.composer_output && run.composer_output.length > 0 && (
-                    <ComposerResults
-                        variants={run.composer_output}
-                        evidence={run.composer_evidence}
-                        sources={run.composer_sources}
-                    />
-)}
+                    {composerOutput.length > 0 && !isGenerating && (
+                        <ComposerResults
+                            variants={composerOutput}
+                            evidence={composerEvidence}
+                            sources={composerSources}
+                        />
+                    )}
 
                 </div>
             </main>
