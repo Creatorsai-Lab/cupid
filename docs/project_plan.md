@@ -1,12 +1,10 @@
-# Cupid — Project Plan
-
-> **"Social media soulmate"**
+# Cupid: Multiagent content creation platform
 
 ---
 
 ## How to Position and Present Cupid
 
-Cupid is team of Mixture of Experts ai agents. It is a **personal AI agent system** that learns who you are — your voice, expertise, geography, and audience — and autonomously operates your professional social presence through a coordinated pipeline of specialized agents. Where every other tool hands you a template, Cupid deploys agents that think, research, and write the way you do. The Persona Agent alone makes Cupid categorically different: it builds a living, evolving model of the user that no scheduler, AI writer, or automation tool has ever attempted at the individual creator level. Cupid's output does not read like AI. It reads like you — because its entire architecture is built around that single goal.
+Cupid is team of Mixture of Experts autonomous ai agents. It is a **personalized content creation team** that learns who you are — your voice, expertise, contnet creation goal, intent audience. Start autonomously creeating and operates your professional social presence through a coordinated pipeline (swarm architecture) of specialized agents. Where every other tool hands you a template, Cupid deploys agents that think, research, and write the way you do. The Persona Agent alone makes Cupid categorically different: it builds a living, evolving model of the user that no scheduler, Composer agent, or automation tool has ever attempted at the individual creator level. Cupid's output does not read like AI. It reads like you because its entire architecture is built around that single goal.
 
 ---
 
@@ -28,21 +26,19 @@ Cupid is team of Mixture of Experts ai agents. It is a **personal AI agent syste
 
 ---
 
-## 1. Project Overview
+## (1) Project Overview
 
 | Field | Detail |
 |---|---|
 | **Name** | Cupid |
-| **Tagline** | Social media soulmate |
 | **Category** | Personal AI Agent System |
-| **Target User** | Individual professionals, researchers, engineers, founders building a personal brand |
+| **Target User** | Every content creators and influencers |
 | **Core Thesis** | Persona fidelity at the agent level is an unsolved problem. Every existing tool treats voice as a prompt parameter. Cupid treats it as a trained, retrievable, continuously refined identity model. |
-| **License** | Opensource |
-| **Budget** | Zero. Fully FOSS and free-tier infrastructure. |
+| **Budget** | Zero. Fully FOSS, Using Free LLM API and free-tier infrastructure. |
 
 ---
 
-## 2. Architecture Philosophy
+## (2). Architecture Philosophy
 
 ### Principles
 - Use Swarm architecture agent orchestration debugging we need specialized tooling (distributed tracing, event sourcing, blackboard snapshots).
@@ -57,44 +53,26 @@ Cupid is team of Mixture of Experts ai agents. It is a **personal AI agent syste
 - **Flat and modular.** Max two levels of nesting in the module tree. Each agent, service, and router is an independently importable Python module.
 - **Claude Growth Pattern.** Four agents, two pages, one platform in V1. Validate output quality before expanding. Never build what you haven't validated a user needs.
 
-### Agent Communication Model
-```
-User Intent
-    │
-    ▼
-Orchestrator (LangGraph StateGraph)
-    │
-    ├── Persona Agent          → retrieves user identity context
-    ├── Research/Ideation Agent → finds angles, sources, ideas
-    ├── Trend Intelligence Agent → showcases trending topics, recommended hashtags, timing suggestions
-    └── Composer Agent         → use content from research agent and trend agent, assembles, and create social media post content: tweet, video idea, doc, blog, etc.
-    │
-    ▼
-Structured Output → API → Frontend
-```
 
-Agents share a single Persistent user persona, that contain user personalized settings, preferences, and other user-specific information. No agent holds internal state between runs. All persistence is in PostgreSQL and ChromaDB.
+Agents share a single Persistent user personalization persona, that contain user profile, personalized settings, preferences, and other user-specific information. No agent holds internal state between runs. All persistence is in PostgreSQL and ChromaDB.
 
 ---
 
-## 3. V1 Agent System
+## (3) Agent System
 
 ### Long Term Memory
-- User details, info, demographics, skills, interests, expertise, audience, geography, domain, past posts, writing samples, writing rules, persona prompt template.
+- User profile and settings.
 
-### Agent 1 — Persona Agent
+### Agent 1 — Persona (Personalization) Agent
 
 **Role:** Build, maintain, and serve a living model of the user's authentic voice, knowledge, tone, and identity.
 
 **Inputs:**
-- User onboarding profile (bio, skills, geography, field, target audience)
+- User profile
 - User's uploaded writing samples or past posts
-- User's stated interests and domain expertise
-- Analysis of user social media profiles
+- User connected social media channel
+- Analysis of user social media content performance
 
-**Outputs:**
-- Persona card (structured JSON describing voice, tone, vocabulary tendencies, formality level, recurring themes)
-- Top-k retrieved persona chunks (RAG retrieval from vector store)
 
 **Core Technique:**
 - Embed user writing samples using `nomic-embed-text` (local, free via Ollama)
@@ -103,30 +81,6 @@ Agents share a single Persistent user persona, that contain user personalized se
 - Synthesize a persona card on first setup using an LLM prompt over all user data
 - Update persona card on each new sample added (incremental re-synthesis, not full rewrite)
 
-**Persona Card Schema:**
-```json
-{
-  "user_id": "uuid",
-  "tone": "analytical and direct",
-  "bio": "tech and business content creator",
-  "formality": "semi-formal",
-  "avg_sentence_length": "medium",
-  "vocabulary_bias": ["systems thinking", "open source", "research-backed"],
-  "structural_preference": "short hook → reasoning → call-to-action",
-  "avoid": ["corporate jargon", "motivational clichés"],
-  "geography_signals": ["India", "tier-2 city", "South Asian context"],
-  "domain": "AI/ML engineering",
-  "audience": "technical professionals, indie hackers, AI researchers"
-}
-```
-
-**Free Tools Used:**
-- `Ollama` (local inference) + `llama3.2` or `mistral` model
-- `ChromaDB` (vector store, fully local)
-- `rank_bm25` (Python, pip install, free)
-- `nomic-embed-text` via Ollama (free local embeddings)
-
----
 
 ### Agent 2 — Research & Ideation Agent
 
@@ -145,7 +99,7 @@ Agents share a single Persistent user persona, that contain user personalized se
 **Core Technique — ReAct Loop (Reason + Act):**
 ```
 Think: What does this user's audience care about in this topic?
-Act:   Search → Tavily API (free tier, 1000 req/month) or SerpAPI
+Act:   Search → groq API, hugging face api for fallback
 Observe: Parse results
 Think: Is this enough? What angle fits the persona?
 Act:   Synthesize ideation notes
@@ -153,30 +107,50 @@ Output: Structured idea list
 ```
 
 **Free Tools Used:**
--  `Qwen3.5` for research and ideation topics and keywords
-- `Tavily Search API` (free tier — best LLM-native search API)
+-  `Best suitable model` for research and ideation topics and keywords
+- `groq Search API` (free tier — best LLM-native search API)
 - `DuckDuckGo Search` via `duckduckgo-search` Python package (fully free, no key needed)
 - `trafilatura` — article content extraction (free, pip install)
 - `LangGraph` — ReAct node implementation
 - `LangChain` — for agent if needed
-```
-Cupid AI Agent
-        │
-        ▼
-Async Research Pipeline
-        │
-        ▼
-Local LLM Engine
-        │
-        ├── Qwen2.5-3B (primary)
-        └── Gemma2-2B (fallback)
-```
+
 
 **Implementation Note:** Use `duckduckgo-search` as the primary free search provider. Fall back to Tavily free tier for richer results. Never call paid APIs.
 
----
 
-### Agent 3 — Trend Intelligence Hybrid Agent
+### Agent 3 — Composer / Content Formatter Agent
+
+**Role:** Take all upstream context (persona, research notes, trend signals) and produce a publication-ready, platform-specific post.
+
+**Inputs:**
+- Persona card + retrieved persona chunks
+- Selected idea from Research Agent
+- Trend annotations from Trend Agent
+- Target platform(s): LinkedIn / Twitter-X / Threads / Reddit
+
+**Outputs:**
+- Formatted post per platform (respecting character limits, structure norms)
+- Hashtag block
+- Alt-text for any image prompt (if image is suggested)
+- Confidence score (how well the output matches persona — computed by cosine similarity of output embedding vs persona centroid)
+
+**Platform Formatting Rules:**
+| Platform | Max Length | Structure | Hashtags |
+|---|---|---|---|
+| LinkedIn | 3000 chars | Hook → Body → CTA | 3–5, end of post |
+| Twitter/X | 280 chars (thread for more) | Single punch or thread | 1–2 inline |
+| Threads | 500 chars | Casual, conversational | Optional |
+| Reddit | Unlimited | Title + body, no hashtags | None |
+
+**Persona Fidelity Check:**
+After generation, embed the output and compute cosine similarity against the user's persona centroid vector. If similarity < 0.72 threshold, trigger a regeneration pass with tighter persona constraints. This is a deterministic quality gate, not another LLM call — it uses the already-computed embeddings.
+
+**Free Tools Used:**
+- Open source xAI Grok-1 for generating real human like post description, captions and tweets.
+- `ChromaDB` for persona centroid lookup
+- `sentence-transformers` for fidelity scoring (local, free)
+
+### Agent 4 — Trend Intelligence Hybrid Agent
 
 **Role:** Continuously monitor what is trending in the user's domain and surface actionable signals. Hybrid design: a rule-based algorithmic engine supervised by an AI classifier.
 
@@ -223,47 +197,12 @@ AI Supervision Layer (runs on filtered candidates):
 - `scikit-learn` — TF-IDF vectorizer for velocity scoring
 - `Ollama` + local LLM for the supervision classification pass
 
----
 
-### Agent 4 — Composer / Content Formatter Agent
-
-**Role:** Take all upstream context (persona, research notes, trend signals) and produce a publication-ready, platform-specific post.
-
-**Inputs:**
-- Persona card + retrieved persona chunks
-- Selected idea from Research Agent
-- Trend annotations from Trend Agent
-- Target platform(s): LinkedIn / Twitter-X / Threads / Reddit
-
-**Outputs:**
-- Formatted post per platform (respecting character limits, structure norms)
-- Hashtag block
-- Alt-text for any image prompt (if image is suggested)
-- Confidence score (how well the output matches persona — computed by cosine similarity of output embedding vs persona centroid)
-
-**Platform Formatting Rules:**
-| Platform | Max Length | Structure | Hashtags |
-|---|---|---|---|
-| LinkedIn | 3000 chars | Hook → Body → CTA | 3–5, end of post |
-| Twitter/X | 280 chars (thread for more) | Single punch or thread | 1–2 inline |
-| Threads | 500 chars | Casual, conversational | Optional |
-| Reddit | Unlimited | Title + body, no hashtags | None |
-
-**Persona Fidelity Check:**
-After generation, embed the output and compute cosine similarity against the user's persona centroid vector. If similarity < 0.72 threshold, trigger a regeneration pass with tighter persona constraints. This is a deterministic quality gate, not another LLM call — it uses the already-computed embeddings.
-
-**Free Tools Used:**
-- Open source xAI Grok-1 for generating real human like post description, captions and tweets.
-- `ChromaDB` for persona centroid lookup
-- `sentence-transformers` for fidelity scoring (local, free)
-
----
-
-## 4. Non-Agent Intelligence Layer
+## (4) Non-Agent Intelligence Layer
 
 These capabilities exist in V1 but use **deterministic algorithms**, not LLM agents. This is intentional — following the same engineering philosophy used by Anthropic, Google, and Meta internally: *AI where it creates irreplaceable value, algorithms where logic suffices.*
 
-### Analytics Engine (Algorithm-Based)
+### Analytics Engine (Algorithm-Based and using latest research techniques)
 
 **Metrics computed without AI:**
 - Engagement rate: `(likes + comments + shares) / impressions × 100`
@@ -271,6 +210,7 @@ These capabilities exist in V1 but use **deterministic algorithms**, not LLM age
 - Peak engagement window: aggregate hourly engagement across post history, compute distribution, surface top 3 hours
 - Audience growth rate: 7-day rolling delta on follower count
 - Topic performance index: group posts by topic tag, rank by mean engagement
+- **Andrej karpathy** `llm knowledge base` combined with **Nate herk** technique
 
 **Implementation:** Pure Python + SQLAlchemy aggregate queries. No ML.
 
@@ -310,12 +250,15 @@ Three layers, no LLM:
 | Database | `PostgreSQL` | Relational core: users, posts, analytics |
 | Cache / Queue Broker | `Redis` | Celery broker, rate limiting, trend cache |
 | Vector Store | `ChromaDB` | Local, zero-config, per-user namespace support |
-| LLM Runtime | `HuggingFace` | 100% local, zero cost, supports llama3/mistral/gemma |
+| LLM Runtime | `Groq`, `HuggingFace` | 100% local, zero cost, supports llama3/mistral/gemma |
+| Modern tool: Caveman | `caveman` | for token reduction and optimization (for future version)|
+| Modern tool: LLM Knowledge Base | Andrej karpathy `LLM Knowledge Base` |  News and information monitoring: Compile daily feeds into structured summaries, extract entities and trends, and build a queryable record of what’s happened in a given domain over time. (for future version) https://www.mindstudio.ai/blog/karpathy-llm-knowledge-base-architecture-compiler-analogy| 
+
 
 ### AI & Agents
 | Component | Tool | Reason |
 |---|---|---|
-| Agent Orchestration | `LangGraph` | Stateful DAG-based agent pipelines, Apache 2.0 |
+| Agent Orchestration | `LangGraph` and `Langchain` | Stateful DAG-based agent pipelines, Apache 2.0 |
 | LLM Interface | `LangChain` (core only) | Tool calling, prompt templates, output parsers |
 | Embeddings | `nomic-embed-text` via Ollama | Free, local, high quality |
 | Semantic Similarity | `sentence-transformers` | Local inference, persona fidelity scoring |
@@ -353,61 +296,8 @@ Three layers, no LLM:
 | Twitter/X | Basic API v2 | 1500 posts/month write (free tier) |
 | LinkedIn | OAuth API | Free for posting to own profile |
 
----
 
-## 6. Agent Framework & SDK Guide
-
-### Primary Framework: LangGraph
-
-**What it is:** A graph-based agent orchestration library from LangChain Inc. Licensed Apache 2.0. Agents are nodes in a `StateGraph`. Data flows as a typed state dict through edges. Conditional routing enables supervisor logic.
-
-**Why not alternatives:**
-- `CrewAI` — opinionated, less control over state, harder to debug
-- `AutoGen` (Microsoft) — conversation-based, better for multi-LLM debates, not production pipelines
-- `raw LangChain chains` — no state management, breaks on complex routing
-- `Haystack` — good but heavier, more NLP-document-pipeline oriented
-
-
-## 7. System Architecture Diagram
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          FRONTEND (Next.js)                         │
-│  Dashboard │ Trends Page │ Recommendations │ Schedule │ Analytics   │
-└─────────────────┬───────────────────────────────────────────────────┘
-                  │  REST / SSE
-┌─────────────────▼───────────────────────────────────────────────────┐
-│                        FASTAPI BACKEND                              │
-│  /auth  │  /agents  │  /posts  │  /trends  │  /analytics  │  /ws    │
-└─────────────────┬───────────────────────────────────────────────────┘
-                  │
-     ┌────────────┴──────────────┐
-     │                           │
-┌────▼────────────────┐   ┌──────▼──────────────────────────────────┐
-│  PostgreSQL         │   │         CELERY WORKERS                  │
-│  - users            │   │  ┌──────────────────────────────────┐   │
-│  - posts            │   │  │        LANGGRAPH PIPELINE        │   │
-│  - persona_profiles │   │  │                                  │   │
-│  - analytics        │   │  │  Persona → Research → Trend →    │   │
-│  - notifications    │   │  │              Composer            │   │
-│  - schedules        │   │  └──────────────────────────────────┘   │
-└─────────────────────┘   │                                         │
-                          │  Non-Agent Workers:                     │
-┌─────────────────────┐   │  - Analytics Aggregator (cron)          │
-│  ChromaDB           │   │  - Scheduler Optimizer (cron)           │
-│  (per-user          │◄──┤  - Brand Safety Filter                  │
-│   namespaces)       │   │  - Notification Dispatcher              │
-└─────────────────────┘   └──────────────────┬──────────────────────┘
-                                              │
-┌─────────────────────┐              ┌────────▼─────────────┐
-│  hugginface         │◄─────────────│  Redis               │
-│ Model               │              │  (broker + cache)    │
-└─────────────────────┘              └──────────────────────┘
-```
-
----
-
-## 8. Database Schema
+## (7) Database Schema
 
 ```sql
 -- Users
@@ -500,112 +390,26 @@ GET    /api/v1/notifications          → list unread notifications
 PATCH  /api/v1/notifications/{id}/read
 ```
 
-### UI and frontend styling and theme
-* social media inspire theme, minimal but creative to avoid boring and confuing look
-* icons for page navigation instead of text (in header)
-* primary color code: #d47a03
-* border and text color: #2a3852
-* background color: #fff6ed or #fff9f3
 
----
-
-## 10. Project Structure
-
-```
-cupid/
-│
-├── backend/
-│   ├── app/
-│   │   ├── main.py                   # FastAPI app factory
-│   │   ├── config.py                 # Settings via pydantic-settings
-│   │   │
-│   │   ├── agents/                   # LangGraph agent nodes
-│   │   │   ├── state.py              # CupidState TypedDict
-│   │   │   ├── graph.py              # StateGraph assembly
-│   │   │   ├── persona.py            # Persona Agent node
-│   │   │   ├── research.py           # Research/Ideation Agent node
-│   │   │   ├── trend.py              # Trend Intelligence Agent node
-│   │   │   └── composer.py           # Composer Agent node
-│   │   │
-│   │   ├── services/                 # Non-agent intelligence
-│   │   │   ├── analytics.py          # Engagement metric aggregation
-│   │   │   ├── scheduler.py          # Time-slot scoring algorithm
-│   │   │   ├── brand_safety.py       # Blocklist + PII + VADER
-│   │   │   └── notifications.py      # Notification dispatch
-│   │   │
-│   │   ├── routers/                  # FastAPI route handlers
-│   │   │   ├── auth.py
-│   │   │   ├── persona.py
-│   │   │   ├── agents.py
-│   │   │   ├── trends.py
-│   │   │   ├── analytics.py
-│   │   │   └── notifications.py
-│   │   │
-│   │   ├── models/                   # SQLAlchemy ORM models
-│   │   │   ├── user.py
-│   │   │   └── notification.py
-│   │   │
-│   │   ├── core/                     # Shared infrastructure
-│   │   │   ├── db.py                 # PostgreSQL session
-│   │   │   ├── redis.py              # Redis client
-│   │   │   ├── vector_store.py       # ChromaDB client + per-user n
-│   │
-│   ├── alembic/                      # DB migration files
-│   ├── tests/                        # pytest test suite
-│   ├── Dockerfile
-│   ├── docker-compose.yml
-│   └── requirements.txt
-│
-├── frontend/
-│   ├── app/                          # Next.js App Router
-│   │   ├── (auth)/
-│   │   │   ├── login/page.tsx
-│   │   │   └── register/page.tsx
-│   │   ├── (dashboard)/
-│   │   └── page.tsx (defaul home page with simple no authentication, login button initially for MVP)
-|   |   └── layout.tsx
-│   │
-│   ├── components/
-│   │   ├── ui/                       # shadcn/ui components
-│   │   ├── header/                   # logo on left and page button on right
-│   │   ├── agents/                   # agent run status widgets
-│   │   ├── posts/                    # post editor, preview, card
-│   │   └── charts/                   # Recharts wrappers
-│   │
-│   ├── lib/
-│   │   ├── api.ts                    # typed API client
-│   │   ├── store.ts                  # Zustand global state
-│   │   └── utils.ts
-│   │
-└── README/
-```
 
 ---
 
 ## 11. Development Roadmap — Agile Phases
 
-### Phase 0 — Foundation
-- [ ] Repo init, Docker Compose with FastAPI + PostgreSQL + Redis + Ollama
-- [ ] Alembic migrations for all core tables
-- [ ] JWT auth with register/login endpoints
-- [ ] ChromaDB client with per-user namespace utility
-- [ ] Next.js project init with shadcn/ui + Tailwind configured
-- [ ] Login + Register UI pages
-- [ ] `GET /health` endpoint, CI pipeline (GitHub Actions, free)
+### Phase 1 — Foundation
+- [x] Repo init, Docker Compose with FastAPI + PostgreSQL + Redis + Ollama
+- [x] Alembic migrations for all core tables
+- [x] JWT auth with register/login endpoints
+- [x] ChromaDB client with per-user namespace utility
+- [x] Next.js project init with shadcn/ui + Tailwind configured
+- [x] Login + Register UI pages
+- [x] `GET /health` endpoint, CI pipeline (GitHub Actions, free)
 
 **Milestone: System runs locally end-to-end. Auth works. DB migrates clean.**
 
 ### Phase 1 — Persona Agent
-- [ ] Onboarding form UI (bio, skills, interests, geography, audience)
-- [ ] Writing sample upload (paste or file)
-- [ ] Persona Agent node: embedding pipeline + ChromaDB ingestion
-- [ ] Persona card synthesis using Ollama
-- [ ] `POST /persona/setup`, `GET /persona/card` endpoints
 - [ ] Persona card display component in dashboard
-
-**Milestone: User can set up their persona and view their generated persona card.**
-
-### Phase 2 — Trend Intelligence Agent
+- [ ]Trend Intelligence Agent
 - [ ] RSS feed fetcher (Celery beat task, every 6h)
 - [ ] Reddit PRAW integration (domain-filtered hot posts)
 - [ ] HackerNews Algolia API integration
@@ -613,10 +417,15 @@ cupid/
 - [ ] AI supervision classification pass (Ollama)
 - [ ] Trends page UI with velocity scores + source labels
 - [ ] Trend cache database layer
+- [ ] Onboarding form UI (bio, skills, interests, geography, audience)
+- [ ] Writing sample upload (paste or file)
+- [ ] Persona Agent node: embedding pipeline + ChromaDB ingestion
+- [ ] Persona card synthesis using Ollama
+- [ ] `POST /persona/setup`, `GET /persona/card` endpoints
 
 **Milestone: Trends page shows live, scored, persona-relevant trending topics.**
 
-### Phase 3 — Research + Composer Agents
+### Phase 2 — Research + Composer Agents
 - [ ] LangGraph StateGraph assembly (all 4 agent nodes)
 - [ ] Research Agent: DuckDuckGo search + ReAct loop + ideation synthesis
 - [ ] Composer Agent: platform-specific formatting + persona fidelity scoring
@@ -627,7 +436,7 @@ cupid/
 
 **Milestone: User can trigger the full agent pipeline and receive a platform-specific draft.**
 
-### Phase 4 — Non-Agent Intelligence Layer (Week 10–11)
+### Phase 3 — Non-Agent Intelligence Layer (Week 10–11)
 - [ ] Brand Safety filter (blocklist + Presidio + VADER) — pre-publish gate
 - [ ] Scheduling algorithm + time-slot scoring
 - [ ] Schedule page UI (calendar view, drag-to-schedule)
@@ -638,7 +447,7 @@ cupid/
 
 **Milestone: Full V1 feature set complete. Posts can be scheduled and published.**
 
-### Phase 5 — Hardening & Deployment (Week 12)
+### Phase 4 — Hardening & Deployment (Week 12)
 - [ ] Rate limiting (slowapi, per-user per-endpoint)
 - [ ] Error boundary audit across all agent nodes
 - [ ] pytest coverage > 70% for all service + agent modules
