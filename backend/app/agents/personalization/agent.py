@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime
 from typing import Any, Protocol
 
 import httpx
@@ -32,41 +33,52 @@ logger = logging.getLogger(__name__)
 
 # ─── Prompt ──────────────────────────────────────────────────────
 
-SYSTEM_PROMPT = """\
+def _system_prompt() -> str:
+    year = datetime.now().year
+    return f"""\
 You are a research query strategist for social media creators. You decompose a topic \
 into exactly 5 search queries, each targeting a distinct retrieval angle so together \
-they surface comprehensive, non-overlapping information and all info should be latest year 2026.
+they surface comprehensive, non-overlapping, highly personalized information. \
+Prioritize results from {year} and the last 12 months.
 
 THE 5 ANGLES (in order, one query per angle):
   1. FACTS      — statistics, data points, definitions, benchmarks
-  2. RECENCY    — latest developments, current-year updates
-  3. EXPERTISE  — what domain experts, researchers, or authoritative sources say
+  2. RECENCY    — latest developments, {year} updates, new releases
+  3. EXPERTISE  — what the niche's recognized experts / publications say
   4. PRACTICAL  — how-to, tutorials, implementation, real workflows
   5. CONTRARIAN — criticism, failures, edge cases, what doesn't work
 
 QUERY RULES:
 - 4 to 9 words each. Concrete nouns over adjectives.
-- Anchor on specific entities, tools, numbers, or proper nouns when present.
-- Tailor vocabulary to the creator's niche and audience sophistication.
+- Anchor on specific entities, tools, people, numbers, or proper nouns when present.
+- Bake the CREATOR's niche vocabulary into the phrasing — not generic words.
+- If a Region is given, add a region signal to queries where it changes results \
+(regulation, market, prices, local leaders). Skip it for universal topics.
+- If an Audience tier is given (beginner / technical / academic / strategic), \
+match its sophistication in word choice.
 - Queries must NOT overlap — each must surface different results.
-- No question marks. No quotes. No site: operators. No numbering.
+- No question marks. No quotes. No site: operators. No numbering. No year in \
+query unless user asked for a specific year.
 
 OUTPUT FORMAT (STRICT):
 Return ONLY a JSON array of 5 strings. No prose, no markdown, no code fences.
-Example: ["query one","query two","query three","query four","query five"]\
-"""
+Example: ["query one","query two","query three","query four","query five"]"""
 
 
 def _build_context(prompt: str, persona: dict[str, Any]) -> str:
     fields = [
-        ("Niche",    persona.get("content_niche")),
-        ("Goal",     persona.get("content_goal")),
-        ("Audience", persona.get("target_audience")),
-        ("Region",   persona.get("target_country")),
-        ("Intent",   persona.get("content_intent")),
-        ("USP",      persona.get("usp")),
+        ("Niche",     persona.get("content_niche")),
+        ("Goal",      persona.get("content_goal")),
+        ("Intent",    persona.get("content_intent")),
+        ("Audience",  persona.get("target_audience")),
+        ("Age group", persona.get("target_age_group")),
+        ("Region",    persona.get("target_country")),
+        ("USP",       persona.get("usp")),
+        ("Bio",       persona.get("bio")),
     ]
     ctx = "\n".join(f"- {k}: {v}" for k, v in fields if v and str(v).strip())
+    if not ctx:
+        ctx = "- (no creator profile provided — infer from topic)"
     return f"CREATOR CONTEXT\n{ctx}\n\nTOPIC\n{prompt}"
 
 
@@ -84,12 +96,14 @@ class GroqProvider:
 
     def __init__(self, api_key: str) -> None:
         from langchain_groq import ChatGroq
+        # Llama 3.3 70B gives materially better query decomposition than 8B,
+        # and Groq's throughput keeps latency ~1s even at 70B.
         self.llm = ChatGroq(
-            model="llama-3.1-8b-instant",
+            model="llama-3.3-70b-versatile",
             groq_api_key=api_key,
             temperature=0.4,
             max_tokens=256,
-            timeout=10,
+            timeout=12,
         )
 
     async def generate(self, system: str, user: str,
@@ -211,11 +225,18 @@ def _build_provider_chain() -> list[QueryProvider]:
     if groq_key:
         try:
             chain.append(GroqProvider(groq_key))
-            logger.info("[personalization] Groq provider: ENABLED")
+            logger.info("[personalization] Groq provider: ENABLED (llama-3.3-70b)")
         except ImportError:
             logger.warning(
                 "[personalization] Groq provider: DISABLED — "
                 "`langchain-groq` not installed. Run: pip install langchain-groq"
+            )
+        except Exception as exc:
+            # Catch auth errors, network issues, SDK version mismatches — anything
+            # that would otherwise silently fall all the way through to heuristic.
+            logger.warning(
+                "[personalization] Groq provider: DISABLED — init failed: %s",
+                str(exc)[:200],
             )
     else:
         logger.info("[personalization] Groq provider: DISABLED — GROQ_API_KEY missing in .env")
@@ -316,7 +337,7 @@ async def personalization_node(state: MemoryState) -> dict[str, Any]:
     logger.info("[personalization] start — topic=%r", prompt[:60])
 
     user_msg = _build_context(prompt, persona)
-    queries, provider_used = await _run_chain(SYSTEM_PROMPT, user_msg, prompt, persona)
+    queries, provider_used = await _run_chain(_system_prompt(), user_msg, prompt, persona)
 
     logger.info(
         "[personalization] done — provider=%s queries=%d",

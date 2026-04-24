@@ -25,6 +25,7 @@ import random
 import re
 from dataclasses import dataclass
 from html import unescape
+from typing import Any
 from urllib.parse import urljoin, urlparse
 
 import httpx
@@ -49,6 +50,145 @@ _CHROME_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
+
+
+# ── Niche-specific domain authority map ──────────────────────────
+#
+# Each entry is (substring-matcher -> bonus). We match by suffix or
+# substring on the hostname. Keys are lowercase.
+#
+# Why a map?  Generic ranking (.gov / .edu) is fine for academic topics
+# but buries the sources that actually matter for creator niches
+# (eg. for AI: huggingface, openai blog; for fitness: stronger by science).
+
+_NICHE_DOMAIN_MAP: dict[str, dict[str, float]] = {
+    "ai/ml": {
+        "arxiv.org": 0.30, "huggingface.co": 0.25, "openai.com": 0.22,
+        "anthropic.com": 0.22, "deepmind.com": 0.22, "ai.google": 0.20,
+        "mlops.community": 0.15, "paperswithcode.com": 0.20,
+        "towardsdatascience.com": 0.12, "distill.pub": 0.20,
+        "blog.google": 0.10, "microsoft.com/en-us/research": 0.18,
+    },
+    "software": {
+        "github.com": 0.25, "stackoverflow.com": 0.20, "dev.to": 0.12,
+        "martinfowler.com": 0.22, "developer.mozilla.org": 0.22,
+        "docs.python.org": 0.20, "realpython.com": 0.15,
+        "engineering.atspotify.com": 0.15, "netflixtechblog.com": 0.15,
+        "aws.amazon.com/blogs": 0.12, "cloud.google.com/blog": 0.12,
+    },
+    "fitness": {
+        "pubmed.ncbi.nlm.nih.gov": 0.25, "strongerbyscience.com": 0.25,
+        "examine.com": 0.22, "nsca.com": 0.18, "acefitness.org": 0.15,
+        "mensjournal.com": 0.10, "t-nation.com": 0.10,
+    },
+    "finance": {
+        "bloomberg.com": 0.22, "reuters.com": 0.22, "ft.com": 0.20,
+        "wsj.com": 0.18, "sec.gov": 0.25, "imf.org": 0.18,
+        "federalreserve.gov": 0.22, "investopedia.com": 0.12,
+        "cnbc.com": 0.10, "morningstar.com": 0.15, "economist.com": 0.18,
+    },
+    "marketing": {
+        "hubspot.com": 0.18, "backlinko.com": 0.18, "ahrefs.com": 0.18,
+        "moz.com": 0.15, "semrush.com": 0.15, "neilpatel.com": 0.10,
+        "searchengineland.com": 0.15, "marketingweek.com": 0.12,
+        "marketingcharts.com": 0.15, "hbr.org": 0.18,
+    },
+    "health": {
+        "pubmed.ncbi.nlm.nih.gov": 0.28, "who.int": 0.25, "cdc.gov": 0.25,
+        "nih.gov": 0.25, "mayoclinic.org": 0.20, "health.harvard.edu": 0.20,
+        "nejm.org": 0.25, "thelancet.com": 0.22, "bmj.com": 0.20,
+    },
+    "creator": {
+        "youtube.com/creators": 0.18, "creatoreconomy.so": 0.18,
+        "tubefilter.com": 0.15, "socialmediatoday.com": 0.15,
+        "buffer.com/resources": 0.15, "later.com/blog": 0.12,
+        "thinkmedia.com": 0.10, "patreon.com/blog": 0.12,
+    },
+    "crypto": {
+        "coindesk.com": 0.20, "cointelegraph.com": 0.15, "messari.io": 0.22,
+        "a16zcrypto.com": 0.20, "defillama.com": 0.22, "ethereum.org": 0.22,
+        "bitcoin.org": 0.20, "glassnode.com": 0.18,
+    },
+    "design": {
+        "figma.com/blog": 0.18, "smashingmagazine.com": 0.20,
+        "nngroup.com": 0.25, "uxdesign.cc": 0.12, "behance.net": 0.10,
+        "dribbble.com": 0.10, "abduzeedo.com": 0.10,
+    },
+}
+
+
+def _resolve_niche_key(niche: str) -> str | None:
+    """Map a free-form niche string onto one of _NICHE_DOMAIN_MAP's keys."""
+    n = niche.lower()
+    if any(k in n for k in ("ai", "ml", "machine learning", "data scien", "llm", "genai")):
+        return "ai/ml"
+    if any(k in n for k in ("software", "web dev", "programming", "coding", "developer", "devops")):
+        return "software"
+    if any(k in n for k in ("fitness", "gym", "workout", "exercise", "strength", "bodybuilding")):
+        return "fitness"
+    if any(k in n for k in ("finance", "invest", "stock", "trading", "economy", "wealth")):
+        return "finance"
+    if any(k in n for k in ("crypto", "web3", "blockchain", "bitcoin", "defi")):
+        return "crypto"
+    if any(k in n for k in ("market", "growth", "seo", "ads", "brand", "copywrit")):
+        return "marketing"
+    if any(k in n for k in ("health", "wellness", "nutrition", "mental", "medical", "medicine")):
+        return "health"
+    if any(k in n for k in ("creator", "youtube", "podcast", "influencer", "content creat")):
+        return "creator"
+    if any(k in n for k in ("design", "ux", "ui", "product design")):
+        return "design"
+    return None
+
+
+# Regional TLD/domain hints — boost pages from the user's target country.
+# Two-letter ISO TLDs get a fixed boost; a handful of well-known publishers
+# get an extra edge because their country-of-record is not obvious from the TLD.
+_COUNTRY_TLD: dict[str, str] = {
+    "india": ".in",       "united kingdom": ".uk",   "uk": ".uk",
+    "germany": ".de",     "france": ".fr",           "spain": ".es",
+    "italy": ".it",        "netherlands": ".nl",     "japan": ".jp",
+    "south korea": ".kr",  "korea": ".kr",           "china": ".cn",
+    "brazil": ".br",       "mexico": ".mx",          "canada": ".ca",
+    "australia": ".au",    "new zealand": ".nz",     "singapore": ".sg",
+    "indonesia": ".id",    "united arab emirates": ".ae",
+    "uae": ".ae",          "saudi arabia": ".sa",    "russia": ".ru",
+    "south africa": ".za",
+}
+
+_COUNTRY_PUBLISHER_BONUS: dict[str, set[str]] = {
+    "india":          {"economictimes.indiatimes.com", "livemint.com",
+                       "thehindu.com", "moneycontrol.com", "indianexpress.com"},
+    "united states":  {"nytimes.com", "washingtonpost.com"},
+    "united kingdom": {"bbc.co.uk", "theguardian.com", "ft.com"},
+}
+
+
+def _region_bonus(domain: str, country: str | None) -> float:
+    """Extra relevance for hosts matching the creator's target country."""
+    if not country:
+        return 0.0
+    c = country.strip().lower()
+    tld = _COUNTRY_TLD.get(c)
+    bonus = 0.0
+    if tld and domain.endswith(tld):
+        bonus += 0.18
+    for pub in _COUNTRY_PUBLISHER_BONUS.get(c, set()):
+        if domain.endswith(pub):
+            bonus = max(bonus, 0.18)
+    return bonus
+
+
+def _niche_bonus(domain: str, niche_key: str | None) -> float:
+    """Extra relevance for hosts known to be authoritative in this niche."""
+    if not niche_key:
+        return 0.0
+    domain_map = _NICHE_DOMAIN_MAP.get(niche_key, {})
+    best = 0.0
+    for host_substr, bonus in domain_map.items():
+        if host_substr in domain and bonus > best:
+            best = bonus
+    return best
 
 
 # ── Internal data object ──────────────────────────────────────
@@ -113,23 +253,32 @@ class SearchPipeline:
     # ── Public entry point ────────────────────────────────────
 
     @traceable(name="research.search_pipeline")
-    async def run(self, queries: list[str]) -> list[SearchResult]:
+    async def run(
+        self,
+        queries: list[str],
+        persona: dict[str, Any] | None = None,
+    ) -> list[SearchResult]:
         """
         Execute full pipeline.
 
         Returns results ordered by composite score, filtered for
-        content quality and domain diversity.
+        content quality and domain diversity. Persona (niche + country)
+        steers which domains get a relevance boost.
         """
         try:
             return await asyncio.wait_for(
-                self._run_inner(queries),
+                self._run_inner(queries, persona or {}),
                 timeout=self.overall_budget,
             )
         except asyncio.TimeoutError:
             logger.warning("[search] overall budget %.1fs exceeded", self.overall_budget)
             return []
 
-    async def _run_inner(self, queries: list[str]) -> list[SearchResult]:
+    async def _run_inner(
+        self,
+        queries: list[str],
+        persona: dict[str, Any],
+    ) -> list[SearchResult]:
         queries = _dedupe_queries(queries)
         logger.debug("[search] queries after dedupe: %d", len(queries))
 
@@ -164,9 +313,11 @@ class SearchPipeline:
                 diverse.append(r)
                 domain_counts[r.domain] = domain_counts.get(r.domain, 0) + 1
 
-        # 6 — Composite score + final sort
+        # 6 — Composite score + final sort (persona-aware boosts)
+        niche_key = _resolve_niche_key(str(persona.get("content_niche") or ""))
+        country = persona.get("target_country")
         for r in diverse:
-            r.score = _compute_score(r)
+            r.score = _compute_score(r, niche_key, country)
         diverse.sort(key=lambda r: r.score, reverse=True)
 
         results = diverse[: self.max_pages]
@@ -327,28 +478,40 @@ def _normalize_url(url: str) -> str:
         return url.rstrip("/").lower()
 
 
-def _compute_score(r: SearchResult) -> float:
+def _compute_score(
+    r: SearchResult,
+    niche_key: str | None = None,
+    country: str | None = None,
+) -> float:
     """
     Composite relevance score:
-    - Base: inverse of DDG rank (1.0 for rank 0, 0.5 for rank 1, ...)
-    - Boost: log-scaled content depth (word count)
-    - Boost: authority domains (gov/edu/org/known-good)
+    - Base:      inverse of DDG rank (1.0 for rank 0, 0.5 for rank 1, ...)
+    - Depth:     log-scaled content length (word count)
+    - Authority: generic TLD authority (.gov / .edu / .org / well-knowns)
+    - Niche:     niche-specific domain map (AI-ML → arxiv/HF, finance → SEC, …)
+    - Region:    target-country TLD or named publisher
     """
     import math
     base = 1.0 / (r.rank + 1)
     depth = min(math.log(max(r.text_length, 1)) / 10, 0.5)
-    authority = 0.0
+
     domain = r.domain
     if domain.endswith((".gov", ".edu")):
-        authority = 0.3
+        authority = 0.30
     elif domain.endswith(".org"):
         authority = 0.15
     elif any(h in domain for h in (
         "github.com", "arxiv.org", "stackoverflow.com",
         "docs.python.org", "mozilla.org", "wikipedia.org",
     )):
-        authority = 0.2
-    return base + depth + authority
+        authority = 0.20
+    else:
+        authority = 0.0
+
+    niche = _niche_bonus(domain, niche_key)
+    region = _region_bonus(domain, country)
+
+    return base + depth + authority + niche + region
 
 
 def _smart_truncate(text: str, max_chars: int) -> str:

@@ -21,11 +21,28 @@ from app.agents.composer.platform_rules import PlatformRule
 _SHARED_CONSTRAINTS = """\
 HARD REQUIREMENTS:
 - Use AT LEAST ONE specific statistic, number, or named entity from the FACTS below.
-- Stay within the character limit. Count every character.
-- Write in the creator's voice (see PERSONA) — match their formality and vocabulary.
+- Stay within the platform's character limit. Count every character.
+- Respect the requested TONE and LENGTH exactly — they override your defaults.
+- Write in the creator's voice (see PERSONA). Mirror vocabulary from the Bio/USP
+  when possible. If the Bio uses "we" / "I" / industry slang, so should you.
+- Treat "USER'S INTENT" as the literal reason the creator is posting. Your post
+  must visibly serve that intent — not the generic topic.
 - Do NOT invent facts not present in the FACTS block.
-- Do NOT use generic filler like "In today's world" or "Let's dive in".
-- Do NOT narrate what you're doing ("Here's my take:"). Just write the post.
+- Do NOT narrate what you're doing ("Here's my take:", "Let me explain:").
+
+BANNED AI-TELL PHRASES (never write any of these):
+"in today's world", "in today's fast-paced", "let's dive in", "let's unpack",
+"let's explore", "unlock the power", "game-changer", "revolutionize",
+"navigate the landscape", "at the end of the day", "it's worth noting",
+"when it comes to", "in conclusion", "embark on a journey",
+"in the ever-evolving", "leverage" (as a verb), "harness", "delve".
+
+VOICE DIALS:
+- Formal    → third-person where possible, precise nouns, no slang.
+- Informative → declarative, short sentences, facts first.
+- Casual    → first-person welcome, contractions ok, one conversational aside max.
+- GenZ      → lowercase start permitted, dry wit, zero corporate-speak,
+              internet-native phrasing (no emoji spam — one max).
 
 OUTPUT FORMAT:
 Return ONLY the post body text. No preamble, no explanation, no markdown fences.\
@@ -99,16 +116,24 @@ def build_user_message(
     facts: list[dict[str, Any]],
     personalization: dict[str, Any],
     rule: PlatformRule,
+    tone: str = "Casual",
+    content_length: str = "Medium",
+    raw_prompt: str | None = None,
 ) -> str:
-    """Compose the user turn: topic + persona + facts + platform constraints."""
+    """Compose the user turn: topic + persona + facts + platform + tone/length."""
     persona_block = _format_persona(personalization)
     facts_block = _format_facts(facts)
     platform_block = _format_platform(rule)
+    voice_block = _format_voice(tone, content_length, rule)
+    intent_block = (raw_prompt or topic).strip()
 
     return (
-        f"TOPIC\n{topic}\n\n"
-        f"PERSONA\n{persona_block}\n\n"
-        f"FACTS (use at least one)\n{facts_block}\n\n"
+        f"USER'S INTENT (their exact request — this is why they're posting)\n"
+        f"{intent_block}\n\n"
+        f"TOPIC (distilled from intent)\n{topic}\n\n"
+        f"CREATOR PERSONA (mirror this voice)\n{persona_block}\n\n"
+        f"VOICE & FORMAT\n{voice_block}\n\n"
+        f"FACTS (use at least one, verbatim numbers)\n{facts_block}\n\n"
         f"PLATFORM CONSTRAINTS\n{platform_block}\n\n"
         f"{_SHARED_CONSTRAINTS}\n\n"
         f"Write the post now."
@@ -118,17 +143,42 @@ def build_user_message(
 def _format_persona(p: dict[str, Any]) -> str:
     lines = []
     mapping = [
-        ("Name",     p.get("name")),
-        ("Niche",    p.get("content_niche")),
-        ("Audience", p.get("target_audience")),
-        ("Intent",   p.get("content_intent")),
-        ("USP",      p.get("usp")),
-        ("Bio",      p.get("bio")),
+        ("Name",        p.get("name")),
+        ("Niche",       p.get("content_niche")),
+        ("Goal",        p.get("content_goal")),
+        ("Intent",      p.get("content_intent")),
+        ("Audience",    p.get("target_audience")),
+        ("Age group",   p.get("target_age_group")),
+        ("Region",      p.get("target_country")),
+        ("USP",         p.get("usp")),
+        ("Bio (voice anchor — mimic word choices here)", p.get("bio")),
     ]
     for label, value in mapping:
         if value and str(value).strip():
             lines.append(f"- {label}: {value}")
     return "\n".join(lines) if lines else "- No persona context provided"
+
+
+# Length band → target character guidance layered on top of platform rules.
+# The platform's target_chars is the anchor; these dials nudge shorter / longer.
+_LENGTH_DIAL: dict[str, tuple[float, float]] = {
+    "Short":  (0.55, 0.80),   # 55-80% of platform target
+    "Medium": (0.85, 1.15),   # near target
+    "Long":   (1.20, 1.60),   # 120-160% of target, still ≤ max
+}
+
+
+def _format_voice(tone: str, content_length: str, rule: PlatformRule) -> str:
+    lo_mul, hi_mul = _LENGTH_DIAL.get(content_length, _LENGTH_DIAL["Medium"])
+    lo = max(rule.min_chars, int(rule.target_chars * lo_mul))
+    hi = min(rule.max_chars, int(rule.target_chars * hi_mul))
+    if hi < lo:  # tiny platforms (Twitter + Long) — clamp sensibly
+        hi = rule.max_chars
+    return (
+        f"- Tone: {tone}\n"
+        f"- Length band: aim for {lo}-{hi} characters (hard max {rule.max_chars})\n"
+        f"- Structure: {rule.structure.replace('_', ' ')}"
+    )
 
 
 def _format_facts(facts: list[dict[str, Any]]) -> str:

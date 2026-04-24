@@ -48,6 +48,7 @@ async def research_node(state: MemoryState) -> dict[str, Any]:
     """
     queries: list[str] = state.get("personalization_queries") or []
     user_prompt: str = (state.get("user_prompt") or "").strip()
+    persona = state.get("personalization") or {}
     completed = state.get("agents_completed", [])
 
     # Fallback if personalization agent didn't run
@@ -63,10 +64,15 @@ async def research_node(state: MemoryState) -> dict[str, Any]:
             "agents_completed": [*completed, "research"],
         }
 
-    logger.info("[research] start — %d queries", len(queries))
+    logger.info(
+        "[research] start — %d queries, niche=%s, region=%s",
+        len(queries),
+        persona.get("content_niche") or "-",
+        persona.get("target_country") or "-",
+    )
 
     try:
-        results = await SearchPipeline().run(queries)
+        results = await SearchPipeline().run(queries, persona=persona)
     except Exception as exc:
         logger.error("[research] pipeline failed: %s", exc, exc_info=True)
         return {
@@ -82,6 +88,7 @@ async def research_node(state: MemoryState) -> dict[str, Any]:
     )
 
     research_data: ResearchData = {
+        "generated_keywords": queries,
         "queries_used": queries,
         "top_search_results": [
             {
@@ -124,6 +131,7 @@ async def research_node(state: MemoryState) -> dict[str, Any]:
 def _empty_research_data(error: str | None = None) -> ResearchData:
     summary = f"Research failed: {error}" if error else "No queries provided."
     return {
+        "generated_keywords": [],
         "queries_used": [],
         "top_search_results": [],
         "fetched_pages": [],
