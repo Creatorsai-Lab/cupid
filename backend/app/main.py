@@ -4,17 +4,31 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.core.logging_config import setup_logging
 from app.routers.auth import router as auth_router
 from app.routers.profile import router as profile_router
 from app.routers.agents import router as agents_router
 
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print(f"[cupid] Starting in {settings.app_env} mode")
+    # Initialize logging system
+    log_level = "DEBUG" if settings.debug else "INFO"
+    setup_logging(level=log_level)
+    
+    import logging
+    logger = logging.getLogger("app.main")
+    logger.info("=" * 70)
+    logger.info(f"🚀 Cupid API Starting - Environment: {settings.app_env}")
+    logger.info(f"📊 Log Level: {log_level}")
+    logger.info(f"🔧 Debug Mode: {settings.debug}")
+    logger.info("=" * 70)
+    
     yield
-    print("[cupid] Shutting down")
+    
+    logger.info("=" * 70)
+    logger.info("🛑 Cupid API Shutting Down")
+    logger.info("=" * 70)
 
 
 def create_app() -> FastAPI:

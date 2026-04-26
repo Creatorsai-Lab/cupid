@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from datetime import datetime
 from typing import Any, Protocol
 
@@ -28,8 +29,9 @@ from langgraph.graph import END, StateGraph
 from app.agents.state import MemoryState
 from app.agents.personalization.local_heuristic import generate_queries as heuristic_queries
 from app.config import settings
+from app.core.logging_config import get_agent_logger, log_api_call
 
-logger = logging.getLogger(__name__)
+logger = get_agent_logger("personalization")
 
 # ─── Prompt ──────────────────────────────────────────────────────
 
@@ -322,37 +324,67 @@ async def personalization_node(state: MemoryState) -> dict[str, Any]:
     Reads:  user_prompt, personalization
     Writes: personalization_queries, current_agent, agents_completed
     """
-    prompt    = (state.get("user_prompt") or "").strip()
-    persona   = state.get("personalization") or {}
+    run_id = state.get("run_id", "unknown")
+    prompt = (state.get("user_prompt") or "").strip()
+    persona = state.get("personalization") or {}
     completed = state.get("agents_completed", [])
 
-    logger.info("----- Personalization Agent Start -----")
+    # Log agent start with full context
+    logger.agent_start(
+        run_id,
+        user_prompt=prompt[:100] + "..." if len(prompt) > 100 else prompt,
+        content_niche=persona.get("content_niche", "-"),
+        content_goal=persona.get("content_goal", "-"),
+        target_audience=persona.get("target_audience", "-"),
+        target_country=persona.get("target_country", "-"),
+        target_age_group=persona.get("target_age_group", "-"),
+    )
 
     if not prompt:
-        logger.warning("[personalization] empty prompt — skipping")
-        logger.info("----- Personalization Agent Done (skipped) -----")
+        logger.warning("Empty prompt received - skipping query generation", run_id)
+        logger.agent_complete(run_id, queries_generated=0, status="skipped")
         return {
             "personalization_queries": [],
             "current_agent": "personalization",
             "agents_completed": [*completed, "personalization"],
         }
 
-    niche   = persona.get("content_niche") or "-"
-    goal    = persona.get("content_goal") or "-"
-    region  = persona.get("target_country") or "-"
-    audience = persona.get("target_audience") or "-"
-    logger.info("[personalization] prompt   : %r", prompt[:80])
-    logger.info("[personalization] persona  : niche=%s | goal=%s | region=%s | audience=%s",
-                niche, goal, region, audience)
+    # Log persona details
+    logger.log_step(run_id, "Analyzing user persona")
+    logger.info(f"  Niche: {persona.get('content_niche') or 'Not specified'}", run_id)
+    logger.info(f"  Goal: {persona.get('content_goal') or 'Not specified'}", run_id)
+    logger.info(f"  Audience: {persona.get('target_audience') or 'Not specified'}", run_id)
+    logger.info(f"  Region: {persona.get('target_country') or 'Not specified'}", run_id)
+    logger.info(f"  USP: {persona.get('usp', 'Not specified')[:80]}", run_id)
 
+    # Build context and run provider chain
+    logger.log_step(run_id, "Building query generation context")
     user_msg = _build_context(prompt, persona)
+    
+    logger.log_step(run_id, "Running LLM provider chain")
+    start_time = time.time()
     queries, provider_used = await _run_chain(_system_prompt(), user_msg, prompt, persona)
+    latency_ms = int((time.time() - start_time) * 1000)
 
-    logger.info("[personalization] provider : %s", provider_used)
-    logger.info("[personalization] queries  : %d generated", len(queries))
+    # Log provider and results
+    logger.log_metric(run_id, "provider_used", provider_used)
+    logger.log_metric(run_id, "latency_ms", latency_ms)
+    logger.log_metric(run_id, "queries_generated", len(queries))
+
+    # Log each generated query
+    logger.info("─" * 70, run_id)
+    logger.info("📋 GENERATED QUERIES:", run_id)
     for i, q in enumerate(queries, 1):
-        logger.info("[personalization]   %d. %s", i, q)
-    logger.info("----- Personalization Agent Done -----")
+        angle = ["FACTS", "RECENCY", "EXPERTISE", "PRACTICAL", "CONTRARIAN"][i - 1] if i <= 5 else "EXTRA"
+        logger.info(f"  [{i}] {angle:12s} → {q}", run_id)
+    logger.info("─" * 70, run_id)
+
+    logger.agent_complete(
+        run_id,
+        queries_generated=len(queries),
+        provider=provider_used,
+        latency_ms=f"{latency_ms}ms",
+    )
 
     return {
         "personalization_queries": queries,

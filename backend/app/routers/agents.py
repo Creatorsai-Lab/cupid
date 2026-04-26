@@ -17,8 +17,6 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal, cast
 
-logger = logging.getLogger(__name__)
-
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,11 +25,9 @@ from app.core.db import get_db
 from app.models.user import User
 from app.routers.auth import get_current_user
 from app.models.profile import UserPersonalization
-from app.agents.state import MemoryState
-from app.agents.personalization.agent import personalization_node
-from app.agents.research.agent import research_node
-from app.agents.composer.agent import composer_node
+from app.core.logging_config import get_agent_logger
 
+logger = get_agent_logger("router")
 router = APIRouter(prefix="/api/v1/agents", tags=["agents"])
 
 
@@ -92,79 +88,63 @@ async def run_agent_pipeline(
     request: GenerateRequest,
     personalization: dict[str, Any],
 ) -> None:
-    """Sequential agent pipeline: Personalization → Research → Composer."""
+    """Sequential agent pipeline using orchestrator: Personalization → Research → Composer."""
+    from app.agents.graph import get_orchestrator
+    
     user_voice = _TONE_TO_VOICE.get(request.tone, "hook_first")
+    
+    logger.info("=" * 70, run_id)
+    logger.info("🚀 PIPELINE START", run_id)
+    logger.info("=" * 70, run_id)
+    logger.info(f"  Run ID: {run_id}", run_id)
+    logger.info(f"  User ID: {user_id}", run_id)
+    logger.info(f"  Prompt: {request.prompt[:100]}{'...' if len(request.prompt) > 100 else ''}", run_id)
+    logger.info(f"  Platform: {request.platform}", run_id)
+    logger.info(f"  Tone: {request.tone} → Voice: {user_voice}", run_id)
+    logger.info(f"  Length: {request.length}", run_id)
+    logger.info("─" * 70, run_id)
+    
     try:
-        logger.info("----- Pipeline Start [run_id=%s] -----", run_id[:8])
-        logger.info(
-            "[pipeline] prompt=%r | platform=%s | tone=%s | voice=%s | length=%s",
-            request.prompt[:80], request.platform, request.tone, user_voice, request.length,
-        )
         AGENT_RUNS[run_id]["status"] = "running"
 
-        # ── Initial state ─────────────────────────────────────
-        state: MemoryState = cast(
-            MemoryState,
-            {
-                "run_id": run_id,
-                "user_id": user_id,
-                "user_prompt": request.prompt,
-                "content_type": request.content_type,
-                "target_platform": request.platform,
-                "content_length": request.length,
-                "tone": request.tone,
-                "user_voice": user_voice,
-                "personalization": personalization,
-                "personalization_queries": [],
-                "agents_completed": [],
-                "status": "running",
-            },
+        # Use the orchestrator to run the full pipeline
+        logger.log_step(run_id, "Invoking orchestrator")
+        orchestrator = get_orchestrator()
+        final_state = await orchestrator.run(
+            user_id=user_id,
+            user_prompt=request.prompt,
+            run_id=run_id,
+            content_type=request.content_type,
+            target_platform=request.platform,
+            content_length=request.length,
+            tone=request.tone,
+            personalization=personalization,
         )
 
-        # ── Step 1: Personalization Agent ─────────────────────
-        logger.info("[pipeline] → running Personalization Agent")
-        AGENT_RUNS[run_id]["current_agent"] = "personalization"
+        # Update the run storage with final state
+        AGENT_RUNS[run_id].update({
+            "status": final_state.get("status", "completed"),
+            "current_agent": final_state.get("current_agent"),
+            "agents_completed": final_state.get("agents_completed", []),
+            "personalization_queries": final_state.get("personalization_queries", []),
+            "research_data": final_state.get("research_data"),
+            "composer_output": final_state.get("composer_output", []),
+            "composer_evidence": final_state.get("composer_evidence", []),
+            "composer_sources": final_state.get("composer_sources", []),
+            "error": final_state.get("error"),
+        })
 
-        p_result = await personalization_node(state)
-        AGENT_RUNS[run_id].update(p_result)
-        state = cast(MemoryState, {**state, **p_result})
-
-        queries = p_result.get("personalization_queries", [])
-        logger.info("[pipeline] Personalization done — %d queries", len(queries))
-
-        # ── Step 2: Research Agent ────────────────────────────
-        logger.info("[pipeline] → running Research Agent")
-        AGENT_RUNS[run_id]["current_agent"] = "research"
-
-        r_result = await research_node(state)
-        AGENT_RUNS[run_id].update(r_result)
-        state = cast(MemoryState, {**state, **r_result})
-
-        rd = r_result.get("research_data") or {}
-        logger.info(
-            "[pipeline] Research done — %d search results | %d pages fetched",
-            len(rd.get("top_search_results", [])),
-            len(rd.get("fetched_pages", [])),
-        )
-
-        # ── Step 3: Composer Agent ────────────────────────────
-        logger.info("[pipeline] → running Composer Agent")
-        AGENT_RUNS[run_id]["current_agent"] = "composer"
-
-        c_result = await composer_node(state)
-        AGENT_RUNS[run_id].update(c_result)
-
-        co = c_result.get("composer_output") or []
-        logger.info("[pipeline] Composer done — %d posts generated", len(co))
-
-        # Mark completed (unless an agent already set status to "failed")
-        if AGENT_RUNS[run_id].get("status") != "failed":
-            AGENT_RUNS[run_id]["status"] = "completed"
-        logger.info("----- Pipeline Complete [run_id=%s] -----", run_id[:8])
+        logger.info("=" * 70, run_id)
+        logger.info("✅ PIPELINE COMPLETE", run_id)
+        logger.info(f"  Agents completed: {final_state.get('agents_completed', [])}", run_id)
+        logger.info(f"  Status: {final_state.get('status', 'completed')}", run_id)
+        logger.info("=" * 70, run_id)
 
     except Exception as exc:
-        logger.error("[pipeline] FAILED run %s: %s", run_id, exc, exc_info=True)
-        logger.info("----- Pipeline Failed [run_id=%s] -----", run_id[:8])
+        logger.error("=" * 70, run_id)
+        logger.error("❌ PIPELINE FAILED", run_id, exc_info=True)
+        logger.error(f"  Error: {str(exc)}", run_id)
+        logger.error("=" * 70, run_id)
         AGENT_RUNS[run_id]["status"] = "failed"
         AGENT_RUNS[run_id]["error"] = str(exc)
 

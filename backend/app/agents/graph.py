@@ -2,10 +2,7 @@
 LangGraph Agent Orchestrator — Cupid's multi-agent pipeline.
 
 Current flow (V1):
-    User Input → Personalization Agent → Research Agent → Output
-
-Future versions will add:
-    User Input → Personalization → Research → Composer → Output
+    User Input → Personalization Agent → Research Agent → Composer Agent → Output
 
 The graph is stateless - all state lives in MemoryState and PostgreSQL.
 """
@@ -21,6 +18,9 @@ from app.agents.state import MemoryState
 from app.agents.research import research_node
 from app.agents.personalization import personalization_node
 from app.agents.composer import composer_node
+from app.core.logging_config import get_agent_logger
+
+logger = get_agent_logger("orchestrator")
 
 class AgentsOrchestrator:
     """
@@ -86,6 +86,18 @@ class AgentsOrchestrator:
             Final MemoryState after all agents complete
         """
         run_id_final = run_id or str(uuid.uuid4())
+        
+        logger.info("🎯 Orchestrator initializing pipeline", run_id_final)
+        logger.info(f"  Graph nodes: {list(self.graph.nodes.keys())}", run_id_final)
+        
+        # Map tone to user_voice for composer
+        tone_to_voice = {
+            "Hook First": "hook_first",
+            "Data Driven": "data_driven",
+            "Story Led": "story_led",
+        }
+        user_voice = tone_to_voice.get(tone, "hook_first")
+        
         # Initialize state
         initial_state: dict[str, Any] = {
             "run_id": run_id_final,
@@ -96,6 +108,7 @@ class AgentsOrchestrator:
             "target_platform": target_platform,
             "content_length": content_length,
             "tone": tone,
+            "user_voice": user_voice,
             "personalization": personalization or {},
             "personalization_queries": [],
             "agents_completed": [],
@@ -103,10 +116,16 @@ class AgentsOrchestrator:
             "error": None,
         }
 
+        logger.info("🚀 Executing LangGraph pipeline", run_id_final)
+        
         # Execute graph
         final_state = await self.compiled_graph.ainvoke(initial_state)
+        
         # Mark as completed
         final_state["status"] = "completed"
+        
+        logger.info("✅ LangGraph pipeline complete", run_id_final)
+        
         return final_state  # type: ignore
 
 
