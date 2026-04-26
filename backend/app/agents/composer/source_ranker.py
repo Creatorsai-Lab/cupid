@@ -4,12 +4,6 @@ Source Ranker — pick the top K sources from research output.
 No LLM calls. Uses classical IR (BM25) + persona-aware boosting to
 rank the N pages fetched by the Research Agent and return only the
 most relevant ones. This prevents context bloat in the composer prompt.
-
-Why BM25?
-    - Deterministic, fast, proven on short queries
-    - No embedding model dependency
-    - Naturally handles term frequency saturation (a word appearing
-      50 times doesn't score 50× a word appearing once)
 """
 from __future__ import annotations
 

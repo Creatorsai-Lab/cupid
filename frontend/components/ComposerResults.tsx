@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check, Sparkles, TrendingUp, BookOpen, Hash, Zap } from "lucide-react";
+import { Copy, Check, Sparkles, Hash, ExternalLink } from "lucide-react";
+import { SocialMediaCard, type Platform } from "@/components/SocialMediaCards";
 
-// ─── Types (mirror backend state) ────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────
 
 export interface QualityBreakdown {
   composite: number;
@@ -16,6 +17,8 @@ export interface QualityBreakdown {
 
 export interface ComposerVariant {
   angle: "hook_first" | "data_driven" | "story_led";
+  source_rank: number;
+  source_domain: string | null;
   platform: string;
   content: string;
   hashtags: string[];
@@ -36,29 +39,38 @@ export interface ComposerSource {
   rank_score: number | null;
 }
 
-// ─── Angle metadata ──────────────────────────────────────────
+// ─── Platform → card key map ────────────────────────────────────
 
-const ANGLE_META: Record<
-  ComposerVariant["angle"],
-  { label: string; icon: typeof Zap; tagline: string; tint: string }
-> = {
-  hook_first:  { label: "Hook First",  icon: Zap,         tagline: "Attention-grabbing opener", tint: "#d47a03" },
-  data_driven: { label: "Data Driven", icon: TrendingUp,  tagline: "Leads with the number",     tint: "#0a66c2" },
-  story_led:   { label: "Story Led",   icon: BookOpen,    tagline: "Human moment first",        tint: "#7c3aed" },
+const PLATFORM_KEY_MAP: Record<string, Platform> = {
+  Twitter:   "x",
+  LinkedIn:  "linkedin",
+  Instagram: "instagram",
+  Facebook:  "facebook",
+  YouTube:   "youtube",
 };
 
-// ─── Main component ─────────────────────────────────────────
+function getPlatformKey(platformName: string): Platform {
+  return PLATFORM_KEY_MAP[platformName] ?? "linkedin";
+}
+
+// ─── Main component ─────────────────────────────────────────────
 
 export function ComposerResults({
   variants,
   evidence,
   sources,
+  userName,
+  platform,
 }: {
   variants: ComposerVariant[];
   evidence?: DistilledFact[];
   sources?: ComposerSource[];
+  userName: string;
+  platform: string;
 }) {
   if (!variants?.length) return null;
+
+  const platformKey = getPlatformKey(platform);
 
   return (
     <div className="space-y-4 mb-8">
@@ -69,14 +81,14 @@ export function ComposerResults({
           className="text-xs font-medium uppercase tracking-wide"
           style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}
         >
-          Composer Agent — {variants.length} Variants Ready
+          {variants.length} posts · {platform}
         </span>
       </div>
 
-      {/* Variant cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Social media cards — horizontal scroll row */}
+      <div className="flex gap-5 overflow-x-auto pb-4">
         {variants.map((v, i) => (
-          <VariantCard key={i} variant={v} />
+          <SourceCard key={i} variant={v} userName={userName} platformKey={platformKey} />
         ))}
       </div>
 
@@ -88,12 +100,19 @@ export function ComposerResults({
   );
 }
 
-// ─── Variant card ────────────────────────────────────────────
+// ─── Per-source card ─────────────────────────────────────────────
 
-function VariantCard({ variant }: { variant: ComposerVariant }) {
+function SourceCard({
+  variant,
+  userName,
+  platformKey,
+}: {
+  variant: ComposerVariant;
+  userName: string;
+  platformKey: Platform;
+}) {
   const [copied, setCopied] = useState(false);
-  const meta = ANGLE_META[variant.angle];
-  const Icon = meta.icon;
+  const scorePct = Math.round(variant.quality.composite * 100);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(variant.content);
@@ -101,55 +120,38 @@ function VariantCard({ variant }: { variant: ComposerVariant }) {
     setTimeout(() => setCopied(false), 1800);
   };
 
-  const scorePct = Math.round(variant.quality.composite * 100);
-
   return (
-    <div
-      className="rounded-xl overflow-hidden bg-white border flex flex-col"
-      style={{ borderColor: "var(--color-border)" }}
-    >
-      {/* Card header */}
-      <div
-        className="flex items-center justify-between px-4 py-2.5 border-b"
-        style={{ borderColor: "var(--color-border)", backgroundColor: `${meta.tint}10` }}
-      >
+    <div className="flex-shrink-0 flex flex-col gap-2">
+      {/* Source badge row */}
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Icon size={14} style={{ color: meta.tint }} />
-          <div>
-            <p className="text-xs font-semibold" style={{ color: meta.tint }}>
-              {meta.label}
-            </p>
-            <p className="text-[10px]" style={{ color: "var(--color-muted)" }}>
-              {meta.tagline}
-            </p>
-          </div>
-        </div>
-        <QualityBadge score={scorePct} />
-      </div>
-
-      {/* Content body */}
-      <div className="p-4 flex-1 flex flex-col">
-        <p
-          className="text-sm leading-relaxed whitespace-pre-line flex-1"
-          style={{ color: "var(--color-text)", fontFamily: "var(--font-body)" }}
-        >
-          {variant.content}
-        </p>
-
-        {/* Meta row */}
-        <div
-          className="flex items-center justify-between mt-4 pt-3 border-t text-xs"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-muted)" }}
-        >
-          <span>
-            {variant.char_count} chars · {variant.platform}
+          <span
+            className="text-xs font-semibold"
+            style={{ color: "var(--color-primary)" }}
+          >
+            Source {variant.source_rank}
           </span>
+          {variant.source_domain && (
+            <span
+              className="text-xs px-2 py-0.5 rounded-full"
+              style={{
+                backgroundColor: "var(--inline-bg)",
+                color: "var(--color-muted)",
+              }}
+            >
+              {variant.source_domain}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <QualityBadge score={scorePct} />
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors"
+            title="Copy post"
+            className="flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors"
             style={{
-              backgroundColor: copied ? "#d47a0315" : "transparent",
-              color: copied ? "#d47a03" : "var(--color-muted)",
+              color: copied ? "var(--color-primary)" : "var(--color-muted)",
+              backgroundColor: copied ? "var(--inline-bg)" : "transparent",
             }}
           >
             {copied ? <Check size={12} /> : <Copy size={12} />}
@@ -157,11 +159,18 @@ function VariantCard({ variant }: { variant: ComposerVariant }) {
           </button>
         </div>
       </div>
+
+      {/* Platform-accurate social media card */}
+      <SocialMediaCard
+        platform={platformKey}
+        name={userName}
+        content={variant.content}
+      />
     </div>
   );
 }
 
-// ─── Quality score badge ────────────────────────────────────
+// ─── Quality score badge ────────────────────────────────────────
 
 function QualityBadge({ score }: { score: number }) {
   const color = score >= 70 ? "#059669" : score >= 45 ? "#d47a03" : "#9ca3af";
@@ -175,7 +184,7 @@ function QualityBadge({ score }: { score: number }) {
   );
 }
 
-// ─── Evidence + sources panel ───────────────────────────────
+// ─── Evidence + sources panel (collapsible) ─────────────────────
 
 function EvidencePanel({
   evidence,
@@ -220,19 +229,12 @@ function EvidencePanel({
         <div className="p-4 space-y-4">
           {evidence.length > 0 && (
             <div>
-              <p
-                className="text-xs font-medium mb-2"
-                style={{ color: "var(--color-muted)" }}
-              >
+              <p className="text-xs font-medium mb-2" style={{ color: "var(--color-muted)" }}>
                 Distilled facts
               </p>
               <ul className="space-y-1.5">
                 {evidence.map((f, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start gap-2 text-sm"
-                    style={{ color: "var(--color-text)" }}
-                  >
+                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "var(--color-text)" }}>
                     <Hash
                       size={10}
                       className="mt-1 flex-shrink-0"
@@ -241,17 +243,12 @@ function EvidencePanel({
                     <span>
                       <span
                         className="text-[10px] uppercase mr-2 px-1.5 py-0.5 rounded"
-                        style={{
-                          backgroundColor: "#fff6ed",
-                          color: "var(--color-primary)",
-                        }}
+                        style={{ backgroundColor: "#fff6ed", color: "var(--color-primary)" }}
                       >
                         {f.type}
                       </span>
                       {f.fact}{" "}
-                      <span style={{ color: "var(--color-muted)" }}>
-                        [S{f.source}]
-                      </span>
+                      <span style={{ color: "var(--color-muted)" }}>[S{f.source}]</span>
                     </span>
                   </li>
                 ))}
@@ -261,15 +258,12 @@ function EvidencePanel({
 
           {sources.length > 0 && (
             <div>
-              <p
-                className="text-xs font-medium mb-2"
-                style={{ color: "var(--color-muted)" }}
-              >
+              <p className="text-xs font-medium mb-2" style={{ color: "var(--color-muted)" }}>
                 Sources used
               </p>
               <ul className="space-y-1">
                 {sources.map((s, i) => (
-                  <li key={i} className="text-sm">
+                  <li key={i} className="flex items-center gap-1.5 text-sm">
                     <a
                       href={s.url ?? "#"}
                       target="_blank"
@@ -279,10 +273,8 @@ function EvidencePanel({
                     >
                       [S{i + 1}] {s.title ?? s.url}
                     </a>
-                    <span
-                      className="text-xs ml-2"
-                      style={{ color: "var(--color-muted)" }}
-                    >
+                    <ExternalLink size={10} style={{ color: "var(--color-muted)" }} />
+                    <span className="text-xs ml-1" style={{ color: "var(--color-muted)" }}>
                       {s.domain}
                     </span>
                   </li>

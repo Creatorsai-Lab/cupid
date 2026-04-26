@@ -45,7 +45,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-ANGLES = ("hook_first", "data_driven", "story_led")
+VALID_VOICES = frozenset(("hook_first", "data_driven", "story_led"))
 
 # ─── LLM providers ──────────────────────────────────────────────
 
@@ -187,30 +187,40 @@ def _extract_hashtags(content: str) -> tuple[str, list[str]]:
 @traceable(name="composer_agent")
 async def composer_node(state: MemoryState) -> dict[str, Any]:
     """
-    Generate 3 post variants from the research data + persona.
+    Generate 3 posts, one per top-ranked source, using the user's selected voice.
 
-    Reads:  user_prompt, personalization, research_data, target_platform
-    Writes: composer_output (list of 3 variants), current_agent, agents_completed
+    Reads:  user_prompt, user_voice, personalization, research_data, target_platform
+    Writes: composer_output (list[3 variants]), composer_evidence, composer_sources
     """
-    prompt        = (state.get("user_prompt") or "").strip()
-    persona       = state.get("personalization") or {}
-    research      = state.get("research_data") or {}
-    platform      = state.get("target_platform") or "All"
-    tone          = state.get("tone") or "Casual"
+    prompt         = (state.get("user_prompt") or "").strip()
+    persona        = state.get("personalization") or {}
+    research       = state.get("research_data") or {}
+    platform       = state.get("target_platform") or "All"
+    tone           = state.get("tone") or "Casual"
     content_length = state.get("content_length") or "Medium"
-    completed     = state.get("agents_completed", [])
+    user_voice     = state.get("user_voice") or "hook_first"
+    completed      = state.get("agents_completed", [])
+
+    if user_voice not in VALID_VOICES:
+        user_voice = "hook_first"
 
     pages = research.get("fetched_pages", [])
     rule  = rule_for(platform)
 
+    logger.info("----- Composer Agent Start -----")
     logger.info(
-        "[composer] start — platform=%s tone=%s length=%s pages=%d niche=%s",
-        rule.name, tone, content_length, len(pages),
+        "[composer] input    : platform=%s | tone=%s | voice=%s | length=%s | pages=%d",
+        rule.name, tone, user_voice, content_length, len(pages),
+    )
+    logger.info(
+        "[composer] persona  : niche=%s | audience=%s",
         persona.get("content_niche") or "-",
+        persona.get("target_audience") or "-",
     )
 
     if not pages:
         logger.warning("[composer] no research pages — cannot compose")
+        logger.info("----- Composer Agent Done (no data) -----")
         return {
             "composer_output": [],
             "current_agent": "composer",
@@ -220,12 +230,19 @@ async def composer_node(state: MemoryState) -> dict[str, Any]:
 
     # 1 — Rank and pick top 3 sources
     top_sources = rank_sources(pages, prompt, persona, top_k=3)
+    logger.info("[composer] top sources selected:")
+    for i, s in enumerate(top_sources, 1):
+        logger.info(
+            "[composer]   [%d] %-30s  score=%.3f  %s",
+            i, s.get("domain", "-"), s.get("rank_score", 0.0), s.get("title", "-")[:50],
+        )
 
-    # 2 — Distill facts (1 LLM call)
+    # 2 — Distill facts from all top sources in one call
     try:
         llm, llm_name = await _pick_llm()
     except RuntimeError as exc:
         logger.error("[composer] no LLM available: %s", exc)
+        logger.info("----- Composer Agent Done (no LLM) -----")
         return {
             "composer_output": [],
             "current_agent": "composer",
@@ -233,38 +250,65 @@ async def composer_node(state: MemoryState) -> dict[str, Any]:
             "error": str(exc),
         }
 
-    logger.info("[composer] using LLM: %s", llm_name)
+    logger.info("[composer] LLM      : %s", llm_name)
+    logger.info("[composer] distilling evidence from %d sources...", len(top_sources))
     facts = await distill_evidence(llm, prompt, top_sources)
+    logger.info("[composer] evidence : %d facts extracted", len(facts))
+    for f in facts:
+        logger.info(
+            "[composer]   [%s·S%s] %s",
+            f.get("type", "?"), f.get("source", "?"), str(f.get("fact", ""))[:80],
+        )
 
-    # 3 — Build the shared user message once (tone + length + raw prompt)
-    user_message = build_user_message(
-        topic=prompt,
-        facts=facts,
-        personalization=persona,
-        rule=rule,
-        tone=tone,
-        content_length=content_length,
-        raw_prompt=prompt,
+    # 3 — Build per-source user messages (each variant grounded in one source)
+    source_entries: list[tuple[int, dict, list[dict], str]] = []
+    for i, source in enumerate(top_sources):
+        # Facts attributed to this source; fall back to all facts if none tagged
+        source_facts = [f for f in facts if f.get("source") == i] or facts
+        user_msg = build_user_message(
+            topic=prompt,
+            facts=source_facts,
+            personalization=persona,
+            rule=rule,
+            tone=tone,
+            content_length=content_length,
+            raw_prompt=prompt,
+        )
+        source_entries.append((i, source, source_facts, user_msg))
+
+    # 4 — Generate 3 posts in parallel — same voice, different source grounding
+    logger.info(
+        "[composer] generating %d posts in parallel (voice=%s)...",
+        len(source_entries), user_voice,
     )
-
-    # 4 — Generate 3 variants in parallel
-    gen_tasks = [_generate_variant(llm, angle, user_message) for angle in ANGLES]
+    gen_tasks = [_generate_variant(llm, user_voice, msg) for _, _, _, msg in source_entries]
     raw_variants = await asyncio.gather(*gen_tasks)
 
-    # 5 — Score and package
+    # 5 — Score and package; preserve source-rank order (no quality sort)
     variants_out: list[dict[str, Any]] = []
-    for angle, raw in zip(ANGLES, raw_variants, strict=True):
+    for (i, source, source_facts, _), raw in zip(source_entries, raw_variants):
         if not raw:
+            logger.warning("[composer] post %d generation returned empty", i + 1)
             continue
         body, hashtags = _extract_hashtags(raw)
-        # Enforce hashtag limit even if LLM ignored the instruction
         hashtags = hashtags[: rule.max_hashtags] if rule.use_hashtags else []
         final_content = body + ((" " + " ".join(hashtags)) if hashtags else "")
 
-        score = score_variant(final_content, facts, persona, rule)
+        score = score_variant(final_content, source_facts, persona, rule)
+
+        logger.info(
+            "[composer] post %d · %-25s score=%.2f  chars=%d  hook=%r",
+            i + 1,
+            source.get("domain", "-"),
+            score.composite,
+            len(final_content),
+            final_content[:60],
+        )
 
         variants_out.append({
-            "angle": angle,
+            "angle": user_voice,
+            "source_rank": i + 1,
+            "source_domain": source.get("domain"),
             "platform": rule.name,
             "content": final_content,
             "hashtags": hashtags,
@@ -279,14 +323,12 @@ async def composer_node(state: MemoryState) -> dict[str, Any]:
             },
         })
 
-    # Sort best to worst so frontend can render in order
-    variants_out.sort(key=lambda v: v["quality"]["composite"], reverse=True)
-
     logger.info(
-        "[composer] done — %d/%d variants produced (scores: %s)",
-        len(variants_out), len(ANGLES),
-        [v["quality"]["composite"] for v in variants_out],
+        "[composer] done     : %d/%d posts produced | avg score=%.2f",
+        len(variants_out), len(top_sources),
+        sum(v["quality"]["composite"] for v in variants_out) / max(len(variants_out), 1),
     )
+    logger.info("----- Composer Agent Done -----")
 
     return {
         "composer_output": variants_out,

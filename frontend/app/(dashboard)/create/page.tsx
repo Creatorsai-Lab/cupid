@@ -5,12 +5,12 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { ComposerResults } from "@/components/ComposerResults";
 import { useAuthStore } from "@/lib/store";
 import { Send, Loader2, ExternalLink, Compass, Mic, ArrowUpToLine, Link, ChevronDown, UserRoundPen } from "lucide-react";
-import { agentsApi, type ResearchData, type PageContent, type SearchResult } from "@/lib/api";
+import { agentsApi, profileApi, type ResearchData, type PageContent, type SearchResult } from "@/lib/api";
 
 const CONTENT_TYPES = ["Text", "Image", "Article", "Video", "Ads", "Poll"] as const;
-const PLATFORMS = ["All", "Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube"] as const;
+const PLATFORMS = ["Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube"] as const;
 const LENGTHS = ["Short", "Medium", "Long"] as const;
-const TONES = ["Formal", "Informative", "Casual", "GenZ"] as const;
+const TONES = ["Casual", "Formal", "Informative", "GenZ", "Factual", "Hook First", "Data Driven", "Story Led"] as const;
 
 // ── Agent status label ────────────────────────────────────────
 
@@ -31,6 +31,7 @@ export default function CreatePage() {
     const [length, setLength] = useState<string>("Medium");
     const [tone, setTone] = useState<string>("Casual");
 
+    const [nickname, setNickname] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [runId, setRunId] = useState<string | null>(null);
     const [agentStatus, setAgentStatus] = useState<string>("");
@@ -43,24 +44,14 @@ export default function CreatePage() {
     const [composerSources, setComposerSources] = useState<any[]>([]);
     const [error, setError] = useState<string | null>(null);
 
-    // Dropdown states
-    const [isOptionsOpen, setIsOptionsOpen] = useState(false);
-    const optionsMenuRef = useRef<HTMLDivElement>(null);
-
     const firstName = user?.full_name?.split(" ")[0] || "Creator";
+    const displayName = nickname || firstName;
 
-    // Handle clicking outside the options menu to close it
+    // Fetch nickname once on mount
     useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (optionsMenuRef.current && !optionsMenuRef.current.contains(event.target as Node)) {
-                setIsOptionsOpen(false);
-            }
-        }
-
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
+        profileApi.get().then((res) => {
+            if (res.data?.nickname) setNickname(res.data.nickname);
+        }).catch(() => {});
     }, []);
 
     // Poll run status every 2 seconds until complete or failed
@@ -149,67 +140,59 @@ export default function CreatePage() {
                             }}>
                             What&apos;s on your mind,{" "}
                             <em style={{ color: "var(--color-primary)", fontStyle: "italic" }}>
-                                {firstName}
+                                {displayName}
                             </em>?
                         </h1>
                     </div>
 
                     {/* Input Box */}
                     <div className="animated-gradient-border mb-8">
-                        <div className="animated-gradient-border-inner relative">
-                            <textarea
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleGenerate();
-                                }}
-                                placeholder="What do you want to post about?"
-                                className="w-full bg-transparent text-sm leading-relaxed resize-none outline-none"
-                                style={{ fontFamily: "var(--font-body)", color: "var(--color-text)" }}
-                                rows={4}
-                            />
+                    <div className="animated-gradient-border-inner relative flex flex-col">
+    <textarea
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleGenerate();
+        }}
+        placeholder="What do you want to post about?"
+        className="w-full bg-transparent text-sm leading-relaxed resize-none outline-none"
+        style={{ fontFamily: "var(--font-body)", color: "var(--color-text)" }}
+        rows={4}
+    />
 
-                            <div className="flex items-center gap-3 flex-wrap">
-                                {/* --- OPTIONS MENU --- */}
-                                <div className="relative" ref={optionsMenuRef}>
-                                    <button
-                                        onClick={() => setIsOptionsOpen(!isOptionsOpen)}
-                                        className="flex items-center gap-2 text-[13px] text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors border-dashed border-2 px-2 border-gray-300 rounded-2xl"
-                                        title="Content Options"
-                                    >
-                                        <span>Options</span>
-                                    </button>
+    {/* INPUT OPTIONS */}
+    <div className="input_options flex items-center justify-between mt-2 gap-2 flex-wrap">
+        
+        {/* LEFT SIDE */}
+        <div className="flex items-center gap-3 flex-wrap min-w-0">
+            <SelectDropdown label="Type" options={CONTENT_TYPES} value={contentType} onChange={setContentType} />
+            <SelectDropdown label="Platform" options={PLATFORMS} value={platform} onChange={setPlatform} />
+            <SelectDropdown label="Length" options={LENGTHS} value={length} onChange={setLength} />
+            <SelectDropdown label="Tone" options={TONES} value={tone} onChange={setTone} />
 
-                                    {/* Popover Menu */}
-                                    {isOptionsOpen && (
-                                        <div className="absolute top-full left-0 mt-3 w-38 bg-white dark:bg-red-900 border border-gray-200 dark:border-neutral-800 rounded-3xl shadow-lg flex flex-col z-50">
-                                            <SelectDropdown label="Type" options={CONTENT_TYPES} value={contentType} onChange={setContentType} />
-                                            <SelectDropdown label="Platform" options={PLATFORMS} value={platform} onChange={setPlatform} />
-                                            <SelectDropdown label="Length" options={LENGTHS} value={length} onChange={setLength} />
-                                            <SelectDropdown label="Tone" options={TONES} value={tone} onChange={setTone} />
-                                        </div>
-                                    )}
-                                </div>
-                                {/* Add on Icons */}
-                                <ArrowUpToLine size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors" />
-                                <Link size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors" />
-                                <Mic size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors" />
+            <ArrowUpToLine size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors shrink-0" />
+            <Link size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors shrink-0" />
+        </div>
 
-                                {/* Generate Button */}
-                                <button
-                                    onClick={handleGenerate}
-                                    disabled={!prompt.trim() || isGenerating}
-                                    className="btn-primary ml-auto flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                                    style={{ padding: "0.5rem 1rem" }}
-                                >
-                                    {isGenerating ? (
-                                        <Loader2 size={14} className="animate-spin" />
-                                    ) : (
-                                        <Send size={14} />
-                                    )}
-                                </button>
-                            </div>
-                        </div>
+        {/* RIGHT SIDE */}
+        <div className="flex items-center gap-2 ml-auto shrink-0">
+            <Mic size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors" />
+
+            <button
+                onClick={handleGenerate}
+                disabled={!prompt.trim() || isGenerating}
+                className="btn-primary flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ padding: "0.5rem 1rem" }}
+            >
+                {isGenerating ? (
+                    <Loader2 size={14} className="animate-spin" />
+                ) : (
+                    <Send size={14} />
+                )}
+            </button>
+        </div>
+    </div>
+</div>
                     </div>
 
                     {/* Error */}
@@ -260,6 +243,8 @@ export default function CreatePage() {
                             variants={composerOutput}
                             evidence={composerEvidence}
                             sources={composerSources}
+                            userName={user?.full_name || "Creator"}
+                            platform={platform}
                         />
                     )}
 
@@ -287,15 +272,8 @@ function SelectDropdown({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             title={label}
-            className="border-b outline-none cursor-pointer"
-            style={{
-                backgroundColor: "var(--color-background)",
-                color: "var(--color-text)",
-                padding: "0.375rem 0.625rem",
-                margin: 0,
-                fontSize: "0.75rem",
-                fontFamily: "var(--font-body)",
-            }}
+            className="px-3 py-1 rounded-full bg-[var(--inline-bg)]
+    text-[0.8rem] outline-none border-none    cursor-pointer"
         >
             {options.map((opt) => (
                 <option key={opt} value={opt}>{opt}</option>
@@ -303,7 +281,6 @@ function SelectDropdown({
         </select>
     );
 }
-
 
 // Generated Personalization Queries Panel
 

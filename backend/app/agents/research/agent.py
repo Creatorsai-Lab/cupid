@@ -51,13 +51,16 @@ async def research_node(state: MemoryState) -> dict[str, Any]:
     persona = state.get("personalization") or {}
     completed = state.get("agents_completed", [])
 
+    logger.info("----- Research Agent Start -----")
+
     # Fallback if personalization agent didn't run
     if not queries and user_prompt:
         queries = [user_prompt]
-        logger.warning("[research] no personalization_queries — using raw prompt")
+        logger.warning("[research] no personalization_queries — using raw prompt as single query")
 
     if not queries:
         logger.warning("[research] no queries and no prompt — skipping")
+        logger.info("----- Research Agent Done (skipped) -----")
         return {
             "research_data": _empty_research_data(),
             "current_agent": "research",
@@ -65,16 +68,20 @@ async def research_node(state: MemoryState) -> dict[str, Any]:
         }
 
     logger.info(
-        "[research] start — %d queries, niche=%s, region=%s",
+        "[research] input     : %d queries | niche=%s | region=%s",
         len(queries),
         persona.get("content_niche") or "-",
         persona.get("target_country") or "-",
     )
+    for i, q in enumerate(queries, 1):
+        logger.info("[research]   query %d : %s", i, q)
 
+    logger.info("[research] running search pipeline...")
     try:
         results = await SearchPipeline().run(queries, persona=persona)
     except Exception as exc:
         logger.error("[research] pipeline failed: %s", exc, exc_info=True)
+        logger.info("----- Research Agent Done (failed) -----")
         return {
             "research_data": _empty_research_data(error=str(exc)),
             "current_agent": "research",
@@ -83,9 +90,14 @@ async def research_node(state: MemoryState) -> dict[str, Any]:
 
     domains = sorted({r.domain for r in results})
     logger.info(
-        "[research] done — %d pages across %d domains",
+        "[research] fetched   : %d pages across %d domains",
         len(results), len(domains),
     )
+    for r in results:
+        logger.info(
+            "[research]   · %-30s  %s  (%d chars)",
+            r.domain, r.title[:50], r.text_length,
+        )
 
     research_data: ResearchData = {
         "generated_keywords": queries,
@@ -121,6 +133,7 @@ async def research_node(state: MemoryState) -> dict[str, Any]:
         ),
     }
 
+    logger.info("----- Research Agent Done -----")
     return {
         "research_data": research_data,
         "current_agent": "research",

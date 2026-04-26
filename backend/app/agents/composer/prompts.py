@@ -6,10 +6,7 @@ facts. The key insight: you cannot ask one LLM call for "3 variants" —
 they converge. You must run three separate calls with distinct system
 prompts that shape reasoning from the start.
 
-Angles:
-    1. HOOK_FIRST  — attention-grabbing opener, curiosity gap
-    2. DATA_DRIVEN — lead with the most striking statistic
-    3. STORY_LED   — personal/scenario framing, human element
+
 """
 from __future__ import annotations
 

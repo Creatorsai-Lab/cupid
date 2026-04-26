@@ -326,23 +326,33 @@ async def personalization_node(state: MemoryState) -> dict[str, Any]:
     persona   = state.get("personalization") or {}
     completed = state.get("agents_completed", [])
 
+    logger.info("----- Personalization Agent Start -----")
+
     if not prompt:
         logger.warning("[personalization] empty prompt — skipping")
+        logger.info("----- Personalization Agent Done (skipped) -----")
         return {
             "personalization_queries": [],
             "current_agent": "personalization",
             "agents_completed": [*completed, "personalization"],
         }
 
-    logger.info("[personalization] start — topic=%r", prompt[:60])
+    niche   = persona.get("content_niche") or "-"
+    goal    = persona.get("content_goal") or "-"
+    region  = persona.get("target_country") or "-"
+    audience = persona.get("target_audience") or "-"
+    logger.info("[personalization] prompt   : %r", prompt[:80])
+    logger.info("[personalization] persona  : niche=%s | goal=%s | region=%s | audience=%s",
+                niche, goal, region, audience)
 
     user_msg = _build_context(prompt, persona)
     queries, provider_used = await _run_chain(_system_prompt(), user_msg, prompt, persona)
 
-    logger.info(
-        "[personalization] done — provider=%s queries=%d",
-        provider_used, len(queries),
-    )
+    logger.info("[personalization] provider : %s", provider_used)
+    logger.info("[personalization] queries  : %d generated", len(queries))
+    for i, q in enumerate(queries, 1):
+        logger.info("[personalization]   %d. %s", i, q)
+    logger.info("----- Personalization Agent Done -----")
 
     return {
         "personalization_queries": queries,

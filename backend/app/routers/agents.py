@@ -44,12 +44,23 @@ _background_tasks: set[asyncio.Task] = set()
 
 # ── Request / Response Schemas ────────────────────────────────
 
+# Tones that directly map to a composition angle; everything else uses hook_first.
+_TONE_TO_VOICE: dict[str, str] = {
+    "Hook First":  "hook_first",
+    "Data Driven": "data_driven",
+    "Story Led":   "story_led",
+}
+
+
 class GenerateRequest(BaseModel):
     prompt: str
     content_type: Literal["Text", "Image", "Article", "Video", "Ads", "Poll"] = "Text"
     platform: Literal["All", "Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube"] = "All"
     length: Literal["Short", "Medium", "Long"] = "Medium"
-    tone: Literal["Formal", "Informative", "Casual", "GenZ"] = "Casual"
+    tone: Literal[
+        "Formal", "Informative", "Casual", "GenZ", "Factual",
+        "Hook First", "Data Driven", "Story Led",
+    ] = "Casual"
 
 
 class GenerateResponse(BaseModel):
@@ -81,13 +92,14 @@ async def run_agent_pipeline(
     request: GenerateRequest,
     personalization: dict[str, Any],
 ) -> None:
-    """
-    Sequential agent pipeline:
-        1. personalization_node  →  writes personalization_queries to state
-        2. research_node         →  reads queries, runs search + extraction
-    """
+    """Sequential agent pipeline: Personalization → Research → Composer."""
+    user_voice = _TONE_TO_VOICE.get(request.tone, "hook_first")
     try:
-        logger.info("[Pipeline] Starting run %s — prompt: %r", run_id, request.prompt[:60])
+        logger.info("----- Pipeline Start [run_id=%s] -----", run_id[:8])
+        logger.info(
+            "[pipeline] prompt=%r | platform=%s | tone=%s | voice=%s | length=%s",
+            request.prompt[:80], request.platform, request.tone, user_voice, request.length,
+        )
         AGENT_RUNS[run_id]["status"] = "running"
 
         # ── Initial state ─────────────────────────────────────
@@ -101,6 +113,7 @@ async def run_agent_pipeline(
                 "target_platform": request.platform,
                 "content_length": request.length,
                 "tone": request.tone,
+                "user_voice": user_voice,
                 "personalization": personalization,
                 "personalization_queries": [],
                 "agents_completed": [],
@@ -109,56 +122,49 @@ async def run_agent_pipeline(
         )
 
         # ── Step 1: Personalization Agent ─────────────────────
-        logger.info("[Pipeline] Running personalization agent…")
+        logger.info("[pipeline] → running Personalization Agent")
         AGENT_RUNS[run_id]["current_agent"] = "personalization"
 
         p_result = await personalization_node(state)
         AGENT_RUNS[run_id].update(p_result)
-
-        # Merge output into state so Research Agent sees the queries
         state = cast(MemoryState, {**state, **p_result})
 
-        logger.info(
-            "[Pipeline] Personalization done — %d queries generated",
-            len(p_result.get("personalization_queries", [])),
-        )
+        queries = p_result.get("personalization_queries", [])
+        logger.info("[pipeline] Personalization done — %d queries", len(queries))
 
         # ── Step 2: Research Agent ────────────────────────────
-        logger.info("[Pipeline] Running research agent…")
+        logger.info("[pipeline] → running Research Agent")
         AGENT_RUNS[run_id]["current_agent"] = "research"
 
         r_result = await research_node(state)
         AGENT_RUNS[run_id].update(r_result)
-
-        # Merge output into state so Composer Agent sees the research data
         state = cast(MemoryState, {**state, **r_result})
 
         rd = r_result.get("research_data") or {}
         logger.info(
-            "[Pipeline] Research done — sources: %d | pages: %d",
+            "[pipeline] Research done — %d search results | %d pages fetched",
             len(rd.get("top_search_results", [])),
             len(rd.get("fetched_pages", [])),
         )
 
         # ── Step 3: Composer Agent ────────────────────────────
-        logger.info("[Pipeline] Running composer agent…")
+        logger.info("[pipeline] → running Composer Agent")
         AGENT_RUNS[run_id]["current_agent"] = "composer"
 
         c_result = await composer_node(state)
         AGENT_RUNS[run_id].update(c_result)
 
         co = c_result.get("composer_output") or []
-        logger.info(
-            "[Pipeline] Composer done — %d variants generated",
-            len(co),
-        )
+        logger.info("[pipeline] Composer done — %d posts generated", len(co))
 
         # Mark completed (unless an agent already set status to "failed")
         if AGENT_RUNS[run_id].get("status") != "failed":
             AGENT_RUNS[run_id]["status"] = "completed"
+        logger.info("----- Pipeline Complete [run_id=%s] -----", run_id[:8])
 
     except Exception as exc:
-        logger.error("[Pipeline] FAILED run %s: %s", run_id, exc, exc_info=True)
+        logger.error("[pipeline] FAILED run %s: %s", run_id, exc, exc_info=True)
+        logger.info("----- Pipeline Failed [run_id=%s] -----", run_id[:8])
         AGENT_RUNS[run_id]["status"] = "failed"
         AGENT_RUNS[run_id]["error"] = str(exc)
 
@@ -199,6 +205,7 @@ async def generate_content(
 
     run_id = str(uuid.uuid4())
 
+    user_voice = _TONE_TO_VOICE.get(request.tone, "hook_first")
     AGENT_RUNS[run_id] = {
         "run_id": run_id,
         "user_id": str(current_user.id),
@@ -208,6 +215,7 @@ async def generate_content(
         "target_platform": request.platform,
         "content_length": request.length,
         "tone": request.tone,
+        "user_voice": user_voice,
         "personalization": personalization,
         "personalization_queries": [],
         "agents_completed": [],

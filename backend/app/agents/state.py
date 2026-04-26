@@ -66,8 +66,10 @@ class QualityBreakdown(TypedDict):
  
  
 class ComposerVariant(TypedDict):
-    """One generated post variant, scored and packaged."""
-    angle: Literal["hook_first", "data_driven", "story_led"]
+    """One generated post variant, grounded in a single source."""
+    angle: Literal["hook_first", "data_driven", "story_led"]  # user-selected voice
+    source_rank: int        # 1 = top source, 2 = second, 3 = third
+    source_domain: str | None
     platform: str
     content: str
     hashtags: list[str]
@@ -116,7 +118,8 @@ class MemoryState(TypedDict, total=False):
     content_type: Literal["Text", "Image", "Article", "Video", "Ads", "Poll"]
     target_platform: Literal["All", "Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube"]
     content_length: Literal["Short", "Medium", "Long"]
-    tone: Literal["Formal", "Informative", "Casual", "GenZ"]
+    tone: Literal["Formal", "Informative", "Casual", "GenZ", "Factual", "Hook First", "Data Driven", "Story Led"]
+    user_voice: Literal["hook_first", "data_driven", "story_led"]  # derived from tone in router
     # User profile context (from database)
     personalization: PersonalizationInfo
     # Agent outputs
