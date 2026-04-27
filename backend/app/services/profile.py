@@ -7,7 +7,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.profile import UserPersonalization
+from app.models.persona import UserPersonalization
 
 
 async def get_profile_by_user_id(

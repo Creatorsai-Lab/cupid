@@ -8,7 +8,7 @@ from app.config import settings
 
 # Import Base and ALL models so Alembic can detect them
 from app.models.user import Base
-from app.models.profile import UserPersonalization  # noqa: F401 — needed for Alembic detection
+from app.models.persona import UserPersonalization  # noqa: F401 — needed for Alembic detection
 
 
 config = context.config

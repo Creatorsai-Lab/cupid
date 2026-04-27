@@ -13,17 +13,21 @@ import {
     CircleDollarSign,
     ChartLine,
     Bot,
+    Calendar,
+    SquarePen,
 } from "lucide-react";
 import Image from "next/image";
 
 const NAV_ITEMS = [
     { href: "/create", icon: CircleFadingPlus, label: "Create" },
     { href: "/trends", icon: Flame, label: "Trends" },
-    { href: "/history", icon: History, label: "History" },
     { href: "/automation", icon: Bot, label: "Automation" },
     { href: "/earn", icon: CircleDollarSign, label: "Earn" },
     { href: "/insights", icon: ChartLine, label: "Insights" },
     { href: "/settings", icon: Settings, label: "Settings" },
+    { href: "/history", icon: History, label: "History" },
+    { href: "/schedule", icon: Calendar, label: "Schedule" },
+    { href: "/notepad", icon: SquarePen, label: "Schedule" },
     
 ] as const;
 
@@ -60,8 +64,8 @@ export default function Header() {
 <svg width="0" height="0" style={{ position: "absolute", visibility: "hidden" }}>
     <defs>
         <linearGradient id="activeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#f6d365" />   /* Replace with your start color */
-            <stop offset="100%" stopColor="#fda085" />  /* Replace with your end color */
+            <stop offset="0%" stopColor="#cc1ea6ff" />   /* Replace with your start color */
+            <stop offset="100%" stopColor="#220fc7ff" />  /* Replace with your end color */
         </linearGradient>
     </defs>
 </svg>

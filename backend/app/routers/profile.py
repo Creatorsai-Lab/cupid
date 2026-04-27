@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.models.user import User
 from app.routers.auth import get_current_user
-from app.schemas.profile import (
+from app.schemas.persona import (
     PersonalizationApiResponse,
     PersonalizationResponse,
     PersonalizationUpdate,
