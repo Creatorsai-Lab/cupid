@@ -101,8 +101,8 @@ class AgentsOrchestrator:
         """
         run_id_final = run_id or str(uuid.uuid4())
         
-        logger.info("↺ Orchestrator initializing pipeline", run_id_final)
-        logger.info(f"⁂ Graph nodes: {list(self.graph.nodes.keys())}", run_id_final)
+        logger.info("🎯 Orchestrator initializing pipeline", run_id_final)
+        logger.info(f"  Graph nodes: {list(self.graph.nodes.keys())}", run_id_final)
         
         # Map tone to user_voice for composer
         tone_to_voice = {
@@ -130,17 +130,84 @@ class AgentsOrchestrator:
             "error": None,
         }
 
-        logger.info("↺ Executing LangGraph pipeline", run_id_final)
+        logger.info("🚀 Executing LangGraph pipeline", run_id_final)
         
         # Execute graph
         final_state = await self.compiled_graph.ainvoke(initial_state)
         
-        # Mark as completed
-        final_state["status"] = "completed"
-        
-        logger.info("(✓) LangGraph pipeline complete", run_id_final)
+        # Check if supervisor rejected or if there's an error
+        if final_state.get("error"):
+            final_state["status"] = "failed"
+            logger.warning(f"❌ Pipeline rejected: {final_state.get('error', '')[:100]}", run_id_final)
+        else:
+            # Mark as completed only if no errors
+            final_state["status"] = "completed"
+            logger.info("✅ LangGraph pipeline complete", run_id_final)
         
         return final_state  # type: ignore
+
+    async def run_streaming(
+        self,
+        user_id: str,
+        user_prompt: str,
+        run_id: str | None = None,
+        content_type: str = "Text",
+        target_platform: str = "Twitter",
+        content_length: str = "Medium",
+        tone: str = "Formal",
+        personalization: dict | None = None,
+    ):
+        """
+        Execute the agent pipeline with streaming state updates.
+        
+        Yields intermediate state after each agent completes, allowing
+        real-time progress updates to the frontend.
+        
+        Args:
+            Same as run()
+            
+        Yields:
+            MemoryState after each agent node completes
+        """
+        run_id_final = run_id or str(uuid.uuid4())
+        
+        logger.info("🎯 Orchestrator initializing streaming pipeline", run_id_final)
+        
+        # Map tone to user_voice for composer
+        tone_to_voice = {
+            "Hook First": "hook_first",
+            "Data Driven": "data_driven",
+            "Story Led": "story_led",
+        }
+        user_voice = tone_to_voice.get(tone, "hook_first")
+        
+        # Initialize state
+        initial_state: dict[str, Any] = {
+            "run_id": run_id_final,
+            "user_id": user_id,
+            "created_at": datetime.now(timezone.utc),
+            "user_prompt": user_prompt,
+            "content_type": content_type,
+            "target_platform": target_platform,
+            "content_length": content_length,
+            "tone": tone,
+            "user_voice": user_voice,
+            "personalization": personalization or {},
+            "personalization_queries": [],
+            "agents_completed": [],
+            "status": "running",
+            "error": None,
+        }
+
+        logger.info("🚀 Executing streaming LangGraph pipeline", run_id_final)
+        
+        # Stream state updates from graph
+        async for state_update in self.compiled_graph.astream(initial_state):
+            # LangGraph astream yields dict with node name as key
+            # e.g., {"supervisor": {...state...}}
+            for node_name, node_state in state_update.items():
+                logger.info(f"📡 Streaming update from node: {node_name}", run_id_final)
+                yield node_state
 
 
 # Singleton instance

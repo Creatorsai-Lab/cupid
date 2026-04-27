@@ -88,7 +88,7 @@ async def run_agent_pipeline(
     request: GenerateRequest,
     personalization: dict[str, Any],
 ) -> None:
-    """Sequential agent pipeline using orchestrator: Personalization → Research → Composer."""
+    """Sequential agent pipeline using orchestrator with real-time state updates."""
     from app.agents.graph import get_orchestrator
     
     user_voice = _TONE_TO_VOICE.get(request.tone, "hook_first")
@@ -107,10 +107,12 @@ async def run_agent_pipeline(
     try:
         AGENT_RUNS[run_id]["status"] = "running"
 
-        # Use the orchestrator to run the full pipeline
+        # Use the orchestrator with streaming updates
         logger.log_step(run_id, "Invoking orchestrator")
         orchestrator = get_orchestrator()
-        final_state = await orchestrator.run(
+        
+        # Stream intermediate states to update AGENT_RUNS in real-time
+        async for state_update in orchestrator.run_streaming(
             user_id=user_id,
             user_prompt=request.prompt,
             run_id=run_id,
@@ -119,25 +121,38 @@ async def run_agent_pipeline(
             content_length=request.length,
             tone=request.tone,
             personalization=personalization,
-        )
-
-        # Update the run storage with final state
-        AGENT_RUNS[run_id].update({
-            "status": final_state.get("status", "completed"),
-            "current_agent": final_state.get("current_agent"),
-            "agents_completed": final_state.get("agents_completed", []),
-            "personalization_queries": final_state.get("personalization_queries", []),
-            "research_data": final_state.get("research_data"),
-            "composer_output": final_state.get("composer_output", []),
-            "composer_evidence": final_state.get("composer_evidence", []),
-            "composer_sources": final_state.get("composer_sources", []),
-            "error": final_state.get("error"),
-        })
+        ):
+            # Update AGENT_RUNS with intermediate state
+            AGENT_RUNS[run_id].update({
+                "current_agent": state_update.get("current_agent"),
+                "agents_completed": state_update.get("agents_completed", []),
+                "personalization_queries": state_update.get("personalization_queries", []),
+                "research_data": state_update.get("research_data"),
+                "composer_output": state_update.get("composer_output", []),
+                "composer_evidence": state_update.get("composer_evidence", []),
+                "composer_sources": state_update.get("composer_sources", []),
+                "error": state_update.get("error"),
+            })
+            
+            # Log progress
+            current = state_update.get("current_agent")
+            completed = state_update.get("agents_completed", [])
+            if current:
+                logger.info(f"📍 Progress: {current} | Completed: {completed}", run_id)
+        
+        # Get final state
+        final_state = AGENT_RUNS[run_id]
+        
+        # Set final status
+        if final_state.get("error"):
+            AGENT_RUNS[run_id]["status"] = "failed"
+        else:
+            AGENT_RUNS[run_id]["status"] = "completed"
 
         logger.info("=" * 10, run_id)
         logger.info("✅ PIPELINE COMPLETE", run_id)
         logger.info(f"  Agents completed: {final_state.get('agents_completed', [])}", run_id)
-        logger.info(f"  Status: {final_state.get('status', 'completed')}", run_id)
+        logger.info(f"  Status: {AGENT_RUNS[run_id]['status']}", run_id)
         logger.info("=" * 10, run_id)
 
     except Exception as exc:

@@ -198,8 +198,21 @@ export default function CreatePage() {
 
                     {/* Error */}
                     {error && (
-                        <div className=" p-3 rounded-lg px-5 py-2 text-[0.8rem] text-white bg-[var(--destructive)]">
-                            {error}
+                        <div className="mb-5 p-4 rounded-lg border-2" style={{
+                            backgroundColor: "rgba(239, 68, 68, 0.1)",
+                            borderColor: "rgb(239, 68, 68)",
+                        }}>
+                            <div className="flex items-start gap-3">
+                                <span className="text-red-600 text-xl flex-shrink-0">⚠️</span>
+                                <div className="flex-1">
+                                    <h4 className="font-semibold text-red-700 mb-1" style={{ fontSize: "0.95rem" }}>
+                                        Validation Error
+                                    </h4>
+                                    <p className="text-sm text-red-600 leading-relaxed">
+                                        {error}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     )}
 
