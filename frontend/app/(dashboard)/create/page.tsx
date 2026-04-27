@@ -8,8 +8,8 @@ import { Send, Loader2, ExternalLink, Compass, Mic, ArrowUpToLine, Link, Chevron
 import { agentsApi, profileApi, type ResearchData, type PageContent, type SearchResult } from "@/lib/api";
 
 const CONTENT_TYPES = ["Text", "Image", "Article", "Video", "Ads", "Poll"] as const;
-const PLATFORMS = ["Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube"] as const;
-const LENGTHS = ["Short", "Medium", "Long"] as const;
+const PLATFORMS = ["Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube", "Web"] as const;
+const LENGTHS = ["Short", "Medium", "Long", "Full Article"] as const;
 const TONES = ["Casual", "Formal", "Informative", "GenZ", "Factual", "Hook First", "Data Driven", "Story Led"] as const;
 
 // ── Agent status label ────────────────────────────────────────
@@ -18,6 +18,7 @@ function agentStatusLabel(currentAgent: string | null, status: string): string {
     if (status === "pending") return "Starting up…";
     if (currentAgent === "personalization") return "Personalization agent is thinking…";
     if (currentAgent === "research") return "Research agent is searching…";
+    if (currentAgent === "composer") return "Crafting your post…";
     return status;
 }
 
@@ -27,7 +28,7 @@ export default function CreatePage() {
     const { user } = useAuthStore();
     const [prompt, setPrompt] = useState("");
     const [contentType, setContentType] = useState<string>("Text");
-    const [platform, setPlatform] = useState<string>("All");
+    const [platform, setPlatform] = useState<string>("Web");
     const [length, setLength] = useState<string>("Medium");
     const [tone, setTone] = useState<string>("Casual");
 
@@ -197,15 +198,7 @@ export default function CreatePage() {
 
                     {/* Error */}
                     {error && (
-                        <div
-                            className="mb-6 p-4 rounded-xl text-sm"
-                            style={{
-                                backgroundColor: "#fef2f2",
-                                border: "1px solid #fecaca",
-                                color: "#dc2626",
-                                fontFamily: "var(--font-body)",
-                            }}
-                        >
+                        <div className=" p-3 rounded-lg px-5 py-2 text-[0.8rem] text-white bg-[var(--destructive)]">
                             {error}
                         </div>
                     )}
@@ -273,7 +266,7 @@ function SelectDropdown({
             onChange={(e) => onChange(e.target.value)}
             title={label}
             className="px-3 py-1 rounded-full bg-[var(--inline-bg)]
-    text-[0.8rem] outline-none border-none    cursor-pointer"
+    text-[0.8rem] outline-none border-none cursor-pointer"
         >
             {options.map((opt) => (
                 <option key={opt} value={opt}>{opt}</option>

@@ -183,7 +183,7 @@ const EMPTY: PersonalizationForm = {
   target_audience: "", usp: "",
 };
 
-// ─── Shared class strings ─────────────────────────────────────
+// Shared class stringS
 
 const cx = {
   input: "w-full h-10 px-3 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#d47a03] transition-shadow",
@@ -301,7 +301,7 @@ function PersonalizationTab({
             <input className={`${cx.input} opacity-50 cursor-not-allowed`} value={userEmail ?? ""} disabled />
           </Field>
           <Field label="Bio" full>
-            <textarea className={cx.textarea} rows={3} value={form.bio} onChange={set("bio")}
+            <textarea className={cx.textarea} rows={2} value={form.bio} onChange={set("bio")}
               placeholder="One or two sentences about yourself. This is used directly in your persona prompt." />
           </Field>
           <Field label="Nickname" full>

@@ -1,9 +1,10 @@
 """
 LangGraph Agent Orchestrator — Cupid's multi-agent pipeline.
 
-Current flow (V1):
-    User Input → Personalization Agent → Research Agent → Composer Agent → Output
+Current flow:
+    User Input → Supervisor Agent → Personalization Agent → Research Agent → Composer Agent → Output
 
+The supervisor agent validates input before passing to the pipeline.
 The graph is stateless - all state lives in MemoryState and PostgreSQL.
 """
 from __future__ import annotations
@@ -15,6 +16,7 @@ import uuid
 from langgraph.graph import StateGraph, END
 
 from app.agents.state import MemoryState
+from app.agents.supervisor import supervisor_node
 from app.agents.research import research_node
 from app.agents.personalization import personalization_node
 from app.agents.composer import composer_node
@@ -25,8 +27,8 @@ logger = get_agent_logger("orchestrator")
 class AgentsOrchestrator:
     """
     Orchestrates the Cupid agents pipeline using LangGraph.
-    Current flow (V1):
-        START → personalization → research → END
+    Current flow:
+        START → supervisor → personalization → research → composer → END
     """
 
     def __init__(self):
@@ -40,18 +42,30 @@ class AgentsOrchestrator:
         The graph defines:
         - Nodes (agents)
         - Edges (flow between agents)
-        - Conditional routing (future)
+        - Conditional routing (supervisor can reject)
         """
         # Create graph with MemoryState
         workflow = StateGraph(MemoryState)
 
         # Add agent nodes
+        workflow.add_node("supervisor", supervisor_node)
         workflow.add_node("personalization", personalization_node)
         workflow.add_node("research", research_node)
         workflow.add_node("composer", composer_node)
 
-        # Define flow
-        workflow.set_entry_point("personalization")
+        # Define flow with conditional routing
+        workflow.set_entry_point("supervisor")
+        
+        # Supervisor can either approve (continue) or reject (end)
+        workflow.add_conditional_edges(
+            "supervisor",
+            lambda state: "approved" if not state.get("error") else "rejected",
+            {
+                "approved": "personalization",
+                "rejected": END,
+            }
+        )
+        
         workflow.add_edge("personalization", "research")
         workflow.add_edge("research", "composer")
         workflow.add_edge("composer", END)
@@ -64,9 +78,9 @@ class AgentsOrchestrator:
         user_prompt: str,
         run_id: str | None = None,
         content_type: str = "Text",
-        target_platform: str = "All",
+        target_platform: str = "Twitter",
         content_length: str = "Medium",
-        tone: str = "Casual",
+        tone: str = "Formal",
         personalization: dict | None = None,
     ) -> MemoryState:
         """
@@ -87,8 +101,8 @@ class AgentsOrchestrator:
         """
         run_id_final = run_id or str(uuid.uuid4())
         
-        logger.info("🎯 Orchestrator initializing pipeline", run_id_final)
-        logger.info(f"  Graph nodes: {list(self.graph.nodes.keys())}", run_id_final)
+        logger.info("↺ Orchestrator initializing pipeline", run_id_final)
+        logger.info(f"⁂ Graph nodes: {list(self.graph.nodes.keys())}", run_id_final)
         
         # Map tone to user_voice for composer
         tone_to_voice = {
@@ -116,7 +130,7 @@ class AgentsOrchestrator:
             "error": None,
         }
 
-        logger.info("🚀 Executing LangGraph pipeline", run_id_final)
+        logger.info("↺ Executing LangGraph pipeline", run_id_final)
         
         # Execute graph
         final_state = await self.compiled_graph.ainvoke(initial_state)
@@ -124,7 +138,7 @@ class AgentsOrchestrator:
         # Mark as completed
         final_state["status"] = "completed"
         
-        logger.info("✅ LangGraph pipeline complete", run_id_final)
+        logger.info("(✓) LangGraph pipeline complete", run_id_final)
         
         return final_state  # type: ignore
 

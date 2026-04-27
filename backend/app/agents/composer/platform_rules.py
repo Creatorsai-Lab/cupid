@@ -11,8 +11,15 @@ from typing import Literal
 
 
 Platform = Literal[
-    "All", "Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube"
+    "Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube", "Web"
 ]
+
+length = {
+    "Short": 280,
+    "Medium": 600,
+    "Long": 1000,
+    "Full_Article": 5000,
+}
 
 
 @dataclass(frozen=True)
@@ -79,19 +86,19 @@ PLATFORM_RULES: dict[str, PlatformRule] = {
         format_hint="Community post style. Question or bold claim up top. Then context.",
         structure="paragraphs",
     ),
-    "All": PlatformRule(
-        name="Multi-platform",
-        max_chars=500,
-        target_chars=280,
-        min_chars=80,
-        use_hashtags=True,
-        max_hashtags=3,
+    "Web": PlatformRule(
+        name="Web Article",
+        max_chars=5000,
+        target_chars=2000,
+        min_chars=700,
+        use_hashtags=False,
+        max_hashtags=0,
         format_hint="Platform-agnostic. Lead with hook, keep it punchy and shareable.",
-        structure="single_block",
+        structure="intor paragraph, shorts paragraphs, bullet points",
     ),
 }
 
 
 def rule_for(platform: str | None) -> PlatformRule:
-    """Resolve platform name to its rule. Falls back to 'All'."""
-    return PLATFORM_RULES.get(platform or "All", PLATFORM_RULES["All"])
+    """Resolve platform name to its rule. Falls back to 'Web'."""
+    return PLATFORM_RULES.get(platform or "Web", PLATFORM_RULES["Web"])

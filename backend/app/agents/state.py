@@ -12,11 +12,9 @@ from datetime import datetime
 
 class PersonalizationInfo(TypedDict, total=False):
     """User personalization information passed to all agents."""
-
     name: str
     nickname: str | None
     bio: str | None
-
     content_niche: str | None
     content_goal: str | None
     content_intent: str | None
@@ -24,7 +22,6 @@ class PersonalizationInfo(TypedDict, total=False):
     target_age_group: str | None
     target_country: str | None
     target_audience: str | None
-
     usp: str | None
 
 class SearchResult(TypedDict):
@@ -92,7 +89,6 @@ class ComposerSource(TypedDict):
     rank_score: float | None
 
 
-
 class MemoryState(TypedDict, total=False):
     """
     Shared state for the Cupid agent pipeline.
@@ -116,12 +112,14 @@ class MemoryState(TypedDict, total=False):
     # User input
     user_prompt: str
     content_type: Literal["Text", "Image", "Article", "Video", "Ads", "Poll"]
-    target_platform: Literal["All", "Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube"]
-    content_length: Literal["Short", "Medium", "Long"]
+    target_platform: Literal["Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube", "Web"]
+    content_length: Literal["Short", "Medium", "Long", "Full Article"]
     tone: Literal["Formal", "Informative", "Casual", "GenZ", "Factual", "Hook First", "Data Driven", "Story Led"]
     user_voice: Literal["hook_first", "data_driven", "story_led"]  # derived from tone in router
+    
     # User profile context (from database)
     personalization: PersonalizationInfo
+
     # Agent outputs
     personalization_queries: list[str]
     research_data: ResearchData

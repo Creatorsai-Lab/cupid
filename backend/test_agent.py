@@ -9,7 +9,7 @@ from app.agents.graph import get_orchestrator
 
 async def test_full_pipeline():
     print("🚀 Testing Full Agent Pipeline (Personalization → Research → Composer)...")
-    print("-" * 70)
+    print("-" * 10)
 
     orchestrator = get_orchestrator()
 
@@ -21,7 +21,7 @@ async def test_full_pipeline():
         content_type="Text",
         target_platform="LinkedIn",
         content_length="Medium",
-        tone="Hook First",
+        tone="Genz",
         personalization={
             "name": "Test User",
             "nickname": "Tester",
@@ -93,7 +93,7 @@ async def test_full_pipeline():
     if err:
         print(f"\n❌ Error: {err}")
     
-    print("\n" + "=" * 70)
+    print("\n" + "=" * 10)
     print("✨ Test Complete!")
 
 

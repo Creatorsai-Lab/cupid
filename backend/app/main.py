@@ -18,17 +18,17 @@ async def lifespan(app: FastAPI):
     
     import logging
     logger = logging.getLogger("app.main")
-    logger.info("=" * 70)
-    logger.info(f"🚀 Cupid API Starting - Environment: {settings.app_env}")
-    logger.info(f"📊 Log Level: {log_level}")
-    logger.info(f"🔧 Debug Mode: {settings.debug}")
-    logger.info("=" * 70)
+    logger.info("=" * 20)
+    logger.info(f"↺ Cupid API Starting - Environment: {settings.app_env}")
+    logger.info(f"☱ Log Level: {log_level}")
+    logger.info(f"¶ Debug Mode: {settings.debug}")
+    logger.info("=" * 20)
     
     yield
     
-    logger.info("=" * 70)
-    logger.info("🛑 Cupid API Shutting Down")
-    logger.info("=" * 70)
+    logger.info("=" * 20)
+    logger.info("⊘ Cupid API Shutting Down")
+    logger.info("=" * 20)
 
 
 def create_app() -> FastAPI:

@@ -37,20 +37,18 @@
   --color-primary: #545986;
   --color-primary-hover: #3e5479;
   --color-secondary: #e99000;
-  --color-background: #fffbf6;
+  --color-background: #fbf6f1;
   /* --inline-bg: #d6d9e0; */
   --inline-bg: #e1e5e6;  
   --color-border: #2a3852;
   --color-popover: #86888d;
   --color-text: #2f2f31;
   --color-muted: #697996;
-  --destructive: oklch(47.546% 0.1538 22.643);
-  --color-grayish-red: #953c37;
+  --destructive: #c24238e0;
+  --color-grayish-red: #953c37; 
   --color-input: #3e5479;
   --color-outline: #e99000;
   --radius: 0.625rem;
-
-
   /* Fonts — populated by Next.js font variables in layout.tsx */
   --font-display: var(--font-instrument-serif, "Georgia", serif);
   --font-body: var(--font-dm-sans, system-ui, sans-serif);
@@ -99,7 +97,6 @@
   }
 
   body {
-    @apply bg-background text-foreground;
     font-family: var(--font-body);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;

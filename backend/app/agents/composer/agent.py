@@ -45,12 +45,10 @@ except ImportError:
 
 logger = get_agent_logger("composer")
 
-VALID_VOICES = frozenset(("hook_first", "data_driven", "story_led"))
 
-# ─── LLM providers ──────────────────────────────────────────────
-
+# LLM providers
 def _get_groq_llm() -> Any | None:
-    """Groq: Llama 3.3 70B — quality + speed."""
+    """LLM Model: Groq: Llama 3.3 70B """
     key = getattr(settings, "groq_api_key", "") or ""
     if not key:
         return None
@@ -59,7 +57,7 @@ def _get_groq_llm() -> Any | None:
         return ChatGroq(
             model="llama-3.3-70b-versatile",
             groq_api_key=key,
-            temperature=0.7,      # higher than personalization — creative writing
+            temperature=0.7,     
             max_tokens=1024,
             timeout=20,
         )
@@ -196,14 +194,11 @@ async def composer_node(state: MemoryState) -> dict[str, Any]:
     prompt = (state.get("user_prompt") or "").strip()
     persona = state.get("personalization") or {}
     research = state.get("research_data") or {}
-    platform = state.get("target_platform") or "All"
+    platform = state.get("target_platform") or "Twitter"
     tone = state.get("tone") or "Casual"
     content_length = state.get("content_length") or "Medium"
-    user_voice = state.get("user_voice") or "hook_first"
+    user_voice = state.get("user_voice")
     completed = state.get("agents_completed", [])
-
-    if user_voice not in VALID_VOICES:
-        user_voice = "hook_first"
 
     pages = research.get("fetched_pages", [])
     rule = rule_for(platform)
@@ -237,14 +232,14 @@ async def composer_node(state: MemoryState) -> dict[str, Any]:
     rank_latency_ms = int((time.time() - start_time) * 1000)
     
     logger.log_metric(run_id, "source_ranking_latency_ms", rank_latency_ms)
-    logger.info("─" * 70, run_id)
-    logger.info("🏆 TOP SOURCES SELECTED:", run_id)
+    logger.info("─" * 10, run_id)
+    logger.info("⍟ TOP SOURCES SELECTED:", run_id)
     for i, s in enumerate(top_sources, 1):
         logger.info(
             f"  [{i}] {s.get('domain', '-'):30s} | score={s.get('rank_score', 0):.3f} | {s.get('title', '-')[:50]}",
             run_id
         )
-    logger.info("─" * 70, run_id)
+    logger.info("─" * 20, run_id)
 
     # Step 2: Get LLM
     logger.log_step(run_id, "Initializing LLM provider")
@@ -269,14 +264,14 @@ async def composer_node(state: MemoryState) -> dict[str, Any]:
     logger.log_metric(run_id, "evidence_extraction_latency_ms", evidence_latency_ms)
     logger.log_metric(run_id, "facts_extracted", len(facts))
     
-    logger.info("─" * 70, run_id)
-    logger.info("💎 EXTRACTED FACTS:", run_id)
+    logger.info("─" * 10, run_id)
+    logger.info("(✓) EXTRACTED FACTS:", run_id)
     for f in facts:
         fact_type = f.get("type", "?").upper()
         source_num = f.get("source", "?")
         fact_text = str(f.get("fact", ""))[:100]
         logger.info(f"  [{fact_type:12s}] Source {source_num} → {fact_text}", run_id)
-    logger.info("─" * 70, run_id)
+    logger.info("─" * 10, run_id)
 
     # Step 4: Build per-source user messages
     logger.log_step(run_id, "Building generation prompts", f"Creating {len(top_sources)} source-specific prompts")
@@ -320,7 +315,7 @@ async def composer_node(state: MemoryState) -> dict[str, Any]:
 
         logger.info(
             f"  Post {i + 1} | {source.get('domain', '-'):25s} | score={score.composite:.2f} | "
-            f"len={len(final_content):3d} | {'✓' if score.passes_threshold else '✗'}",
+            f"len={len(final_content):3d} | {'(✓)' if score.passes_threshold else '(✗)'}",
             run_id
         )
 
@@ -346,19 +341,19 @@ async def composer_node(state: MemoryState) -> dict[str, Any]:
     avg_score = sum(v["quality"]["composite"] for v in variants_out) / max(len(variants_out), 1)
     passing_count = sum(1 for v in variants_out if v["quality"]["passes"])
     
-    logger.info("─" * 70, run_id)
-    logger.info("📊 QUALITY SUMMARY:", run_id)
-    logger.info(f"  Posts generated: {len(variants_out)}/{len(top_sources)}", run_id)
-    logger.info(f"  Average score: {avg_score:.2f}", run_id)
-    logger.info(f"  Passing threshold: {passing_count}/{len(variants_out)}", run_id)
-    logger.info("─" * 70, run_id)
+    logger.info("─" * 10, run_id)
+    logger.info("☲ QUALITY SUMMARY:", run_id)
+    logger.info(f"• Posts generated: {len(variants_out)}/{len(top_sources)}", run_id)
+    logger.info(f"• Average score: {avg_score:.2f}", run_id)
+    logger.info(f"• Passing threshold: {passing_count}/{len(variants_out)}", run_id)
+    logger.info("─" * 10, run_id)
     
     # Log each variant preview
-    logger.info("📝 GENERATED POSTS:", run_id)
+    logger.info("🗏 GENERATED POSTS:", run_id)
     for i, variant in enumerate(variants_out, 1):
         content_preview = variant["content"][:150] + "..." if len(variant["content"]) > 150 else variant["content"]
         logger.info(f"  [{i}] {content_preview}", run_id)
-    logger.info("─" * 70, run_id)
+    logger.info("─" * 10, run_id)
 
     logger.agent_complete(
         run_id,

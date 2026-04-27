@@ -51,8 +51,8 @@ _TONE_TO_VOICE: dict[str, str] = {
 class GenerateRequest(BaseModel):
     prompt: str
     content_type: Literal["Text", "Image", "Article", "Video", "Ads", "Poll"] = "Text"
-    platform: Literal["All", "Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube"] = "All"
-    length: Literal["Short", "Medium", "Long"] = "Medium"
+    platform: Literal["Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube", "Web"] = "Web"
+    length: Literal["Short", "Medium", "Long", "Full Article"] = "Medium"
     tone: Literal[
         "Formal", "Informative", "Casual", "GenZ", "Factual",
         "Hook First", "Data Driven", "Story Led",
@@ -93,16 +93,16 @@ async def run_agent_pipeline(
     
     user_voice = _TONE_TO_VOICE.get(request.tone, "hook_first")
     
-    logger.info("=" * 70, run_id)
+    logger.info("=" * 10, run_id)
     logger.info("🚀 PIPELINE START", run_id)
-    logger.info("=" * 70, run_id)
+    logger.info("=" * 10, run_id)
     logger.info(f"  Run ID: {run_id}", run_id)
     logger.info(f"  User ID: {user_id}", run_id)
     logger.info(f"  Prompt: {request.prompt[:100]}{'...' if len(request.prompt) > 100 else ''}", run_id)
     logger.info(f"  Platform: {request.platform}", run_id)
     logger.info(f"  Tone: {request.tone} → Voice: {user_voice}", run_id)
     logger.info(f"  Length: {request.length}", run_id)
-    logger.info("─" * 70, run_id)
+    logger.info("─" * 10, run_id)
     
     try:
         AGENT_RUNS[run_id]["status"] = "running"
@@ -134,17 +134,17 @@ async def run_agent_pipeline(
             "error": final_state.get("error"),
         })
 
-        logger.info("=" * 70, run_id)
+        logger.info("=" * 10, run_id)
         logger.info("✅ PIPELINE COMPLETE", run_id)
         logger.info(f"  Agents completed: {final_state.get('agents_completed', [])}", run_id)
         logger.info(f"  Status: {final_state.get('status', 'completed')}", run_id)
-        logger.info("=" * 70, run_id)
+        logger.info("=" * 10, run_id)
 
     except Exception as exc:
-        logger.error("=" * 70, run_id)
+        logger.error("=" * 10, run_id)
         logger.error("❌ PIPELINE FAILED", run_id, exc_info=True)
         logger.error(f"  Error: {str(exc)}", run_id)
-        logger.error("=" * 70, run_id)
+        logger.error("=" * 10, run_id)
         AGENT_RUNS[run_id]["status"] = "failed"
         AGENT_RUNS[run_id]["error"] = str(exc)
 

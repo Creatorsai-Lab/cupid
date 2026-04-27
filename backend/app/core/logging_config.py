@@ -14,9 +14,7 @@ import logging
 import sys
 from typing import Any
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # ANSI Color Codes for Terminal Output
-# ═══════════════════════════════════════════════════════════════════════════════
 
 class Colors:
     """ANSI color codes for terminal output."""
@@ -44,10 +42,7 @@ class Colors:
     BRIGHT_CYAN = "\033[96m"
     BRIGHT_WHITE = "\033[97m"
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
 # Custom Formatter with Colors
-# ═══════════════════════════════════════════════════════════════════════════════
 
 class ColoredFormatter(logging.Formatter):
     """Custom formatter with colors and structured output."""
@@ -61,6 +56,7 @@ class ColoredFormatter(logging.Formatter):
     }
     
     AGENT_COLORS = {
+        "supervisor": Colors.BRIGHT_YELLOW,
         "personalization": Colors.BRIGHT_BLUE,
         "research": Colors.BRIGHT_GREEN,
         "composer": Colors.BRIGHT_MAGENTA,
@@ -105,11 +101,7 @@ class ColoredFormatter(logging.Formatter):
         
         return formatted
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# Logger Setup
-# ═══════════════════════════════════════════════════════════════════════════════
-
+# LOGER SETUP
 def setup_logging(level: str = "INFO") -> None:
     """
     Configure logging for the entire application.
@@ -141,11 +133,18 @@ def setup_logging(level: str = "INFO") -> None:
     logging.getLogger("langchain_groq").setLevel(logging.WARNING)
     logging.getLogger("openai").setLevel(logging.WARNING)
     logging.getLogger("anthropic").setLevel(logging.WARNING)
+    
+    # Silence SQLAlchemy verbose logging
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+    logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
+    logging.getLogger("sqlalchemy.dialects").setLevel(logging.WARNING)
+    logging.getLogger("sqlalchemy.orm").setLevel(logging.WARNING)
+    
+    # Silence uvicorn access logs (keep errors)
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # Agent Logger Factory
-# ═══════════════════════════════════════════════════════════════════════════════
 
 class AgentLogger:
     """
@@ -196,35 +195,35 @@ class AgentLogger:
     
     def agent_start(self, run_id: str, **context: Any) -> None:
         """Log agent start with context."""
-        self.info("=" * 70, run_id)
-        self.info(f"🚀 {self.agent_name.upper()} AGENT START", run_id)
-        self.info("=" * 70, run_id)
+        self.info("=" * 10, run_id)
+        self.info(f"𖠌 {self.agent_name.upper()} AGENT START", run_id)
+        self.info("=" * 10, run_id)
         for key, value in context.items():
             if value is not None:
                 self.info(f"  {key}: {value}", run_id)
     
     def agent_complete(self, run_id: str, **metrics: Any) -> None:
         """Log agent completion with metrics."""
-        self.info("─" * 70, run_id)
-        self.info(f"✅ {self.agent_name.upper()} AGENT COMPLETE", run_id)
+        self.info("─" * 10, run_id)
+        self.info(f"(✓) {self.agent_name.upper()} AGENT COMPLETE", run_id)
         for key, value in metrics.items():
             if value is not None:
                 self.info(f"  {key}: {value}", run_id)
-        self.info("=" * 70, run_id)
+        self.info("=" * 10, run_id)
     
     def agent_error(self, run_id: str, error: Exception) -> None:
         """Log agent error."""
-        self.error("─" * 70, run_id)
-        self.error(f"❌ {self.agent_name.upper()} AGENT FAILED", run_id, exc_info=True)
+        self.error("─" * 10, run_id)
+        self.error(f"(✗) {self.agent_name.upper()} AGENT FAILED", run_id, exc_info=True)
         self.error(f"  Error: {str(error)}", run_id)
-        self.error("=" * 70, run_id)
+        self.error("=" * 10, run_id)
     
     # ── Input/Output Logging ─────────────────────────────────────────────
     
     def log_input(self, run_id: str, label: str, content: str, max_length: int = 200) -> None:
         """Log input data with truncation."""
         truncated = content[:max_length] + "..." if len(content) > max_length else content
-        self.info(f"📥 INPUT [{label}]: {truncated}", run_id)
+        self.info(f"🖂 INPUT [{label}]: {truncated}", run_id)
     
     def log_output(self, run_id: str, label: str, content: str | list | dict, max_length: int = 200) -> None:
         """Log output data with truncation."""
@@ -246,10 +245,7 @@ class AgentLogger:
             msg += f" - {details}"
         self.info(msg, run_id)
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
 # Convenience Functions
-# ═══════════════════════════════════════════════════════════════════════════════
 
 def get_agent_logger(agent_name: str) -> AgentLogger:
     """

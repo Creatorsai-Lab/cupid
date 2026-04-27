@@ -78,11 +78,11 @@ async def research_node(state: MemoryState) -> dict[str, Any]:
         }
 
     # Log input queries
-    logger.info("─" * 70, run_id)
+    logger.info("─" * 10, run_id)
     logger.info("📋 INPUT QUERIES:", run_id)
     for i, q in enumerate(queries, 1):
         logger.info(f"  [{i}] {q}", run_id)
-    logger.info("─" * 70, run_id)
+    logger.info("─" * 10, run_id)
 
     # Run search pipeline
     logger.log_step(run_id, "Executing search pipeline")
@@ -99,14 +99,14 @@ async def research_node(state: MemoryState) -> dict[str, Any]:
         logger.log_metric(run_id, "latency_ms", latency_ms)
         
         # Log fetched pages
-        logger.info("─" * 70, run_id)
+        logger.info("─" * 10, run_id)
         logger.info("📄 FETCHED PAGES:", run_id)
         for i, r in enumerate(results, 1):
             logger.info(
                 f"  [{i:2d}] {r.domain:30s} | {r.text_length:6d} chars | {r.title[:50]}",
                 run_id
             )
-        logger.info("─" * 70, run_id)
+        logger.info("─" * 10, run_id)
         
         # Log domain distribution
         logger.info("🌐 DOMAIN DISTRIBUTION:", run_id)

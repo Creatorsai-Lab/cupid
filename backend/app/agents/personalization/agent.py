@@ -372,12 +372,12 @@ async def personalization_node(state: MemoryState) -> dict[str, Any]:
     logger.log_metric(run_id, "queries_generated", len(queries))
 
     # Log each generated query
-    logger.info("─" * 70, run_id)
+    logger.info("─" * 10, run_id)
     logger.info("📋 GENERATED QUERIES:", run_id)
     for i, q in enumerate(queries, 1):
         angle = ["FACTS", "RECENCY", "EXPERTISE", "PRACTICAL", "CONTRARIAN"][i - 1] if i <= 5 else "EXTRA"
         logger.info(f"  [{i}] {angle:12s} → {q}", run_id)
-    logger.info("─" * 70, run_id)
+    logger.info("─" * 10, run_id)
 
     logger.agent_complete(
         run_id,
