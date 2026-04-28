@@ -219,6 +219,38 @@ export const agentsApi = {
         requestRaw<RunStatusResponse>(`/api/v1/agents/runs/${runId}`),
 };
 
+// ── Trends API ───────────────────────────────────────────────
+
+interface TrendArticle {
+    id: string;
+    title: string;
+    description: string | null;
+    url: string;
+    image_url: string | null;
+    source: string;
+    domain: string;
+    published_at: string;
+    category: string;
+    relevance_score: number;
+    velocity_score: number;
+}
+
+interface TrendsResponse {
+    articles: TrendArticle[];
+    niche: string;
+    total_pool: number;
+    cached: boolean;
+    generated_at: string;
+}
+
+export const trendsApi = {
+    getNews: (refresh: boolean = false): Promise<TrendsResponse> =>
+        requestRaw<TrendsResponse>(
+            `/api/v1/trends/news${refresh ? "?refresh=true" : ""}`
+        ),
+};
+
+export type { TrendArticle, TrendsResponse };
 export type { ProfileData, GenerateRequest, GenerateResponse, RunStatusResponse, ResearchData, SearchResult, PageContent };
 export { ApiError };
 export type { UserData, ApiResponse };
