@@ -151,13 +151,13 @@ export const profileApi = {
         }),
 };
 
-// ── Agents API ───────────────────────────────────────────────
+// ── Agents API ──────────────────────────── ───────────────────
 
 interface GenerateRequest {
     prompt: string;
     content_type?: "Text" | "Image" | "Article" | "Video" | "Ads";
-    platform?: "All" | "Twitter" | "LinkedIn" | "Instagram" | "Facebook" | "YouTube";
-    length?: "Short" | "Medium" | "Long";
+    platform?: "Twitter" | "LinkedIn" | "Instagram" | "Facebook" | "YouTube" | "Web";
+    length?: "Short" | "Medium" | "Long" | "Full Article";
     tone?: "Formal" | "Informative" | "Casual" | "GenZ" | "Factual" | "Hook First" | "Data Driven" | "Story Led";
 }
 
