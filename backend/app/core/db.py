@@ -17,7 +17,8 @@ from app.config import settings
 # echo=False in production — set True temporarily to see raw SQL in logs.
 engine = create_async_engine(
     settings.database_url,
-    echo=settings.debug,
+    # echo=settings.debug,
+    echo=False,
     pool_size=5,  # keep 5 connections open at all times
     max_overflow=10,  # allow up to 10 more under load
     pool_pre_ping=True,   # test connections before using (handles DB restarts)

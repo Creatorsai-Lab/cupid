@@ -1,29 +1,22 @@
 """
 Trends Ingestion — runs in the background, populates the DB.
 
-Pipeline:
-    for each tracked category:
-        fetch via source_client (RSS → API fallback)
-        compute velocity score (recency × source authority)
-        upsert into trending_articles (idempotent by url_hash)
+Rate-limit hygiene:
+    - Sequential category fetching (no asyncio.gather)
+    - 3-second base stagger between calls + jitter
+    - Per-call retry-with-backoff is in source_client
+    - Reduced category list — quality over quantity per run
 
-This runs on a schedule (every 30 min by default). It is idempotent —
-you can call it as often as you want, the same article only ever gets
-written once thanks to the url_hash primary key.
-
-Latency budget:
-    For 10 categories × ~20 articles = ~200 articles per run.
-    RSS fetch: ~1-3s per category, parallel = ~5s total
-    DB writes: ~50-100ms total via single transaction
-    Total run time: <10 seconds
-
-That's fine for a 30-min cron. We're not optimizing for ingestion speed.
+Run schedule (when Celery is hooked up):
+    Every 30 minutes. ~7 categories × 3s stagger = ~25s per run.
+    Fetches ~7-15 RSS requests per run = well under Google's tolerance.
 """
 from __future__ import annotations
 
 import asyncio
 import hashlib
 import logging
+import random
 from datetime import datetime, timezone
 from typing import Iterable
 
@@ -31,33 +24,62 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import async_session as async_session_factory
-from app.trends.source_client import RawArticle, fetch_category
-from app.models.trending_article import TrendingArticle
 from app.config import settings
+from app.models.trending_article import TrendingArticle
+from app.trends.source_client import RawArticle, fetch_category
 
 logger = logging.getLogger(__name__)
 
-# Categories we ingest on every run. Add/remove freely.
-TRACKED_CATEGORIES: tuple[str, ...] = (
-    "technology", "business", "health", "science", "sports",
-    "entertainment", "ai", "crypto", "marketing", "startups",
-    "fitness", "design", "productivity", "world",
+# Core categories — fetched on every run
+CORE_CATEGORIES: tuple[str, ...] = (
+    "technology", "business", "world", "ai",
+    "health", "science", "entertainment",
 )
 
+# Niche categories — rotated, only some per run to reduce request load
+ROTATING_CATEGORIES: tuple[str, ...] = (
+    "crypto", "marketing", "startups", "fitness",
+    "design", "productivity", "sports",
+)
+
+# Track which rotating categories were last fetched (in-memory)
+_last_rotated_index = 0
+
+
+def _select_categories_for_run() -> list[str]:
+    """Pick which categories this run will fetch."""
+    global _last_rotated_index
+
+    # Always do the core 7
+    selected = list(CORE_CATEGORIES)
+
+    # Add 3 rotating categories per run (so the full rotating list cycles
+    # through every ~3 runs)
+    rotation_size = 3
+    rotating = list(ROTATING_CATEGORIES)
+    start = _last_rotated_index % len(rotating)
+    end = start + rotation_size
+    if end <= len(rotating):
+        chosen = rotating[start:end]
+    else:
+        chosen = rotating[start:] + rotating[: end - len(rotating)]
+    _last_rotated_index = end % len(rotating)
+
+    selected.extend(chosen)
+    return selected
+
 
 # ──────────────────────────────────────────────────────────────────
-#  Velocity scoring (computed once, persisted)
+#  Velocity scoring
 # ──────────────────────────────────────────────────────────────────
 
-# Loose authority weights — major outlets get a small boost.
-# This is a heuristic, not science. Refine based on your audience.
 _AUTHORITY: dict[str, float] = {
     "reuters.com":      0.95,
-    "apnews.com":       0.95,
-    "bbc.com":          0.90,
-    "bbc.co.uk":        0.90,
-    "nytimes.com":      0.90,
-    "wsj.com":          0.90,
+    "timesofindia.indiatimes.com":       0.95,
+    "hindustantimes.com": 0.95,
+    "wsj.com":          0.95,
+    "aninews.in":       0.95,
+    "republicworld.com": 0.90,
     "ft.com":           0.90,
     "bloomberg.com":    0.85,
     "theverge.com":     0.80,
@@ -72,36 +94,22 @@ _AUTHORITY: dict[str, float] = {
 
 
 def _compute_velocity(article: RawArticle) -> float:
-    """
-    velocity = 0.6·authority + 0.4·freshness
-
-    Computed once at ingestion. Persisted on the row. Read-only at serving.
-    """
     authority = _AUTHORITY.get(article.domain, 0.5)
-
-    # Freshness: 1.0 if just published, decaying linearly over 48h
     age_hours = (datetime.now(timezone.utc) - _ensure_aware(article.published_at)).total_seconds() / 3600
     freshness = max(0.0, 1.0 - age_hours / 48.0)
-
     return round(0.6 * authority + 0.4 * freshness, 4)
 
 
 def _ensure_aware(dt: datetime) -> datetime:
-    """Some RSS feeds give naive datetimes. Treat them as UTC."""
     return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
-# ──────────────────────────────────────────────────────────────────
-#  URL hashing for stable primary key
-# ──────────────────────────────────────────────────────────────────
-
 def _url_hash(url: str) -> str:
-    """Stable 32-char hash of the URL — collision-free in practice."""
     return hashlib.sha256(url.encode("utf-8")).hexdigest()[:32]
 
 
 # ──────────────────────────────────────────────────────────────────
-#  Bulk upsert — Postgres-specific but very fast
+#  Persist with upsert
 # ──────────────────────────────────────────────────────────────────
 
 async def _persist_articles(
@@ -109,72 +117,75 @@ async def _persist_articles(
     category: str,
     articles: Iterable[RawArticle],
 ) -> int:
-    """
-    Insert articles, skip duplicates. Returns count of new rows.
-
-    Why ON CONFLICT DO NOTHING?
-        Without it, a duplicate URL would raise IntegrityError and abort
-        the whole transaction. The "DO NOTHING" makes inserts idempotent —
-        we can re-run ingestion safely.
-    """
     rows = []
     for art in articles:
         if not art.url or not art.title:
             continue
         rows.append({
-            "url_hash":     _url_hash(art.url),
-            "title":        art.title[:512],          # respect column length
-            "description":  art.description or None,
-            "url":          art.url,
-            "image_url":    art.image_url,
-            "source":       art.source[:128],
-            "domain":       art.domain[:128],
-            "category":     category,
-            "published_at": _ensure_aware(art.published_at),
+            "url_hash":       _url_hash(art.url),
+            "title":          art.title[:512],
+            "description":    art.description or None,
+            "url":            art.url,
+            "image_url":      art.image_url,
+            "source":         art.source[:128],
+            "domain":         art.domain[:128],
+            "category":       category,
+            "published_at":   _ensure_aware(art.published_at),
             "velocity_score": _compute_velocity(art),
         })
 
     if not rows:
         return 0
 
-    # Postgres-specific: ON CONFLICT (primary_key) DO NOTHING
     stmt = insert(TrendingArticle).values(rows)
     stmt = stmt.on_conflict_do_nothing(index_elements=["url_hash"])
-
     result = await session.execute(stmt)
     return result.rowcount or 0
 
 
 # ──────────────────────────────────────────────────────────────────
-#  Main ingestion entry point — Celery task wraps this
+#  Main ingestion entry point
 # ──────────────────────────────────────────────────────────────────
 
 async def ingest_all_categories() -> dict[str, int]:
     """
-    Fetch + persist every tracked category. Categories run in parallel
-    (each one is mostly I/O on RSS — perfect for asyncio.gather).
-
+    Sequential ingestion with stagger — respects rate limits.
     Returns: {category: new_articles_count}
     """
     api_key = getattr(settings, "gnews_api_key", None) or None
-
-    # Parallel fetch across categories
-    fetch_tasks = [
-        fetch_category(cat, api_key=api_key, max_results=20)
-        for cat in TRACKED_CATEGORIES
-    ]
-    results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
-
-    # Single DB session for all writes — one transaction, atomic
     summary: dict[str, int] = {}
+
+    categories_this_run = _select_categories_for_run()
+    logger.info("[trends.ingest] this run will fetch: %s", categories_this_run)
+
     async with async_session_factory() as session:
-        for category, fetched in zip(TRACKED_CATEGORIES, results, strict=True):
-            if isinstance(fetched, Exception):
-                logger.error("[trends.ingest] %s failed: %s", category, fetched)
+        for i, category in enumerate(categories_this_run):
+            # Stagger requests: 3s base + 0-1s jitter
+            if i > 0:
+                stagger = 3.0 + random.uniform(0, 1.0)
+                await asyncio.sleep(stagger)
+
+            try:
+                fetched = await fetch_category(
+                    category, api_key=api_key, max_results=20,
+                )
+            except Exception as exc:
+                logger.error("[trends.ingest] %s fetch raised: %s", category, exc)
                 summary[category] = 0
                 continue
 
-            inserted = await _persist_articles(session, category, fetched)
+            if not fetched:
+                summary[category] = 0
+                continue
+
+            try:
+                inserted = await _persist_articles(session, category, fetched)
+            except Exception as exc:
+                logger.error("[trends.ingest] %s persist failed: %s", category, exc)
+                await session.rollback()
+                summary[category] = 0
+                continue
+
             summary[category] = inserted
             logger.info(
                 "[trends.ingest] %s: %d fetched, %d new",

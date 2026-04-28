@@ -29,8 +29,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.trends.ranker import rank_articles
-from app.trends.schemas import TrendArticle, TrendsResponse
-from app.schemas.trends import TrendArticle, TrendsResponse
+from app.schemas.trends import TrendingArticle, TrendsResponse
+# Import the Database Model (for SQLAlchemy) and alias it
+from app.models.trending_article import TrendingArticle as DBArticles
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +40,6 @@ RECENT_WINDOW_HOURS = 36         # only consider articles from last 36h
 POOL_SIZE = 60                   # how many articles to rank from
 
 
-# ──────────────────────────────────────────────────────────────────
-#  Niche → category mapping
-# ──────────────────────────────────────────────────────────────────
-#
 # User niches are free-text from the personalization form. We map them
 # down to our coarse-grained ingestion categories. This is fuzzy on
 # purpose — better to over-fetch than to miss articles.
@@ -162,10 +159,10 @@ async def get_trends_for_user(
     # 3) Pull recent articles from those categories
     cutoff = datetime.now(timezone.utc) - timedelta(hours=RECENT_WINDOW_HOURS)
     stmt = (
-        select(TrendingArticle)
-        .where(TrendingArticle.category.in_(categories))
-        .where(TrendingArticle.published_at >= cutoff)
-        .order_by(TrendingArticle.published_at.desc())
+        select(DBArticles)
+        .where(DBArticles.category.in_(categories))
+        .where(DBArticles.published_at >= cutoff)
+        .order_by(DBArticles.published_at.desc())
         .limit(POOL_SIZE)
     )
     result = await session.execute(stmt)
@@ -186,7 +183,7 @@ async def get_trends_for_user(
 
     # 5) Convert ORM rows → Pydantic response
     articles = [
-        TrendArticle(
+        TrendingArticle(
             id=row.url_hash,
             title=row.title,
             description=row.description,

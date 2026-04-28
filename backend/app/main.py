@@ -8,7 +8,7 @@ from app.core.logging_config import setup_logging
 from app.routers.auth import router as auth_router
 from app.routers.profile import router as profile_router
 from app.routers.agents import router as agents_router
-
+from app.routers.trends import router as trends_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
     logger.info("=" * 20)
     logger.info(f"↺ Cupid API Starting - Environment: {settings.app_env}")
     logger.info(f"☱ Log Level: {log_level}")
-    logger.info(f"¶ Debug Mode: {settings.debug}")
+    logger.info(f"(i) Debug Mode: {settings.debug}")
     logger.info("=" * 20)
     
     yield
@@ -53,6 +53,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(profile_router)
     app.include_router(agents_router)
+    app.include_router(trends_router, prefix="/api/v1")
 
     @app.get("/health", tags=["system"])
     async def health():

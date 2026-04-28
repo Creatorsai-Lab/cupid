@@ -16,7 +16,7 @@ from __future__ import annotations
 from datetime import datetime
 from pydantic import BaseModel, Field, HttpUrl
 
-class TrendArticle(BaseModel):
+class TrendingArticle(BaseModel):
     """One news article ranked into the user's trend feed."""
     id: str = Field(..., description="Stable article ID (URL hash)")
     title: str
@@ -35,7 +35,7 @@ class TrendArticle(BaseModel):
 
 class TrendsResponse(BaseModel):
     """Wraps the article list with metadata about the request."""
-    articles: list[TrendArticle]
+    articles: list[TrendingArticle]
     niche: str = Field(..., description="The niche we ranked against")
     total_pool: int = Field(..., description="How many articles we ranked from")
     cached: bool = Field(False, description="Whether this came from Redis cache")

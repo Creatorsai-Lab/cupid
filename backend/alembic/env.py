@@ -6,10 +6,11 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.config import settings
 
-# Import Base and ALL models so Alembic can detect them
+# Import Base and ALL (DB) models so Alembic can detect them
 from app.models.user import Base
-from app.models.persona import UserPersonalization  # noqa: F401 — needed for Alembic detection
-
+from app.models import user, persona
+from app.models.persona import UserPersonalization  
+from app.models import trending_article
 
 config = context.config
 if config.config_file_name is not None:
