@@ -27,7 +27,6 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
 
-
 async def main() -> int:
     print("\n=== Cupid Trends Ingestion (manual run) ===\n")
     summary = await ingest_all_categories()
