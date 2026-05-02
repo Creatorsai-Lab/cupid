@@ -5,7 +5,10 @@ Use this during development instead of waiting for Celery Beat.
 
 Usage:
     cd D:\\Cupid\\backend
-    python -m scripts.run_ingest
+    python -m scripts.test_run_ingest
+
+    terminal command to verify:
+    docker exec -it cupid_postgres psql -U cupid -d cupid_db -c "SELECT category, COUNT(*) FROM trending_articles GROUP BY category;"
 
 What it does:
     1. Imports the same `ingest_all_categories` function Celery would call

@@ -106,7 +106,8 @@ const NICHES = [
   { group: "Health & Lifestyle", items: ["Fitness & Gym", "Mental Health", "Yoga & Meditation", "Nutrition & Diet", "Running & Endurance", "Sports", "Biohacking", "Parenting", "Relationships", "Minimalism", "Self-improvement"] },
   { group: "Education", items: ["Online Learning", "Study Tips", "Language Learning", "Mathematics", "Science & Research", "History", "Philosophy", "Book Summaries", "Skill Development"] },
   { group: "Entertainment", items: ["Comedy & Humor", "Movie & TV Reviews", "Music", "Pop Culture", "Anime & Manga", "Fashion", "Beauty & Skincare", "Travel", "Food & Cooking", "Pets & Animals", "Art & Illustration"] },
-  { group: "Niche & Micro", items: ["Solopreneurship", "No-Code Tools", "Research & Academia", "Climate & Sustainability", "Politics & Policy", "Spirituality", "True Crime", "Expat Life", "LGBTQ+", "Disability Advocacy"] },
+  { group: "Niche & Micro", items: ["No-Code Tools", "Research & Academia", "Climate & Sustainability", "Politics & Policy", "Spirituality", "Disability Advocacy"] },
+  { group: "Building & Hustling", items: ["Solopreneurship", "Building in stealth"] },
 ];
 
 const CONTENT_GOAL = [

@@ -9,6 +9,7 @@ from app.routers.auth import router as auth_router
 from app.routers.profile import router as profile_router
 from app.routers.agents import router as agents_router
 from app.routers.trends import router as trends_router
+from app.trends.scheduler import start_scheduler, stop_scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -18,13 +19,20 @@ async def lifespan(app: FastAPI):
     
     import logging
     logger = logging.getLogger("app.main")
-    logger.info("=" * 20)
     logger.info(f"↺ Cupid API Starting - Environment: {settings.app_env}")
     logger.info(f"☱ Log Level: {log_level}")
     logger.info(f"(i) Debug Mode: {settings.debug}")
-    logger.info("=" * 20)
+    logger.info("-" * 20)
     
+    # Trends ingestion scheduler — only runs in dev.
+    # In production, Celery Beat handles this instead (see scheduler.py docstring).
+    if settings.app_env != "production":
+        start_scheduler()
+
     yield
+
+    if settings.app_env != "production":
+        await stop_scheduler()
     
     logger.info("=" * 20)
     logger.info("⊘ Cupid API Shutting Down")

@@ -1,8 +1,5 @@
 # defines what keys exist and loads them into Python
-
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
