@@ -15,6 +15,13 @@ https://github.com/FareedKhan-dev/Multi-Agent-AI-System/blob/main/multi_agent.ip
 ## Inspiration Reference
 2. https://github.com/Haileamlak/conca
 
+## Social Media API for developers
+https://zernio.com/
+https://www.outstand.so/blog/best-unified-social-media-apis-for-devs
+
+## NEWS API
+https://newsdata.io/blog/best-free-news-api/
+
 
 ## Competitor
 1. Jasper AI
