@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { XCard, LinkedInCard, InstagramCard, FacebookCard, YouTubeCard, YouTubeShortsCard, PollCard } from "@/components/SocialMediaCards";
+import Footer from "@/components/Footer"; 
 
 const AGENTS = [
   { n: "01", name: "Persona Agent", desc: "Learns your voice from writing samples. Builds a living model of your tone, vocabulary, and domain depth." },
   { n: "02", name: "Research Agent", desc: "Finds angles, sources, and ideas tailored to your expertise. Runs autonomously or on-demand." },
-  { n: "03", name: "Trend Agent", desc: "Monitors Reddit, HackerNews, and RSS in your domain. Surfaces what is rising before it peaks." },
+  { n: "03", name: "Trend Service", desc: "Monitors Reddit, HackerNews, and RSS in your domain. Surfaces what is rising before it peaks." },
   { n: "04", name: "Composer Agent", desc: "Assembles platform-specific posts. Runs a fidelity check — if it doesn't sound like you, it regenerates." },
 ];
 
@@ -168,13 +169,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Footer ───────────────────────────────────────────── */}
-      <footer className="border-t border-border py-6">
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
-          <span className="text-primary italic text-lg" style={{ fontFamily: "var(--font-display)" }}>cupid</span>
-          <span className="text-xs text-muted-foreground">Open source · MIT license</span>
-        </div>
-      </footer>
-
+      <Footer></Footer>
     </main>
   );
 }

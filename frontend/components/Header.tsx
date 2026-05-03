@@ -21,13 +21,13 @@ import Image from "next/image";
 const NAV_ITEMS = [
     { href: "/create", icon: CircleFadingPlus, label: "Create" },
     { href: "/trends", icon: Flame, label: "Trends" },
-    { href: "/automation", icon: Bot, label: "Automation" },
-    { href: "/earn", icon: CircleDollarSign, label: "Earn" },
-    { href: "/insights", icon: ChartLine, label: "Insights" },
-    { href: "/settings", icon: Settings, label: "Settings" },
     { href: "/history", icon: History, label: "History" },
-    { href: "/schedule", icon: Calendar, label: "Schedule" },
-    { href: "/notepad", icon: SquarePen, label: "Schedule" },
+    { href: "/insights", icon: ChartLine, label: "Insights" },
+    { href: "/earn", icon: CircleDollarSign, label: "Earn" },
+    { href: "/settings", icon: Settings, label: "Settings" },
+    // { href: "/automation", icon: Bot, label: "Automation" },
+    // { href: "/schedule", icon: Calendar, label: "Schedule" },
+    // { href: "/notepad", icon: SquarePen, label: "Schedule" },
     
 ] as const;
 

@@ -1,6 +1,6 @@
 [project]
 name = "cupid-backend"
-version = "0.1.0"
+version = "0.1.2"
 description = "Cupid - Multiagent ai content creation platform"
 requires-python = ">=3.11"
 
