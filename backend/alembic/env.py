@@ -8,9 +8,8 @@ from app.config import settings
 
 # Import Base and ALL (DB) models so Alembic can detect them
 from app.models.user import Base
-from app.models import user, persona
+from app.models import user, persona, trending_article, social_connection, insight_snapshot, top_content
 from app.models.persona import UserPersonalization  
-from app.models import trending_article
 
 config = context.config
 if config.config_file_name is not None:

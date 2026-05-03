@@ -8,6 +8,13 @@ from datetime import datetime, timezone
 from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+from typing import TYPE_CHECKING
+from sqlalchemy.orm import Mapped, relationship
+
+if TYPE_CHECKING:
+    from app.models.social_connection import SocialConnection
+
 class Base(DeclarativeBase):
     """
     Base class for all ORM models.
@@ -37,6 +44,11 @@ class User(Base):
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    social_connections: Mapped[list["SocialConnection"]] = relationship(
+        back_populates="user",
+        cascade = "all, delete-orphan" # if a user account is deleted, all their social connections (and through them, snapshots and top_content) cascade-delete. No orphan rows, no manual cleanup.
     )
     
     # __repr__ is a special method that defines what gets printed when you 

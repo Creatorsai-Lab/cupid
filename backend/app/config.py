@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     # App
     app_env: str = "development"
     secret_key: str = "Adya2v!gav52bb99+qrva@+$o3v=#tuqyc8=ve$be9=k5#*6#z!gxl"
+    token_encryption_key: str = ""
     debug: bool = True
 
     # Database
@@ -42,6 +43,10 @@ class Settings(BaseSettings):
     reddit_client_secret: str = ""
     reddit_user_agent: str = "cupid/1.0"
     resend_api_key: str = ""
+    # Google OAuth (for YouTube and other Google services)
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:8000/api/v1/connections/youtube/callback"
 
 # the single global config object
 # This builds the object once, reading env vars + .env

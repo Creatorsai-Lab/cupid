@@ -9,6 +9,7 @@ from app.routers.auth import router as auth_router
 from app.routers.profile import router as profile_router
 from app.routers.agents import router as agents_router
 from app.routers.trends import router as trends_router
+from app.routers.connections import router as connections_router 
 from app.trends.scheduler import start_scheduler, stop_scheduler
 
 @asynccontextmanager
@@ -62,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(profile_router)
     app.include_router(agents_router)
     app.include_router(trends_router, prefix="/api/v1")
+    app.include_router(connections_router, prefix="/api/v1")
 
     @app.get("/health", tags=["system"])
     async def health():

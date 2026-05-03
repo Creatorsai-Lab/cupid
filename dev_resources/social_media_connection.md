@@ -6,3 +6,5 @@ Plan to use"unified social media APIs." To abstract away the per-platform OAuth 
     - Free if self-hosted
     - 17+ platforms supported
     - Open source
+    - Postiz is built on NextJS, NestJS, and Prisma — different stack than yours GitHub
+    - It's a complete app, not a library — you'd be running TWO apps
