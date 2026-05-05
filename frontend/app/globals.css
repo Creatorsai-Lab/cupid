@@ -176,6 +176,23 @@
   to {opacity: 1;transform: translateY(0);}
 }
 
+@keyframes border-rotate {
+  0% {
+    --angle: 0deg;
+  }
+
+  100% {
+    --angle: 360deg;
+  }
+}
+
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+
 /* ANIMATIONS END  */
 
 /* ANIMATED GRADIENT CLASSED:  */
@@ -272,38 +289,4 @@
 
 .animate-fade-in {
   animation: fade-in 0.5s ease both;
-}
-
-/* ─── Animated Border Container ───────────────────────────── */
-@keyframes border-rotate {
-  0% {
-    --angle: 0deg;
-  }
-
-  100% {
-    --angle: 360deg;
-  }
-}
-
-@property --angle {
-  syntax: "<angle>";
-  initial-value: 0deg;
-  inherits: false;
-}
-
-/* Default state for the icon */
-.nav-item {
-    color: var(--color-primary);
-    transition: background-color 0.15s ease;
-}
-
-.nav-item svg {
-    stroke: var(--color-primary); /* Use 'fill' instead of 'stroke' if your icons are solid */
-    transition: stroke 0.15s ease;
-}
-
-/* Active state with the gradient */
-.nav-item.active-item svg {
-    /* This references the ID we created in the <linearGradient> tag */
-    stroke: url(#activeGradient); 
 }
