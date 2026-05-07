@@ -10,7 +10,10 @@ from app.routers.profile import router as profile_router
 from app.routers.agents import router as agents_router
 from app.routers.trends import router as trends_router
 from app.routers.connections import router as connections_router 
-from app.trends.scheduler import start_scheduler, stop_scheduler
+from app.trends.scheduler import start_scheduler as start_trends_scheduler
+from app.trends.scheduler import stop_scheduler as stop_trends_scheduler
+from app.insights.scheduler import start_scheduler as start_insights_scheduler
+from app.insights.scheduler import stop_scheduler as stop_insights_scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,20 +27,29 @@ async def lifespan(app: FastAPI):
     logger.info(f"☱ Log Level: {log_level}")
     logger.info(f"(i) Debug Mode: {settings.debug}")
     logger.info("-" * 20)
+
+    try:
+        from app.core.redis import redis_client
+        await redis_client.ping()
+        logger.info("✓ Redis connection verified")
+    except Exception as exc:
+        logger.error("✗ Redis unreachable at startup: %s", exc)
+        # Don't crash — log loudly, let user fix
     
-    # Trends ingestion scheduler — only runs in dev.
+    # schedulers - only runs in dev.
     # In production, Celery Beat handles this instead (see scheduler.py docstring).
     if settings.app_env != "production":
-        start_scheduler()
+        start_trends_scheduler()
+        start_insights_scheduler()
 
     yield
 
     if settings.app_env != "production":
-        await stop_scheduler()
+        await stop_trends_scheduler()
+        await stop_insights_scheduler()
     
-    logger.info("=" * 20)
     logger.info("⊘ Cupid API Shutting Down")
-    logger.info("=" * 20)
+    logger.info("-"* 20)
 
 
 def create_app() -> FastAPI:

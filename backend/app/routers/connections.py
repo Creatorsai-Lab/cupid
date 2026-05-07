@@ -208,7 +208,6 @@ async def youtube_callback(
         message=f"Connected to YouTube channel: {channel['title']}",
     )
 
-
 # ─── Disconnect ────────────────────────────────────────────────
 
 @router.delete("/{connection_id}", status_code=status.HTTP_204_NO_CONTENT)

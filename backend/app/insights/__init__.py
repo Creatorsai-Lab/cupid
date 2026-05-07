@@ -1,0 +1,1 @@
+"""Insights package - YouTube sync, scheduling, and analytics serving."""
