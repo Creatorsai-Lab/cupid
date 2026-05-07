@@ -1,7 +1,7 @@
 # create login body
 $loginBody = @{
-    email    = "user@gmail.com"
-    password = "12345678"
+    email    = "your_email"
+    password = "your_password"
 } | ConvertTo-Json
 
 # Create a session container that holds cookies

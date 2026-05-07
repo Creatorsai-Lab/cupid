@@ -1,4 +1,6 @@
 """
+NOTE: (The total_videos column was a typo - the column is actually total_content_count. Not a code bug, just bad SQL example. need to update later.)
+
 YouTube API Client - wraps the YouTube Data + Analytics APIs.
 
 1. WHY A SEPARATE FILE

@@ -9,6 +9,7 @@ from app.routers.auth import router as auth_router
 from app.routers.profile import router as profile_router
 from app.routers.agents import router as agents_router
 from app.routers.trends import router as trends_router
+from app.routers.insights_router import router as insights_router
 from app.routers.connections import router as connections_router 
 from app.trends.scheduler import start_scheduler as start_trends_scheduler
 from app.trends.scheduler import stop_scheduler as stop_trends_scheduler
@@ -55,7 +56,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Cupid API",
-        description="Multi-agent social media automation system",
+        description="Multi-agent content creation platform",
         version="0.1.0",
         docs_url="/api/docs" if settings.debug else None,
         redoc_url="/api/redoc" if settings.debug else None,
@@ -76,6 +77,7 @@ def create_app() -> FastAPI:
     app.include_router(agents_router)
     app.include_router(trends_router, prefix="/api/v1")
     app.include_router(connections_router, prefix="/api/v1")
+    app.include_router(insights_router, prefix="/api/v1")
 
     @app.get("/health", tags=["system"])
     async def health():
