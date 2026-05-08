@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { ConnectionsPanel } from "@/components/ConnectionsPanel";
 import { useAuthStore } from "@/lib/store";
 import { User, Sparkles, HelpCircle, Settings, Workflow } from "lucide-react";
 import { authApi, profileApi } from "@/lib/api";
@@ -509,6 +510,9 @@ const socialPlatforms = [
 function ConnectTab() {
   return (
     <div className="space-y-4">
+      <section className="space-y-4 mt-8">
+    <ConnectionsPanel />
+</section>
       {socialPlatforms.map((platform) => (
         <div
           key={platform.name}

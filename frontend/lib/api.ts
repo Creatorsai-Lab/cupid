@@ -250,6 +250,153 @@ export const trendsApi = {
         ),
 };
 
+// ── Connections API ──────────────────────────────────────────
+//
+// Add these blocks to your existing lib/api.ts file.
+// The types stay inline (matching your existing file's pattern of
+// putting interfaces alongside the API objects that use them).
+
+interface ConnectionResponse {
+    id: string;
+    platform: string;
+    platform_user_id: string;
+    handle: string | null;
+    connected_at: string;
+    last_synced_at: string | null;
+    sync_status: string;
+    last_error: string | null;
+}
+
+interface ConnectionStartResponse {
+    authorization_url: string;
+}
+
+export const connectionsApi = {
+    list: (): Promise<ConnectionResponse[]> =>
+        requestRaw<ConnectionResponse[]>("/api/v1/connections/"),
+
+    startYouTube: (): Promise<ConnectionStartResponse> =>
+        requestRaw<ConnectionStartResponse>(
+            "/api/v1/connections/youtube/connect"
+        ),
+
+    disconnect: async (connectionId: string): Promise<void> => {
+        const url = `${API_BASE}/api/v1/connections/${connectionId}`;
+        const res = await fetch(url, {
+            method: "DELETE",
+            credentials: "include",
+        });
+        if (!res.ok) {
+            if (res.status === 401) await handle401("/api/v1/connections/...");
+            throw new ApiError(`Disconnect failed (${res.status})`, res.status);
+        }
+    },
+};
+
+
+// ── Insights API ─────────────────────────────────────────────
+
+interface SummaryResponse {
+    connection_id: string;
+    handle: string | null;
+    platform: string;
+    subscriber_count: number;
+    total_views: number;
+    total_videos: number;
+    total_engagement: number;
+    subscriber_delta_30d: number;
+    views_delta_30d: number;
+    last_synced_at: string | null;
+    sync_status: string;
+}
+
+interface TimeSeriesPoint {
+    date: string;             // YYYY-MM-DD
+    follower_count: number;
+    total_views: number;
+    follower_delta: number;
+    views_delta: number;
+}
+
+interface TimeSeriesResponse {
+    connection_id: string;
+    points: TimeSeriesPoint[];
+    range_days: number;
+}
+
+interface TopContentItem {
+    rank: number;
+    content_id: string;
+    title: string;
+    url: string;
+    thumbnail_url: string | null;
+    published_at: string;
+    views: number;
+    likes: number;
+    comments: number;
+}
+
+interface TopContentResponse {
+    connection_id: string;
+    snapshot_date: string;
+    items: TopContentItem[];
+}
+
+interface HeatmapCell {
+    day_of_week: number;      // 0=Mon, 6=Sun
+    hour: number;             // 0..23
+    avg_views: number;
+    post_count: number;
+}
+
+interface HeatmapResponse {
+    connection_id: string;
+    cells: HeatmapCell[];
+    insight: string;
+}
+
+export const insightsApi = {
+    list: (): Promise<SummaryResponse[]> =>
+        requestRaw<SummaryResponse[]>("/api/v1/insights/"),
+
+    summary: (connectionId: string): Promise<SummaryResponse> =>
+        requestRaw<SummaryResponse>(
+            `/api/v1/insights/${connectionId}/summary`
+        ),
+
+    timeseries: (
+        connectionId: string,
+        rangeDays: number = 30
+    ): Promise<TimeSeriesResponse> =>
+        requestRaw<TimeSeriesResponse>(
+            `/api/v1/insights/${connectionId}/timeseries?range_days=${rangeDays}`
+        ),
+
+    topContent: (
+        connectionId: string,
+        limit: number = 10
+    ): Promise<TopContentResponse> =>
+        requestRaw<TopContentResponse>(
+            `/api/v1/insights/${connectionId}/top-content?limit=${limit}`
+        ),
+
+    heatmap: (connectionId: string): Promise<HeatmapResponse> =>
+        requestRaw<HeatmapResponse>(
+            `/api/v1/insights/${connectionId}/heatmap`
+        ),
+};
+
+
+export type {
+    ConnectionResponse,
+    SummaryResponse,
+    TimeSeriesResponse,
+    TimeSeriesPoint,
+    TopContentResponse,
+    TopContentItem,
+    HeatmapResponse,
+    HeatmapCell,
+};
 export type { TrendArticle, TrendsResponse };
 export type { ProfileData, GenerateRequest, GenerateResponse, RunStatusResponse, ResearchData, SearchResult, PageContent };
 export { ApiError };

@@ -10,7 +10,7 @@ import {
   History,
   Settings,
   CircleDollarSign,
-  ChartLine,
+  BarChart3 ,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -18,7 +18,7 @@ const NAV_ITEMS = [
   { href: "/create",   icon: CircleFadingPlus, label: "Create"   },
   { href: "/trends",   icon: Flame,            label: "Trends"   },
   { href: "/history",  icon: History,          label: "History"  },
-  { href: "/insights", icon: ChartLine,        label: "Insights" },
+  { href: "/insights", icon: BarChart3 ,        label: "Insights" },
   { href: "/earn",     icon: CircleDollarSign, label: "Earn"     },
   { href: "/settings", icon: Settings,         label: "Settings" },
     // { href: "/automation", icon: Bot, label: "Automation" },
@@ -37,8 +37,8 @@ function StreakFlame({ count }: { count: number }) {
   return (
     <svg
       viewBox="0 0 56 56"
-      width="36"
-      height="36"
+      width="28"
+      height="28"
       aria-hidden="true"
       className="overflow-visible"
     >
