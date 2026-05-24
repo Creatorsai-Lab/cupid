@@ -386,6 +386,48 @@ export const insightsApi = {
         ),
 };
 
+interface HistoryVariant {
+    angle: string;
+    platform: string;
+    content: string;
+    char_count: number;
+}
+ 
+interface HistoryEntry {
+    id: string;
+    prompt: string;
+    target_platform: string;
+    tone: string | null;
+    variants: HistoryVariant[];
+    created_at: string;
+}
+ 
+interface HistoryListResponse {
+    entries: HistoryEntry[];
+    total: number;
+    has_more: boolean;
+}
+ 
+export const historyApi = {
+    list: (limit: number = 20, offset: number = 0): Promise<HistoryListResponse> =>
+        requestRaw<HistoryListResponse>(
+            `/api/v1/history/?limit=${limit}&offset=${offset}`
+        ),
+ 
+    delete: async (entryId: string): Promise<void> => {
+        const url = `${API_BASE}/api/v1/history/${entryId}`;
+        const res = await fetch(url, {
+            method: "DELETE",
+            credentials: "include",
+        });
+        if (!res.ok) {
+            if (res.status === 401) await handle401("/api/v1/history/...");
+            throw new ApiError(`Delete failed (${res.status})`, res.status);
+        }
+    },
+};
+
+
 
 export type {
     ConnectionResponse,
@@ -396,6 +438,10 @@ export type {
     TopContentItem,
     HeatmapResponse,
     HeatmapCell,
+    HistoryEntry,
+    HistoryVariant,
+    HistoryListResponse,
+
 };
 export type { TrendArticle, TrendsResponse };
 export type { ProfileData, GenerateRequest, GenerateResponse, RunStatusResponse, ResearchData, SearchResult, PageContent };

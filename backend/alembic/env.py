@@ -10,6 +10,7 @@ from app.config import settings
 from app.models.user import Base
 from app.models import insights_snapshot, user, persona, trending_article, social_connection, top_content
 from app.models.persona import UserPersonalization  
+from app.models.creation_history import CreationHistory #noqa
 
 config = context.config
 if config.config_file_name is not None:

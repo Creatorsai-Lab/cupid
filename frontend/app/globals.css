@@ -33,28 +33,44 @@
 
 /*  LIGHT MODE  */
 :root {
-  /* shadcn required tokens — mapped to Cupid palette */
-  --color-primary: #545986;
-  --color-primary-hover: #3e5479;
-  --color-secondary: #e99000;
-  --color-background: #fff9f3;
-  /* --inline-bg: #d6d9e0; */
-  --inline-bg: #e1e5e6;  
-  --color-border: #2a3852;
-  --color-popover: #86888d;
-  --color-text: #2f2f31;
-  --color-muted: #697996;
-  --destructive: #c24238e0;
-  --color-grayish-red: #953c37; 
-  --color-input: #3e5479;
-  --color-outline: #e99000;
-  --radius: 0.625rem;
-  /* Fonts — populated by Next.js font variables in layout.tsx */
-  --font-display: var(--font-instrument-serif, "Georgia", serif);
-  --font-body: var(--font-dm-sans, system-ui, sans-serif);
+  /* ─── PRIMARY ─────────────────────────────────────────── */
+  --color-primary:       #C75D3A;   /* burnt sienna — main brand color */
+  --color-primary-hover: #E07A57;   /* lighter — hover states */
+  --color-primary-dark:  #8B3F23;   /* deeper — emphasis, active states */
+  /* ─── SURFACES ────────────────────────────────────────── */
+  --color-background: #FFF9F3;      /* keep — your cream paper base */
+  --color-surface:    #FFFFFF;      /* cards, modals, elevated content */
+  --color-inline-bg:  #F4EDE3;      /* slightly warmer than current grey */
 
-  --shadow-sm: 0 1px 3px rgba(42, 56, 82, 0.06);
-  --shadow-md: 0 4px 16px rgba(42, 56, 82, 0.08);
+  /* ─── TEXT ────────────────────────────────────────────── */
+  --color-text:       #2A2520;      /* warm near-black, not stark grey */
+  --color-muted:      #8B7F75;      /* warm grey for captions, helper text */
+  --color-subtle:     #B8AFA5;      /* very faint, for placeholders/disabled */
+
+  /* ─── BORDERS ─────────────────────────────────────────── */
+  --color-border:       #E8DFD3;    /* warm soft border, replaces dark blue */
+  --color-border-hover: #D4C7B6;    /* slightly stronger on hover */
+
+  /* ─── SEMANTIC (kept restrained) ──────────────────────── */
+  --color-success:     #5A7A3E;     /* warm olive green */
+  --color-warning:     #D4A04C;     /* amber that fits the warm palette */
+  --color-destructive: #B5403A;     /* warm red that fits cream */
+  --color-info:        #6B7B8C;     /* dust blue for non-action info */
+
+  /* ─── FORMS ───────────────────────────────────────────── */
+  --color-input-bg:     #FFFFFF;
+  --color-input-border: #D4C7B6;
+  --color-input-focus:  #C75D3A;    /* same as primary */
+
+  /* ─── DEPTH ───────────────────────────────────────────── */
+  --shadow-sm: 0 1px 3px rgba(139, 63, 35, 0.06);
+  --shadow-md: 0 4px 16px rgba(139, 63, 35, 0.08);
+  --shadow-lg: 0 12px 32px rgba(139, 63, 35, 0.10);
+
+  /* ─── EXISTING ────────────────────────────────────────── */
+  --radius: 0.625rem;
+  --font-display: var(--font-instrument-serif, "Georgia", serif);
+  --font-body:    var(--font-dm-sans, system-ui, sans-serif);
 }
 
 /* DARK MODE */

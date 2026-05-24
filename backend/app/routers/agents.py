@@ -149,6 +149,27 @@ async def run_agent_pipeline(
         else:
             AGENT_RUNS[run_id]["status"] = "completed"
 
+            # Persist to history — only successful runs with variants.
+            # Fresh session, self-contained: a history failure must never
+            # affect the run the user is polling.
+            composer_output = final_state.get("composer_output") or []
+            if composer_output:
+                try:
+                    from app.history import service as history_service
+                    from app.core.db import async_session
+
+                    async with async_session() as history_db:
+                        await history_service.save_creation(
+                            session=history_db,
+                            user_id=uuid.UUID(user_id),
+                            prompt=final_state.get("user_prompt", ""),
+                            variants=composer_output,
+                            target_platform=final_state.get("target_platform", "All"),
+                            tone=final_state.get("tone"),
+                        )
+                except Exception as exc:
+                    logger.error(f"  History save failed (non-fatal): {exc}", run_id)
+
         logger.info("=" * 10, run_id)
         logger.info("✅ PIPELINE COMPLETE", run_id)
         logger.info(f"  Agents completed: {final_state.get('agents_completed', [])}", run_id)

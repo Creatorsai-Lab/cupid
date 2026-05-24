@@ -14,6 +14,7 @@ from sqlalchemy.orm import Mapped, relationship
 
 if TYPE_CHECKING:
     from app.models.social_connection import SocialConnection
+    from app.models.creation_history import CreationHistory
 
 class Base(DeclarativeBase):
     """
@@ -49,6 +50,10 @@ class User(Base):
     social_connections: Mapped[list["SocialConnection"]] = relationship(
         back_populates="user",
         cascade = "all, delete-orphan" # if a user account is deleted, all their social connections (and through them, snapshots and top_content) cascade-delete. No orphan rows, no manual cleanup.
+    )
+    creation_history: Mapped[list["CreationHistory"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan", 
     )
     
     # __repr__ is a special method that defines what gets printed when you 

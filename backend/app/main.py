@@ -11,6 +11,7 @@ from app.routers.agents import router as agents_router
 from app.routers.trends import router as trends_router
 from app.routers.insights_router import router as insights_router
 from app.routers.connections import router as connections_router 
+from app.routers.history_router import router as history_router
 from app.trends.scheduler import start_scheduler as start_trends_scheduler
 from app.trends.scheduler import stop_scheduler as stop_trends_scheduler
 from app.insights.scheduler import start_scheduler as start_insights_scheduler
@@ -78,6 +79,7 @@ def create_app() -> FastAPI:
     app.include_router(trends_router, prefix="/api/v1")
     app.include_router(connections_router, prefix="/api/v1")
     app.include_router(insights_router, prefix="/api/v1")
+    app.include_router(history_router, prefix="/api/v1")
 
     @app.get("/health", tags=["system"])
     async def health():

@@ -17,13 +17,13 @@ import Image from "next/image";
 const NAV_ITEMS = [
   { href: "/create",   icon: CircleFadingPlus, label: "Create"   },
   { href: "/trends",   icon: Flame,            label: "Trends"   },
-  { href: "/history",  icon: History,          label: "History"  },
   { href: "/insights", icon: BarChart3 ,        label: "Insights" },
+  { href: "/history",  icon: History,          label: "History"  },
   { href: "/earn",     icon: CircleDollarSign, label: "Earn"     },
   { href: "/settings", icon: Settings,         label: "Settings" },
     // { href: "/automation", icon: Bot, label: "Automation" },
     // { href: "/schedule", icon: Calendar, label: "Schedule" },
-    // { href: "/notepad", icon: SquarePen, labe
+    // { href: "/notepad", icon: SquarePen, label:"Notepad"},
 ] as const;
 
 /** Wide flame designed to host a 1–3 digit number in its belly. */
