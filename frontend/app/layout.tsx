@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans, Instrument_Serif } from "next/font/google";
 import Header from "@/components/Header";
 import "./globals.css";
+import Assistant from "./assistant/Assistant";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -19,8 +20,7 @@ const instrumentSerif = Instrument_Serif({
 
 export const metadata: Metadata = {
   title: "Cupid",
-  description:
-    "Multi-agent content creation plaform, let ai team create content in your voice.",
+  description: "AI Agents suite for content creations and influencers.",
   icons: {
     icon: "/favicon/favicon.ico",
     apple: "/favicon/apple-touch-icon.png",
@@ -37,6 +37,7 @@ export default function RootLayout({
       <body>
         <Header />
         {children}
+        <Assistant />
       </body>
     </html>
   );
