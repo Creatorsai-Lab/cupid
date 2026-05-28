@@ -24,6 +24,7 @@ const NAV_ITEMS = [
     // { href: "/automation", icon: Bot, label: "Automation" },
     // { href: "/schedule", icon: Calendar, label: "Schedule" },
     // { href: "/notepad", icon: SquarePen, label:"Notepad"},
+    // { href: "/market-your-product", icon: Settings,         label: "Settings" },
 ] as const;
 
 /** Wide flame designed to host a 1–3 digit number in its belly. */

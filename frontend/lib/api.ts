@@ -427,8 +427,110 @@ export const historyApi = {
     },
 };
 
+// EARN 
+export interface EarnQuestionOption {
+    value: string;        // "want" | "doing" | "no"
+    label: string;
+}
+export interface EarnQuestion {
+    stream_id: string;
+    question: string;
+    options: EarnQuestionOption[];
+}
+export interface EarnQuestionsResponse {
+    questions: EarnQuestion[];
+}
+export interface EarnProfile {
+    exists: boolean;
+    answers: Record<string, string>;
+    updated_at: string | null;
+}
+ 
+export interface StatsSnapshot {
+    total_followers: number;
+    monthly_views: number;
+    total_posts: number;
+    connected_platforms: number;
+    tier: string;
+    tier_label: string;
+    tier_blurb: string;
+    confidence: string;
+    engagement_note: string | null;
+    has_data: boolean;
+}
+export interface StreamCard {
+    stream_id: string;
+    label: string;
+    category: string;
+    durability: string;
+    effort: string;
+    eligibility: string;
+    interest: string;
+    state: string;
+    tradeoff_label: string;
+    short_pitch: string;
+    time_to_first_revenue: string;
+    followers_gap: number;
+}
+export interface EligibilityVerdict {
+    coach_summary: string;
+    green_lights: StreamCard[];
+    almost_there: StreamCard[];
+    optimizing: StreamCard[];
+    foundation: StreamCard[];
+}
+export interface OpportunityOut {
+    id: string;
+    opp_type: string;
+    title: string;
+    brand_name: string | null;
+    description: string | null;
+    commission_note: string | null;
+    url: string;
+    source: string;
+}
+export interface OpportunitySection {
+    intro: string;
+    opportunities: OpportunityOut[];
+    empty_message: string | null;
+}
+export interface CreativeIdea {
+    title: string;
+    idea: string;
+    related_stream: string | null;
+}
+export interface CreativeSection {
+    intro: string;
+    ideas: CreativeIdea[];
+}
+export interface ReadinessResponse {
+    stats: StatsSnapshot;
+    verdict: EligibilityVerdict;
+    opportunities: OpportunitySection;
+    creative: CreativeSection;
+    generated_at: string;
+}
+ 
+// ── Client ─────────────────────────────────────────────────────────────────
+// Adapt `api`/`apiFetch` to whatever your existing helper is named.
+ 
+export const earnApi = {
+    getQuestions: (): Promise<EarnQuestionsResponse> =>
+        requestRaw<EarnQuestionsResponse>("/api/v1/earn/questions"),
 
+    getProfile: (): Promise<EarnProfile> =>
+        requestRaw<EarnProfile>("/api/v1/earn/profile"),
 
+    submitProfile: (answers: Record<string, string>): Promise<EarnProfile> =>
+        requestRaw<EarnProfile>("/api/v1/earn/profile", {
+            method: "POST",
+            body: JSON.stringify({ answers }),
+        }),
+
+    getReadiness: (): Promise<ReadinessResponse> =>
+        requestRaw<ReadinessResponse>("/api/v1/earn/readiness"),
+};
+ 
 export type {
     ConnectionResponse,
     SummaryResponse,

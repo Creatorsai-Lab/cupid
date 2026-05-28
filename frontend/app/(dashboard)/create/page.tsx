@@ -28,7 +28,7 @@ export default function CreatePage() {
     const { user } = useAuthStore();
     const [prompt, setPrompt] = useState("");
     const [contentType, setContentType] = useState<string>("Text");
-    const [platform, setPlatform] = useState<string>("Web");
+    const [platform, setPlatform] = useState<string>("Twitter");
     const [length, setLength] = useState<string>("Medium");
     const [tone, setTone] = useState<string>("Casual");
 

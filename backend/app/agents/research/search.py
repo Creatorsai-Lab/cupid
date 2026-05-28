@@ -20,9 +20,11 @@ Design decisions:
 from __future__ import annotations
 
 import asyncio
+import functools
 import logging
 import random
 import re
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from html import unescape
 from typing import Any
@@ -232,6 +234,7 @@ class SearchPipeline:
         fetch_concurrency: int = 8,
         search_concurrency: int = 3,
         search_retries: int = 2,
+        ddg_timeout: float = 10.0,
     ) -> None:
         self.results_per_query = results_per_query
         self.max_pages = max_pages_to_fetch
@@ -241,14 +244,42 @@ class SearchPipeline:
         self.fetch_timeout = fetch_timeout
         self.overall_budget = overall_budget
         self.search_retries = search_retries
+        self.ddg_timeout = ddg_timeout
         self._fetch_sem = asyncio.Semaphore(fetch_concurrency)
         self._search_sem = asyncio.Semaphore(search_concurrency)
+        # Dedicated thread pool for DDG searches. Isolating these from the
+        # default executor means a leaked/hung DDG thread can only ever
+        # exhaust this small pool — never the global one the rest of the
+        # app relies on. Sized one above search_concurrency for headroom.
+        self._search_executor = ThreadPoolExecutor(
+            max_workers=search_concurrency + 1,
+            thread_name_prefix="ddg-search",
+        )
         self._headers = {
             "User-Agent": _CHROME_UA,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.9",
             "Accept-Encoding": "gzip, deflate, br",
         }
+
+    # ── Lifecycle ─────────────────────────────────────────────
+
+    def close(self) -> None:
+        """
+        Shut down the dedicated search executor.
+
+        cancel_futures=True drops any queued-but-not-started searches.
+        We do NOT wait (wait=False) because a hung DDG thread would make
+        shutdown itself block — the whole problem we're avoiding. Leaked
+        daemon threads die with the process; the OS reclaims them.
+        """
+        self._search_executor.shutdown(wait=False, cancel_futures=True)
+
+    async def __aenter__(self) -> "SearchPipeline":
+        return self
+
+    async def __aexit__(self, *exc: Any) -> None:
+        self.close()
 
     # ── Public entry point ────────────────────────────────────
 
@@ -343,21 +374,39 @@ class SearchPipeline:
         """Run a single DDG text search in a thread pool with retry + backoff."""
 
         def _sync() -> list[dict]:
-            with DDGS() as ddgs:
+            # CRITICAL: pass a native timeout to DDGS. This sets a real
+            # socket-level deadline inside the underlying (Rust/primp) HTTP
+            # client. Without it, a stalled connection blocks the worker
+            # thread forever — and asyncio.wait_for below CANNOT kill a
+            # running thread, only stop waiting on it (leaking the thread).
+            # The native timeout is what actually guarantees the thread ends.
+            with DDGS(timeout=self.ddg_timeout) as ddgs:
                 return list(ddgs.text(query, max_results=self.results_per_query))
 
         async with self._search_sem:
             for attempt in range(self.search_retries + 1):
                 try:
+                    # Run on our DEDICATED bounded executor, not the default
+                    # one. If a DDG thread still leaks despite the native
+                    # timeout, it can only exhaust THIS small pool — it can't
+                    # starve asyncio.to_thread() calls elsewhere in the app.
+                    loop = asyncio.get_running_loop()
                     raw = await asyncio.wait_for(
-                        asyncio.to_thread(_sync),
-                        timeout=15.0,
+                        loop.run_in_executor(
+                            self._search_executor,
+                            functools.partial(_sync),
+                        ),
+                        timeout=self.ddg_timeout + 3.0,  # outer net > native
                     )
                     return self._format_results(raw, query)
 
                 except Exception as exc:
                     err_str = str(exc).lower()
-                    is_rate_limit = (
+                    # A timeout is not a rate-limit — don't apply the long
+                    # rate-limit backoff to it, and label it clearly in logs
+                    # so a hanging DDG endpoint is easy to spot.
+                    is_timeout = isinstance(exc, asyncio.TimeoutError)
+                    is_rate_limit = (not is_timeout) and (
                         "ratelimit" in err_str
                         or "429" in err_str
                         or "too many requests" in err_str
@@ -366,8 +415,10 @@ class SearchPipeline:
 
                     if is_last_attempt:
                         logger.warning(
-                            "[search] query=%r gave up after %d attempts: %s",
-                            query, attempt + 1, str(exc)[:120],
+                            "[search] query=%r gave up after %d attempts (%s): %s",
+                            query, attempt + 1,
+                            "timeout" if is_timeout else "error",
+                            str(exc)[:120] or type(exc).__name__,
                         )
                         return []
 
@@ -377,7 +428,7 @@ class SearchPipeline:
                     logger.debug(
                         "[search] query=%r %s, retrying in %.1fs",
                         query,
-                        "rate-limited" if is_rate_limit else "failed",
+                        "rate-limited" if is_rate_limit else ("timed out" if is_timeout else "failed"),
                         delay,
                     )
                     await asyncio.sleep(delay)
