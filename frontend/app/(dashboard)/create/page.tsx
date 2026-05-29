@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { ComposerResults } from "@/components/ComposerResults";
 import { useAuthStore } from "@/lib/store";
-import { Send, Loader2, ExternalLink, Compass, Mic, ArrowUpToLine, Link, ChevronDown, UserRoundPen } from "lucide-react";
+import { Send, Loader2, ExternalLink, Compass, Mic, Upload, Link, ChevronDown, UserRoundPen } from "lucide-react";
 import { agentsApi, profileApi, type ResearchData, type PageContent, type SearchResult } from "@/lib/api";
 
 const CONTENT_TYPES = ["Text", "Image", "Article", "Video", "Ads", "Poll"] as const;
@@ -48,6 +48,9 @@ export default function CreatePage() {
     const firstName = user?.full_name?.split(" ")[0] || "Creator";
     const displayName = nickname || firstName;
 
+    // Smart UX State Flag: Detects if any asynchronous output exists below the workspace
+    const hasActiveResults = researchData || composerOutput.length > 0 || error;
+
     // Fetch nickname once on mount
     useEffect(() => {
         profileApi.get().then((res) => {
@@ -66,7 +69,6 @@ export default function CreatePage() {
                 setCurrentAgent(res.current_agent);
                 setAgentsCompleted(res.agents_completed);
 
-                // Show personalization queries as soon as they land
                 if (res.personalization_queries?.length > 0) {
                     setPersonalizationQueries(res.personalization_queries);
                 }
@@ -103,7 +105,6 @@ export default function CreatePage() {
         setComposerEvidence([]);
         setComposerSources([]);
         setAgentsCompleted([]);
-        setAgentsCompleted([]);
         setCurrentAgent(null);
         setAgentStatus("pending");
 
@@ -126,77 +127,79 @@ export default function CreatePage() {
     return (
         <ProtectedRoute>
             <main
-                className="min-h-[calc(100vh-60px)] px-6 py-10"
+                className={`min-h-[calc(100vh-60px)] px-6 py-10 flex flex-col transition-all duration-500 ease-in-out ${
+                    hasActiveResults ? "justify-start pt-12" : "justify-center"
+                }`}
                 style={{ backgroundColor: "var(--color-background)" }}
             >
-                <div className="max-w-3xl mx-auto">
-
-                    {/* Welcome title */}
-                    <div className="mb-8 text-center">
+                <div className="w-full max-w-3xl mx-auto -mt-30">
+                    
+                    {/* Welcome Title */}
+                    <div className="mb-6 text-center">
                         <h1 className="font-normal tracking-tight mb-2"
                             style={{
                                 fontFamily: "var(--font-display)",
-                                fontSize: "clamp(1.6rem, 3vw, 2rem)",
-                                color: "var(--color-text)",
+                                fontSize: "clamp(1.6rem, 3.5vw, 2.2rem)",
                             }}>
                             What&apos;s on your mind,{" "}
                             <em style={{ color: "var(--color-primary)", fontStyle: "italic" }}>
                                 {displayName}
-                            </em>?
+                            </em> ?
                         </h1>
                     </div>
 
-                    {/* Input Box */}
+                    {/* Input Box Workplace */}
                     <div className="animated-gradient-border mb-8">
-                    <div className="animated-gradient-border-inner relative flex flex-col">
-    <textarea
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleGenerate();
-        }}
-        placeholder="What do you want to post about?"
-        className="w-full bg-transparent text-sm leading-relaxed resize-none outline-none"
-        style={{ fontFamily: "var(--font-body)", color: "var(--color-text)" }}
-        rows={4}
-    />
+                        <div className="animated-gradient-border-inner relative flex flex-col p-4">
+                            <textarea
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleGenerate();
+                                }}
+                                placeholder="What do you want to post about?"
+                                className="w-full bg-transparent text-sm leading-relaxed resize-none outline-none mb-4"
+                                style={{ fontFamily: "var(--font-body)", color: "var(--color-text)" }}
+                                rows={5}
+                            />
 
-    {/* INPUT OPTIONS */}
-    <div className="input_options flex items-center justify-between mt-2 gap-2 flex-wrap">
-        
-        {/* LEFT SIDE */}
-        <div className="flex items-center gap-3 flex-wrap min-w-0">
-            <SelectDropdown label="Type" options={CONTENT_TYPES} value={contentType} onChange={setContentType} />
-            <SelectDropdown label="Platform" options={PLATFORMS} value={platform} onChange={setPlatform} />
-            <SelectDropdown label="Length" options={LENGTHS} value={length} onChange={setLength} />
-            <SelectDropdown label="Tone" options={TONES} value={tone} onChange={setTone} />
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-auto">
+                                
+                                {/* ROW 1 (Mobile): */}
+                                <div className="grid grid-cols-4 md:flex md:items-center gap-1.5 md:gap-2.5 w-full md:w-auto">
+                                    <SelectDropdown label="Type" options={CONTENT_TYPES} value={contentType} onChange={setContentType} />
+                                    <SelectDropdown label="Platform" options={PLATFORMS} value={platform} onChange={setPlatform} />
+                                    <SelectDropdown label="Length" options={LENGTHS} value={length} onChange={setLength} />
+                                    <SelectDropdown label="Tone" options={TONES} value={tone} onChange={setTone} />
+                                </div>
 
-            <ArrowUpToLine size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors shrink-0" />
-            <Link size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors shrink-0" />
-        </div>
+                                {/* ROW 2 (Mobile): Action Buttons & Icons perfectly aligned */}
+                                <div className="flex items-center justify-between md:justify-end gap-4 w-full md:w-auto border-t border-gray-100 md:border-none pt-0 md:pt-0">                                 
+                                <div className="flex items-center gap-4 text-(--color-text)">
+                                    <Upload size={17} className="cursor-pointer transition-all duration-200 shrink-0 hover:scale-93 hover:drop-shadow-[-1px_1px_1px_rgba(158,68,38,0.4)]" />
+                                    <Link size={17} className="cursor-pointer transition-all duration-200 shrink-0 hover:scale-93 hover:drop-shadow-[-1px_1px_1px_rgba(158,68,38,0.4)]" />
+                                    <Mic size={17} className="cursor-pointer transition-all duration-200 shrink-0 hover:scale-93 hover:drop-shadow-[-1px_1px_1px_rgba(158,68,38,0.4)]" />
+                                </div>
+                                    {/* Primary Generation Call Button */}
+                                    <button
+                                        onClick={handleGenerate}
+                                        disabled={!prompt.trim() || isGenerating}
+                                        className="btn-primary flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                                        style={{ padding: "0.5rem 1.25rem" }}
+                                    >
+                                        {isGenerating ? (
+                                            <Loader2 size={14} className="animate-spin" />
+                                        ) : (
+                                            <Send size={14} />
+                                        )}
+                                    </button>
+                                </div>
 
-        {/* RIGHT SIDE */}
-        <div className="flex items-center gap-2 ml-auto shrink-0">
-            <Mic size={16} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-colors" />
-
-            <button
-                onClick={handleGenerate}
-                disabled={!prompt.trim() || isGenerating}
-                className="btn-primary flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ padding: "0.5rem 1rem" }}
-            >
-                {isGenerating ? (
-                    <Loader2 size={14} className="animate-spin" />
-                ) : (
-                    <Send size={14} />
-                )}
-            </button>
-        </div>
-    </div>
-</div>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Error */}
+                    {/* Error Diagnostics Panel */}
                     {error && (
                         <div className="mb-5 p-4 rounded-lg border-2" style={{
                             backgroundColor: "rgba(239, 68, 68, 0.1)",
@@ -216,11 +219,9 @@ export default function CreatePage() {
                         </div>
                     )}
 
-                    {/* Personalization Queries — shown as soon as they arrive */}
+                    {/* Personalization Queries */}
                     {personalizationQueries.length > 0 && (
-                        <PersonalizationQueriesItems
-                            queries={personalizationQueries}
-                        />
+                        <PersonalizationQueriesItems queries={personalizationQueries} />
                     )}
 
                     {/* Agent Progress Banner */}
@@ -233,7 +234,7 @@ export default function CreatePage() {
                                     style={{ backgroundColor: "var(--color-primary)" }}
                                 />
                             </span>
-                            <span className=" text-xs text-(--color-input) font-bold">
+                            <span className="text-xs text-(--color-input) font-bold">
                                 {agentStatusLabel(currentAgent, agentStatus)}
                             </span>
                         </div>
@@ -244,6 +245,7 @@ export default function CreatePage() {
                         <ResearchResults data={researchData} />
                     )}
 
+                    {/* Composer Output Variants */}
                     {composerOutput.length > 0 && !isGenerating && (
                         <ComposerResults
                             variants={composerOutput}
@@ -278,45 +280,40 @@ function SelectDropdown({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             title={label}
-            className="px-3 py-1 rounded-full bg-[var(--inline-bg)]
-    text-[0.8rem] outline-none border-none cursor-pointer"
+            className="w-full font-[family-name:var(--font-body)] text-(--color-text) text-center bg-(--color-inline-bg) md:text-left px-1 md:px-3 py-1 rounded-full bg-(--color-inline-bg) text-[0.75rem] md:text-[0.8rem] outline-none border-none cursor-pointer truncate"
         >
             {options.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-            ))}
+            <option 
+            key={opt} 
+            value={opt}
+            className="bg-(--color-inline-bg) text-(--color-text) font-sans">
+            {opt}
+            </option>
+        ))}
         </select>
     );
 }
 
 // Generated Personalization Queries Panel
 
-function PersonalizationQueriesItems({
-    queries,
-}: {
-    queries: string[];
-}) {
+function PersonalizationQueriesItems({ queries }: { queries: string[] }) {
     const [open, setOpen] = useState(false);
 
     return (
         <div className="mb-5 rounded-lg overflow-hidden">
-            {/* Toggle header */}
             <button
                 onClick={() => setOpen((p) => !p)}
                 className="w-full flex items-center gap-2.5 px-5 py-2 bg-(--inline-bg)">
                 <UserRoundPen size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
-
                 <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-input)">
                     Personalization agent generated the queries ✓
                 </span>
-
                 <ChevronDown
                     size={14}
                     style={{ color: "var(--color-primary)" }}
                     className={`flex-shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
                 />
             </button>
-
-            {/* Query list */}
             {open && (
                 <div className="px-5 py-3 space-y-2 space-x-2">
                     {queries.map((q, i) => (
@@ -332,7 +329,7 @@ function PersonalizationQueriesItems({
 
 function SourceCard({ page }: { page: PageContent }) {
     return (
-        <div className="rounded-xl overflow-hidden bg-[var(--inline-bg)] grid grid-cols-2">
+        <div className="rounded-xl overflow-hidden bg-[var(--inline-bg)] grid grid-cols-1 md:grid-cols-2">
             {page.image_url && (
                 <div className="w-full overflow-hidden" style={{ height: "200px", backgroundColor: "var(--color-bg-surface)" }}>
                     <img
@@ -346,7 +343,6 @@ function SourceCard({ page }: { page: PageContent }) {
                     />
                 </div>
             )}
-
             <div className="p-5">
                 <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-xs font-medium" style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}>
@@ -356,18 +352,12 @@ function SourceCard({ page }: { page: PageContent }) {
                         {page.text_length.toLocaleString()} chars extracted
                     </span>
                 </div>
-
-                <h4
-                    className="font-semibold mb-2 leading-snug"
-                    style={{ fontSize: "0.95rem", color: "var(--color-text)", fontFamily: "var(--font-body)" }}
-                >
+                <h4 className="font-semibold mb-2 leading-snug" style={{ fontSize: "0.95rem", color: "var(--color-text)", fontFamily: "var(--font-body)" }}>
                     {page.title}
                 </h4>
-
                 <p className="text-xs leading-relaxed mb-4" style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}>
                     {page.text_content.substring(0, 400)}{page.text_content.length > 400 ? "…" : ""}
                 </p>
-
                 <a
                     href={page.url}
                     target="_blank"
@@ -391,31 +381,24 @@ function ResearchResults({ data }: { data: ResearchData }) {
 
     return (
         <div>
-            <div
-                className="flex items-center gap-3 mb-5 p-3 rounded-lg px-5 py-2 bg-(--inline-bg)">
+            <div className="flex items-center gap-3 mb-5 p-3 rounded-lg px-5 py-2 bg-(--inline-bg)">
                 <Compass size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
-
                 <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-input)">
                     Research completed ✓
                 </span>
                 <span className="ml-auto text-xs text-(--color-input)">{results.length} sources</span>
             </div>
-
-            {/* Empty state */}
             {!hasResults && (
-                <>
+                <div className="flex items-center gap-2">
                     <Compass size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
-
                     <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-grayish-red)">
                         No results found ✗ Try a more specific topic.
                     </span>
-                </>
+                </div>
             )}
-
-            {/* Fetched Sources */}
             {pages.length > 0 && (
                 <div>
-                    <p className="text-xs font-medium uppercase tracking-wide mb-3 text-[var(--color-muted)] "                    >
+                    <p className="text-xs font-medium uppercase tracking-wide mb-3 text-[var(--color-muted)]">
                         Extracted content ({pages.length} pages)
                     </p>
                     <div className="space-y-4">

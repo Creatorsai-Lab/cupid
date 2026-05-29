@@ -7,9 +7,7 @@
 @theme inline {
   --color-background: var(--color-background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-body);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-display);
   --color-ring: var(--color-outline);
   --color-input: var(--color-input);
   --color-border: var(--color-border);
@@ -33,19 +31,15 @@
 
 /*  LIGHT MODE  */
 :root {
-  /* ─── PRIMARY ─────────────────────────────────────────── */
-  --color-primary:       #C75D3A;   /* burnt sienna — main brand color */
-  --color-primary-hover: #E07A57;   /* lighter — hover states */
-  --color-primary-dark:  #8B3F23;   /* deeper — emphasis, active states */
-  /* ─── SURFACES ────────────────────────────────────────── */
-  --color-background: #FFF9F3;      /* keep — your cream paper base */
-  --color-surface:    #FFFFFF;      /* cards, modals, elevated content */
-  --color-inline-bg:  #F4EDE3;      /* slightly warmer than current grey */
+  /*  PRIMARY COLOR PALLETR */
+--color-primary:       #C75D3A;   
+  --color-secondary: #af6d58; 
+  --color-background: #FFF9F3;     
+  --color-inline-bg:  #eae6e1;      
 
   /* ─── TEXT ────────────────────────────────────────────── */
-  --color-text:       #2A2520;      /* warm near-black, not stark grey */
+  --color-text:       #645A51;      /* warm near-black, not stark grey */
   --color-muted:      #8B7F75;      /* warm grey for captions, helper text */
-  --color-subtle:     #B8AFA5;      /* very faint, for placeholders/disabled */
 
   /* ─── BORDERS ─────────────────────────────────────────── */
   --color-border:       #E8DFD3;    /* warm soft border, replaces dark blue */
@@ -56,10 +50,6 @@
   --color-warning:     #D4A04C;     /* amber that fits the warm palette */
   --color-destructive: #B5403A;     /* warm red that fits cream */
   --color-info:        #6B7B8C;     /* dust blue for non-action info */
-
-  /* ─── FORMS ───────────────────────────────────────────── */
-  --color-input-bg:     #FFFFFF;
-  --color-input-border: #D4C7B6;
   --color-input-focus:  #C75D3A;    /* same as primary */
 
   /* ─── DEPTH ───────────────────────────────────────────── */
@@ -67,32 +57,15 @@
   --shadow-md: 0 4px 16px rgba(139, 63, 35, 0.08);
   --shadow-lg: 0 12px 32px rgba(139, 63, 35, 0.10);
 
+  --border-radius: 0.625rem;
+  --font-display: var(--font-instrument-serif, "Georgia", serif);
+
   /* ─── EXISTING ────────────────────────────────────────── */
   --radius: 0.625rem;
   --font-display: var(--font-instrument-serif, "Georgia", serif);
   --font-body:    var(--font-dm-sans, system-ui, sans-serif);
 }
 
-/* DARK MODE */
-.dark {
-  --color-background: #1a2030;
-  --foreground: #f0ece6;
-  --card: #232d42;
-  --card-foreground: #f0ece6;
-  --color-popover: #232d42;
-  --color-popover-foreground: #f0ece6;
-  --color-primary: #e8900a;
-  --color-primary-foreground: #1a2030;
-  --secondary: #2a3852;
-  --secondary-foreground: #f0ece6;
-  --color-muted: #2a3852;
-  --color-muted-foreground: #8c9ab5;
-  --accent: #2a3852;
-  --accent-foreground: #f0ece6;
-  --destructive: oklch(0.704 0.191 22.216);
-  --color-border: oklch(1 0 0 / 10%);
-  --color-input: oklch(1 0 0 / 15%);
-}
 
 :root {
   --gradient-main: linear-gradient(-45deg, #FFA63D, #FF3D77, #338AFF, #3CF0C5);
@@ -117,6 +90,7 @@
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    color: var(--color-text);
   }
 
   h1,
@@ -135,14 +109,14 @@
     font-size: 1.5rem;
     font-weight: 700;
     margin-bottom: 0.6rem;
-    color: var(--color-text);
+    color: var(--color-primary);
   }
 
   h2 {
     font-size: 1.2rem;
     font-weight: 600;
     margin-bottom: 0.6rem;
-    color: var(--color-text);
+    color: var(--color-primary);
   }
 
   a {
@@ -306,3 +280,4 @@
 .animate-fade-in {
   animation: fade-in 0.5s ease both;
 }
+
