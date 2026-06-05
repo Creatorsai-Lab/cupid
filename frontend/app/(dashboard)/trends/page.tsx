@@ -26,6 +26,10 @@ export default function TrendsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshNote, setRefreshNote] = useState<string | null>(null);
+
+  // Max articles shown on the page at once.
+  const MAX_ARTICLES = 12;
 
   /**
    * Fetch the trends feed. Called on mount and on manual refresh.
@@ -40,10 +44,27 @@ export default function TrendsPage() {
       setLoading(true);
     }
     setError(null);
+    setRefreshNote(null);
 
     try {
       const response = await trendsApi.getNews(force);
-      setData(response);
+
+      // Refresh = merge, not replace. Prepend articles we haven't shown yet
+      // (newest on top), then cap the page at MAX_ARTICLES (drop from the end).
+      // If nothing new came back, tell the user instead of silently doing nothing.
+      if (force && data) {
+        const seen = new Set(data.articles.map((a) => a.id));
+        const fresh = response.articles.filter((a) => !seen.has(a.id));
+
+        if (fresh.length === 0) {
+          setRefreshNote("No additional articles yet");
+        } else {
+          const merged = [...fresh, ...data.articles].slice(0, MAX_ARTICLES);
+          setData({ ...response, articles: merged });
+        }
+      } else {
+        setData({ ...response, articles: response.articles.slice(0, MAX_ARTICLES) });
+      }
     } catch (err: any) {
       setError(err?.message ?? "Could not load trends");
     } finally {
@@ -68,13 +89,7 @@ export default function TrendsPage() {
 
           {/* Page header */}
             <div className="flex items-baseline gap-3 mb-6">
-              <TrendingUp size={22} style={{ color: "var(--color-primary)" }} />
-              <h1 className="font-normal tracking-tight text-[1.6rem]">
-                Current Trends and Recommendation in your niche:{" "}
-                <em style={{ color: "var(--color-primary)", fontStyle: "italic" }}>
-                  {data?.niche ?? "niche"}
-                </em>
-              </h1>
+              <h1 className="tracking-tight text-[clamp(1.8rem, 4vw, 2.2rem)] text-transform: capitalize">{data?.niche ?? "niche"} Trends and Recommendation</h1>
             </div>
 
           {/* Tab bar + actions */}
@@ -109,6 +124,16 @@ export default function TrendsPage() {
               </button>
             )}
           </div>
+
+          {/* Refresh note — e.g. "No additional articles yet" */}
+          {tab === "news" && refreshNote && (
+            <div
+              className="mb-4 text-xs text-center py-2 rounded-md bg-[#fff6ed]"
+              style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
+            >
+              {refreshNote}
+            </div>
+          )}
 
           {/* Tab content */}
           {tab === "news" && (
@@ -244,21 +269,6 @@ function NewsTab({
       {data.articles.map((article) => (
         <NewsCard key={article.id} article={article} />
       ))}
-
-      {/* Footer meta — useful for debugging, can hide later */}
-      <div
-        className="flex items-center justify-between pt-4 mt-4 text-xs border-t border-[var(--color-border)]"
-        style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
-      >
-        <span>
-          Showing {data.articles.length} of {data.total_pool} items
-        </span>
-        {data.cached && (
-          <span className="px-2 py-0.5 rounded-full bg-[#fff6ed] text-[var(--color-primary)]">
-            cached
-          </span>
-        )}
-      </div>
     </div>
   );
 }

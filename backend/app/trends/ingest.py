@@ -138,7 +138,16 @@ async def _persist_articles(
         return 0
 
     stmt = insert(TrendingArticle).values(rows)
-    stmt = stmt.on_conflict_do_nothing(index_elements=["url_hash"])
+    # Update enrichment fields on re-ingest so existing rows heal (e.g. when we
+    # start deriving image_url/domain). Identity fields stay put.
+    stmt = stmt.on_conflict_do_update(
+        index_elements=["url_hash"],
+        set_={
+            "image_url": stmt.excluded.image_url,
+            "domain": stmt.excluded.domain,
+            "velocity_score": stmt.excluded.velocity_score,
+        },
+    )
     result = await session.execute(stmt)
     return result.rowcount or 0
 

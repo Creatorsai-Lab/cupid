@@ -73,19 +73,8 @@ export default function HistoryPage() {
                     {/* Header */}
                     <header className="mb-8">
                         <div className="flex items-baseline gap-3 mb-2">
-                            <History size={20} style={{ color: "var(--color-primary)" }} />
-                            <h1
-                                className="font-normal tracking-tight"
-                                style={{
-                                    fontFamily: "var(--font-display)",
-                                    fontSize: "clamp(1.6rem, 3vw, 2rem)",
-                                    color: "var(--color-text)",
-                                }}
-                            >
-                                Your creation{" "}
-                                <em style={{ color: "var(--color-primary)", fontStyle: "italic" }}>
-                                    history
-                                </em>
+                            <h1 className="tracking-tight text-[clamp(1.8rem, 4vw, 2.2rem)]">
+                                Your Chat History
                             </h1>
                         </div>
                         <p
@@ -93,7 +82,7 @@ export default function HistoryPage() {
                             style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
                         >
                             {total > 0
-                                ? `${total} saved ${total === 1 ? "creation" : "creations"}. Click any card to see the full posts.`
+                                ? `${total} saved ${total === 1 ? "history" : "histories"}. Click any card to see the full posts.`
                                 : "Every post you generate is saved here automatically."}
                         </p>
                     </header>

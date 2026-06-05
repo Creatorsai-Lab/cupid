@@ -129,7 +129,7 @@ async def get_trends_for_user(
     session: AsyncSession,
     redis: Redis,
     bypass_cache: bool = False,
-    top_k: int = 9,
+    top_k: int = 12,
 ) -> TrendsResponse:
     """
     Return the user's personalized trending news feed.

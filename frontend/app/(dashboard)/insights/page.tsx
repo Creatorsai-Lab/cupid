@@ -94,30 +94,12 @@ export default function InsightsPage() {
             >
                 <div className="max-w-6xl mx-auto">
                     {/* Page header */}
-                    <header className="mb-8">
+                    <div className="mb-8">
                         <div className="flex items-baseline gap-3 mb-2">
-                            <BarChart3 size={20} style={{ color: "var(--color-primary)" }} />
-                            <h1
-                                className="font-normal tracking-tight"
-                                style={{
-                                    fontFamily: "var(--font-display)",
-                                    fontSize: "clamp(1.6rem, 3vw, 2rem)",
-                                    color: "var(--color-text)",
-                                }}
-                            >
-                                Insights from your{" "}
-                                <em style={{ color: "var(--color-primary)", fontStyle: "italic" }}>
-                                    channels
-                                </em>
-                            </h1>
+                            <h1 className="tracking-tight text-[clamp(1.6rem, 3vw, 2rem)] text-transform: capitalize">insights from your channels</h1>
                         </div>
-                        <p
-                            className="text-sm"
-                            style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
-                        >
-                            Analytics, growth, and posting patterns from your connected accounts.
-                        </p>
-                    </header>
+                        <p>Analytics, growth, and posting patterns from your connected accounts</p>
+                    </div>
 
                     {/* States */}
                     {loadingList && !summaries && <ListSkeleton />}

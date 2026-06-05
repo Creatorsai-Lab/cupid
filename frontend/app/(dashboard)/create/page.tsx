@@ -141,10 +141,10 @@ export default function CreatePage() {
                                 fontFamily: "var(--font-display)",
                                 fontSize: "clamp(1.6rem, 3.5vw, 2.2rem)",
                             }}>
-                            What&apos;s on your mind,{" "}
+                            Canvas is your's,{" "}
                             <em style={{ color: "var(--color-primary)", fontStyle: "italic" }}>
                                 {displayName}
-                            </em> ?
+                            </em>
                         </h1>
                     </div>
 
@@ -201,20 +201,10 @@ export default function CreatePage() {
 
                     {/* Error Diagnostics Panel */}
                     {error && (
-                        <div className="mb-5 p-4 rounded-lg border-2" style={{
-                            backgroundColor: "rgba(239, 68, 68, 0.1)",
-                            borderColor: "rgb(239, 68, 68)",
-                        }}>
-                            <div className="flex items-start gap-3">
-                                <span className="text-red-600 text-xl flex-shrink-0">⚠️</span>
-                                <div className="flex-1">
-                                    <h4 className="font-semibold text-red-700 mb-1" style={{ fontSize: "0.95rem" }}>
-                                        Validation Error
-                                    </h4>
-                                    <p className="text-sm text-red-600 leading-relaxed">
-                                        {error}
-                                    </p>
-                                </div>
+                        <div className="mb-5 p-4 rounded-lg border-1 border-[var(--color-destructive)] bg-[color-mix(in_srgb,var(--color-destructive)_20%,transparent)]">
+                            <div className="flex-1">
+                                <b className="text-(--color-destructive) mb-1" >Validation Error</b>
+                                <p className="text-sm text-(--color-destructive)">{error}</p>
                             </div>
                         </div>
                     )}
@@ -229,10 +219,7 @@ export default function CreatePage() {
                         <div className="flex items-center gap-3 mb-5 p-3 rounded-lg px-5 py-2 bg-(--inline-bg)">
                             <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-blue-500" />
-                                <span
-                                    className="relative inline-flex rounded-full h-2.5 w-2.5"
-                                    style={{ backgroundColor: "var(--color-primary)" }}
-                                />
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[var(--color-primary)]"/>
                             </span>
                             <span className="text-xs text-(--color-input) font-bold">
                                 {agentStatusLabel(currentAgent, agentStatus)}
@@ -263,7 +250,6 @@ export default function CreatePage() {
 }
 
 // SELECT DROPDOWN
-
 function SelectDropdown({
     label,
     options,
@@ -294,32 +280,65 @@ function SelectDropdown({
     );
 }
 
-// Generated Personalization Queries Panel
-
+// Generated Personalization Queries Span
 function PersonalizationQueriesItems({ queries }: { queries: string[] }) {
     const [open, setOpen] = useState(false);
 
     return (
-        <div className="mb-5 rounded-lg overflow-hidden">
+        <div className="mb-2 overflow-hidden">
             <button
                 onClick={() => setOpen((p) => !p)}
-                className="w-full flex items-center gap-2.5 px-5 py-2 bg-(--inline-bg)">
-                <UserRoundPen size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
+                className="w-full flex rounded-2xl items-center mb-1.5 gap-3 px-4 py-1.5 bg-(--color-inline-bg)">
+                <UserRoundPen size={14} className="text-[var(--color-primary)] flex-shrink-0" />
                 <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-input)">
                     Personalization agent generated the queries ✓
                 </span>
-                <ChevronDown
-                    size={14}
-                    style={{ color: "var(--color-primary)" }}
-                    className={`flex-shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-                />
+                <ChevronDown size={14} className="text-[var(--color-primary)] flex-shrink-0" />
             </button>
             {open && (
                 <div className="px-5 py-3 space-y-2 space-x-2">
                     {queries.map((q, i) => (
-                        <span key={i} className="inline-table text-xs px-3 py-1 rounded-lg text-(--color-input) bg-(--inline-bg)">{q}</span>
+                        <span key={i} className="inline-table text-xs px-3 py-1 rounded-2xl text-(--color-input) bg-(--color-inline-bg)/50">{q}</span>
                     ))}
                 </div>
+            )}
+        </div>
+    );
+}
+
+// RESEARCH RESULTS
+function ResearchResults({ data }: { data: ResearchData }) {
+    const results = data.top_search_results ?? [];
+    const pages = data.fetched_pages ?? [];
+    const hasResults = results.length > 0 || pages.length > 0;
+
+    return (
+        <div>
+            <div className="w-full flex rounded-2xl items-center mb-1.5 gap-3 px-4 py-1.5 bg-(--color-inline-bg)">
+                <Compass size={14} className="text-[var(--color-primary)] flex-shrink-0" />
+                <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-input)">
+                    Research completed: {results.length} Sources ✓
+                </span>
+            </div>
+            {!hasResults && (
+                <div className="flex items-center gap-2">
+                    <Compass size={14} className="text-[var(--color-primary)] flex-shrink-0" />
+                    <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-grayish-red)">
+                        No results found ✗ (Try a more specific topic)
+                    </span>
+                </div>
+            )}
+            {pages.length > 0 && (
+            <div className="border border-[var(--color-border)] rounded-2xl overflow-hidden mx-5">
+                <div className="divide-y divide-[var(--color-border)]">
+                {pages.map((p, i) => (
+                    <div key={i} className="border-b border-[var(--color-border)] last:border-b-0">
+                    <SourceCard page={p} />
+                    </div>
+                    ))}
+                </div>
+            </div>
+
             )}
         </div>
     );
@@ -329,9 +348,10 @@ function PersonalizationQueriesItems({ queries }: { queries: string[] }) {
 
 function SourceCard({ page }: { page: PageContent }) {
     return (
-        <div className="rounded-xl overflow-hidden bg-[var(--inline-bg)] grid grid-cols-1 md:grid-cols-2">
+        <div className="overflow-hidden bg-[color-mix(in_srgb,var(--color-inline-bg)_30%,transparent)]">
+            <a href={page.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-1 w-full">
             {page.image_url && (
-                <div className="w-full overflow-hidden" style={{ height: "200px", backgroundColor: "var(--color-bg-surface)" }}>
+                <div className="w-[60px] h-[30px] overflow-hidden bg-[var(--color-inline-bg)] flex-shrink-0 rounded-xs">
                     <img
                         src={page.image_url}
                         alt={page.title}
@@ -342,72 +362,18 @@ function SourceCard({ page }: { page: PageContent }) {
                         }}
                     />
                 </div>
-            )}
-            <div className="p-5">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-xs font-medium" style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}>
-                        {page.domain}
-                    </span>
-                    <span className="text-xs" style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}>
-                        {page.text_length.toLocaleString()} chars extracted
-                    </span>
-                </div>
-                <h4 className="font-semibold mb-2 leading-snug" style={{ fontSize: "0.95rem", color: "var(--color-text)", fontFamily: "var(--font-body)" }}>
-                    {page.title}
-                </h4>
-                <p className="text-xs leading-relaxed mb-4" style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}>
-                    {page.text_content.substring(0, 400)}{page.text_content.length > 400 ? "…" : ""}
-                </p>
-                <a
-                    href={page.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-medium hover:underline"
-                    style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}
-                >
-                    Read full article <ExternalLink size={11} />
-                </a>
-            </div>
-        </div>
-    );
-}
-
-// RESEARCH RESULTS
-
-function ResearchResults({ data }: { data: ResearchData }) {
-    const results = data.top_search_results ?? [];
-    const pages = data.fetched_pages ?? [];
-    const hasResults = results.length > 0 || pages.length > 0;
-
-    return (
-        <div>
-            <div className="flex items-center gap-3 mb-5 p-3 rounded-lg px-5 py-2 bg-(--inline-bg)">
-                <Compass size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
-                <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-input)">
-                    Research completed ✓
+            )}        
+            <div className="flex flex-1 items-center gap-3 min-w-0">
+                <span className="font-medium text-xs text-[var(--color-text)] flex-shrink-0">
+                    {page.title.split(" ").length > 10 
+                    ? page.title.split(" ").slice(0, 10).join(" ") + "..." 
+                    : page.title}
                 </span>
-                <span className="ml-auto text-xs text-(--color-input)">{results.length} sources</span>
+                <span className="text-xs font-medium text-[var(--color-muted)] font-[var(--font-body)] truncate flex-1">
+                    {page.domain}
+                </span>
             </div>
-            {!hasResults && (
-                <div className="flex items-center gap-2">
-                    <Compass size={14} style={{ color: "var(--color-primary)" }} className="flex-shrink-0" />
-                    <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-grayish-red)">
-                        No results found ✗ Try a more specific topic.
-                    </span>
-                </div>
-            )}
-            {pages.length > 0 && (
-                <div>
-                    <p className="text-xs font-medium uppercase tracking-wide mb-3 text-[var(--color-muted)]">
-                        Extracted content ({pages.length} pages)
-                    </p>
-                    <div className="space-y-4">
-                        {pages.map((p, i) => (
-                            <SourceCard key={i} page={p} />
-                        ))}
-                    </div>
-                </div>
-            )}
+            </a>
         </div>
     );
 }

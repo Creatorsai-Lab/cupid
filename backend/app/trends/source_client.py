@@ -130,17 +130,30 @@ async def fetch_via_rss(
 
 def _parse_rss_item(item: dict[str, Any]) -> RawArticle:
     url = item.get("url", "")
-    domain = urlparse(url).netloc.replace("www.", "") if url else "unknown"
+    publisher = item.get("publisher", {}) if isinstance(item.get("publisher"), dict) else {}
+
+    # gnews returns a news.google.com redirect as `url` — the real publisher
+    # is in publisher.href. Use that for the domain (so the authority scoring
+    # in ingest._compute_velocity actually matches) and for the source name.
+    publisher_href = publisher.get("href", "")
+    domain = urlparse(publisher_href or url).netloc.replace("www.", "") or "unknown"
+    source = publisher.get("title") or domain
+
+    # RSS carries no image. Derive a publisher logo thumbnail from the domain
+    # so cards have a visual. The frontend falls back to a placeholder on error.
+    image_url = (
+        f"https://www.google.com/s2/favicons?domain={domain}&sz=128"
+        if domain != "unknown" else None
+    )
+
     published_at = _parse_date(item.get("published date", ""))
     title = _strip_publisher_suffix(item.get("title", ""))
-    publisher = item.get("publisher", {})
-    source = publisher.get("title", domain) if isinstance(publisher, dict) else domain
 
     return RawArticle(
         title=title,
         description=item.get("description", ""),
         url=url,
-        image_url=None,
+        image_url=image_url,
         source=source,
         domain=domain,
         published_at=published_at,

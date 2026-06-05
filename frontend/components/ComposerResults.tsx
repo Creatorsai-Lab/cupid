@@ -74,28 +74,24 @@ export function ComposerResults({
 
   return (
     <div className="space-y-4 mb-8">
-      {/* Section header */}
-      <div className="flex items-center gap-2">
-        <Sparkles size={14} style={{ color: "var(--color-primary)" }} />
-        <span
-          className="text-xs font-medium uppercase tracking-wide"
-          style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}
-        >
-          {variants.length} posts · {platform}
-        </span>
-      </div>
-
       {/* Social media cards — horizontal scroll row */}
       <div className="flex gap-5 overflow-x-auto pb-4">
         {variants.map((v, i) => (
           <SourceCard key={i} variant={v} userName={userName} platformKey={platformKey} />
         ))}
       </div>
+      <div className="grid grid-cols-3 gap-2 w-full sm:gap-3 md:gap-4">
+    <button className="btn-secondary w-full text-center truncate px-2 py-2 text-xs sm:text-sm">
+        Re-format
+    </button>
+    <button className="btn-secondary bg-[var(--color-primary)] text-white">
+        Edit
+    </button>
+    <button className="btn-secondary">
+        Publish
+    </button>
+</div>
 
-      {/* Evidence + sources (collapsible) */}
-      {(evidence?.length || sources?.length) ? (
-        <EvidencePanel evidence={evidence ?? []} sources={sources ?? []} />
-      ) : null}
     </div>
   );
 }
@@ -186,104 +182,3 @@ function QualityBadge({ score }: { score: number }) {
 
 // ─── Evidence + sources panel (collapsible) ─────────────────────
 
-function EvidencePanel({
-  evidence,
-  sources,
-}: {
-  evidence: DistilledFact[];
-  sources: ComposerSource[];
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div
-      className="rounded-xl bg-white border overflow-hidden"
-      style={{ borderColor: "var(--color-border)" }}
-    >
-      <button
-        onClick={() => setOpen((p) => !p)}
-        className="w-full flex items-center justify-between px-4 py-2.5"
-        style={{
-          backgroundColor: "#fff6ed",
-          borderBottom: open ? "1px solid var(--color-border)" : "none",
-        }}
-      >
-        <span
-          className="text-xs font-medium uppercase tracking-wide"
-          style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}
-        >
-          Evidence: {evidence.length} facts · {sources.length} sources
-        </span>
-        <span
-          className="text-xs transition-transform"
-          style={{
-            color: "var(--color-primary)",
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-          }}
-        >
-          ⌄
-        </span>
-      </button>
-
-      {open && (
-        <div className="p-4 space-y-4">
-          {evidence.length > 0 && (
-            <div>
-              <p className="text-xs font-medium mb-2" style={{ color: "var(--color-muted)" }}>
-                Distilled facts
-              </p>
-              <ul className="space-y-1.5">
-                {evidence.map((f, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "var(--color-text)" }}>
-                    <Hash
-                      size={10}
-                      className="mt-1 flex-shrink-0"
-                      style={{ color: "var(--color-primary)" }}
-                    />
-                    <span>
-                      <span
-                        className="text-[10px] uppercase mr-2 px-1.5 py-0.5 rounded"
-                        style={{ backgroundColor: "#fff6ed", color: "var(--color-primary)" }}
-                      >
-                        {f.type}
-                      </span>
-                      {f.fact}{" "}
-                      <span style={{ color: "var(--color-muted)" }}>[S{f.source}]</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {sources.length > 0 && (
-            <div>
-              <p className="text-xs font-medium mb-2" style={{ color: "var(--color-muted)" }}>
-                Sources used
-              </p>
-              <ul className="space-y-1">
-                {sources.map((s, i) => (
-                  <li key={i} className="flex items-center gap-1.5 text-sm">
-                    <a
-                      href={s.url ?? "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline"
-                      style={{ color: "var(--color-primary)" }}
-                    >
-                      [S{i + 1}] {s.title ?? s.url}
-                    </a>
-                    <ExternalLink size={10} style={{ color: "var(--color-muted)" }} />
-                    <span className="text-xs ml-1" style={{ color: "var(--color-muted)" }}>
-                      {s.domain}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}

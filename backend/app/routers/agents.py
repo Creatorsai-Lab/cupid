@@ -26,16 +26,28 @@ from app.models.user import User
 from app.routers.auth import get_current_user
 from app.models.persona import UserPersonalization
 from app.core.logging_config import get_agent_logger
+from app.agents.run_store import save_run, load_run
 
 logger = get_agent_logger("router")
 router = APIRouter(prefix="/api/v1/agents", tags=["agents"])
 
 
-# In-memory run storage (V1 MVP — replace with Redis/PostgreSQL for production)
-AGENT_RUNS: dict[str, dict] = {}
+# Run state lives in Redis (see app/agents/run_store.py) — shared across
+# workers and auto-expiring, so no in-process dict, no leak, no multi-worker 404s.
 
 # Strong references to background tasks so they aren't GC'd mid-flight
 _background_tasks: set[asyncio.Task] = set()
+
+_STREAM_KEYS: frozenset[str] = frozenset({
+      "current_agent",
+      "agents_completed",
+      "personalization_queries",
+      "research_data",
+      "composer_output",
+      "composer_evidence",
+      "composer_sources",
+      "error",
+  })
 
 
 # ── Request / Response Schemas ────────────────────────────────
@@ -87,10 +99,16 @@ async def run_agent_pipeline(
     user_id: str,
     request: GenerateRequest,
     personalization: dict[str, Any],
+    record: dict[str, Any],
 ) -> None:
-    """Sequential agent pipeline using orchestrator with real-time state updates."""
+    """Sequential agent pipeline using orchestrator with real-time state updates.
+
+    `record` is the run snapshot dict (already saved once by the caller). This
+    task is the single writer: it mutates `record` and pushes a full snapshot to
+    Redis after each change. The poll endpoint only reads.
+    """
     from app.agents.graph import get_orchestrator
-    
+
     user_voice = _TONE_TO_VOICE.get(request.tone, "hook_first")
     
     logger.info("=" * 10, run_id)
@@ -105,13 +123,15 @@ async def run_agent_pipeline(
     logger.info("─" * 10, run_id)
     
     try:
-        AGENT_RUNS[run_id]["status"] = "running"
+        record["status"] = "running"
+        await save_run(run_id, record)
 
         # Use the orchestrator with streaming updates
         logger.log_step(run_id, "Invoking orchestrator")
         orchestrator = get_orchestrator()
-        
-        # Stream intermediate states to update AGENT_RUNS in real-time
+
+        # Stream intermediate states; snapshot to Redis after each node so the
+        # poll endpoint sees live progress.
         async for state_update in orchestrator.run_streaming(
             user_id=user_id,
             user_prompt=request.prompt,
@@ -122,58 +142,52 @@ async def run_agent_pipeline(
             tone=request.tone,
             personalization=personalization,
         ):
-            # Update AGENT_RUNS with intermediate state
-            AGENT_RUNS[run_id].update({
-                "current_agent": state_update.get("current_agent"),
-                "agents_completed": state_update.get("agents_completed", []),
-                "personalization_queries": state_update.get("personalization_queries", []),
-                "research_data": state_update.get("research_data"),
-                "composer_output": state_update.get("composer_output", []),
-                "composer_evidence": state_update.get("composer_evidence", []),
-                "composer_sources": state_update.get("composer_sources", []),
-                "error": state_update.get("error"),
-            })
-            
+            # Merge only keys this node emitted (each node returns a partial
+            # update) so a later node can't blank out an earlier one's output.
+            for k, v in state_update.items():
+                if k in _STREAM_KEYS:
+                    record[k] = v
+            await save_run(run_id, record)
+
             # Log progress
             current = state_update.get("current_agent")
             completed = state_update.get("agents_completed", [])
             if current:
                 logger.info(f"📍 Progress: {current} | Completed: {completed}", run_id)
-        
-        # Get final state
-        final_state = AGENT_RUNS[run_id]
-        
+
         # Set final status
-        if final_state.get("error"):
-            AGENT_RUNS[run_id]["status"] = "failed"
+        if record.get("error"):
+            record["status"] = "failed"
         else:
-            AGENT_RUNS[run_id]["status"] = "completed"
+            record["status"] = "completed"
 
             # Persist to history — only successful runs with variants.
             # Fresh session, self-contained: a history failure must never
             # affect the run the user is polling.
-            composer_output = final_state.get("composer_output") or []
+            composer_output = record.get("composer_output") or []
             if composer_output:
                 try:
-                    from app.history import service as history_service
+                    from app.services import history_service
                     from app.core.db import async_session
 
                     async with async_session() as history_db:
                         await history_service.save_creation(
                             session=history_db,
                             user_id=uuid.UUID(user_id),
-                            prompt=final_state.get("user_prompt", ""),
+                            prompt=record.get("user_prompt", ""),
                             variants=composer_output,
-                            target_platform=final_state.get("target_platform", "All"),
-                            tone=final_state.get("tone"),
+                            target_platform=record.get("target_platform", "All"),
+                            tone=record.get("tone"),
                         )
                 except Exception as exc:
                     logger.error(f"  History save failed (non-fatal): {exc}", run_id)
 
+        await save_run(run_id, record)
+
         logger.info("=" * 10, run_id)
         logger.info("✅ PIPELINE COMPLETE", run_id)
-        logger.info(f"  Agents completed: {final_state.get('agents_completed', [])}", run_id)
-        logger.info(f"  Status: {AGENT_RUNS[run_id]['status']}", run_id)
+        logger.info(f"  Agents completed: {record.get('agents_completed', [])}", run_id)
+        logger.info(f"  Status: {record['status']}", run_id)
         logger.info("=" * 10, run_id)
 
     except Exception as exc:
@@ -181,8 +195,9 @@ async def run_agent_pipeline(
         logger.error("❌ PIPELINE FAILED", run_id, exc_info=True)
         logger.error(f"  Error: {str(exc)}", run_id)
         logger.error("=" * 10, run_id)
-        AGENT_RUNS[run_id]["status"] = "failed"
-        AGENT_RUNS[run_id]["error"] = str(exc)
+        record["status"] = "failed"
+        record["error"] = str(exc)
+        await save_run(run_id, record)
 
 
 # ── API Endpoints ─────────────────────────────────────────────
@@ -222,7 +237,7 @@ async def generate_content(
     run_id = str(uuid.uuid4())
 
     user_voice = _TONE_TO_VOICE.get(request.tone, "hook_first")
-    AGENT_RUNS[run_id] = {
+    record: dict[str, Any] = {
         "run_id": run_id,
         "user_id": str(current_user.id),
         "created_at": datetime.now(timezone.utc),
@@ -239,6 +254,9 @@ async def generate_content(
         "status": "pending",
         "error": None,
     }
+    # Save once before returning so the poll endpoint can find the run
+    # immediately, even on a different worker.
+    await save_run(run_id, record)
 
     task = asyncio.create_task(
         run_agent_pipeline(
@@ -246,6 +264,7 @@ async def generate_content(
             user_id=str(current_user.id),
             request=request,
             personalization=personalization,
+            record=record,
         )
     )
     _background_tasks.add(task)
@@ -264,10 +283,9 @@ async def get_run_status(
     current_user: User = Depends(get_current_user),
 ):
     """Get the status and results of an agent run."""
-    if run_id not in AGENT_RUNS:
+    state = await load_run(run_id)
+    if state is None:
         raise HTTPException(status_code=404, detail="Run not found")
-
-    state = AGENT_RUNS[run_id]
 
     if state.get("user_id") != str(current_user.id):
         raise HTTPException(status_code=403, detail="Access denied")
@@ -275,7 +293,7 @@ async def get_run_status(
     return RunStatusResponse(
         run_id=run_id,
         status=state.get("status", "pending"),
-        created_at=state.get("created_at", datetime.now(timezone.utc)),
+        created_at=state.get("created_at") or datetime.now(timezone.utc),
         current_agent=state.get("current_agent"),
         agents_completed=state.get("agents_completed", []),
         error=state.get("error"),

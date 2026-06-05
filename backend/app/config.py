@@ -1,5 +1,6 @@
 # defines what keys exist and loads them into Python
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -11,7 +12,7 @@ class Settings(BaseSettings):
 
     # App
     app_env: str = "development"
-    secret_key: str = "Adya2v!gav52bb99+qrva@+$o3v=#tuqyc8=ve$be9=k5#*6#z!gxl"
+    secret_key: str 
     token_encryption_key: str = ""
     debug: bool = True
 
@@ -47,7 +48,20 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:8000/api/v1/connections/youtube/callback"
+    @field_validator("secret_key")
+    @classmethod
+    def _reject_weak_secret(cls, v: str) -> str:
+        banned = {"", "your-secret-key-change-this"}
+        # the old committed value — reject it explicitly so it can never come back
+        banned.add("Adya2v!gav52bb99+qrva@+$o3v=#tuqyc8=ve$be9=k5#*6#z!gxl")
+        if v in banned or len(v) < 32:
+            raise ValueError(
+                    "SECRET_KEY missing or weak. Generate one: "
+                    "python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+                )
+        return v
 
 # the single global config object
 # This builds the object once, reading env vars + .env
 settings = Settings()
+
