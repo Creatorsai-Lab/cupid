@@ -69,7 +69,7 @@ export default function HistoryPage() {
                 className="min-h-[calc(100vh-60px)] px-6 py-10"
                 style={{ backgroundColor: "var(--color-background)" }}
             >
-                <div className="max-w-5xl mx-auto">
+                <div className="max-w-4xl mx-auto">
                     {/* Header */}
                     <header className="mb-8">
                         <div className="flex items-baseline gap-3 mb-2">
@@ -172,18 +172,14 @@ function HistoryCard({
             onClick={onOpen}
         >
             {/* Header: prompt + date + delete */}
-            <div className="flex items-start justify-between gap-4 mb-4">
+            <div className="flex items-start justify-between gap-4 mb-4 ">
                 <h2
-                    className="text-lg font-semibold leading-snug line-clamp-2 flex-1"
-                    style={{ color: "var(--color-text)", fontFamily: "var(--font-body)" }}
-                >
+                    className="text-ms font-semibold line-clamp-2 flex-1 text-[var(--color-text)] font-[family-name:var(--font-body)] ">
                     {entry.prompt}
                 </h2>
                 <div className="flex items-center gap-3 flex-shrink-0">
                     <span
-                        className="text-xs italic whitespace-nowrap"
-                        style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
-                    >
+                        className="text-xs italic whitespace-nowrap text-[var(--color-text)] font-[family-name:var(--color-muted)] ">
                         {formatDate(entry.created_at)}
                     </span>
                     <button

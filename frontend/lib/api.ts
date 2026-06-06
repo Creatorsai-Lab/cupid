@@ -206,6 +206,7 @@ interface RunStatusResponse {
     composer_output: any | null;
     composer_evidence: any | null;
     composer_sources: any | null;
+    history_id: string | null;
 }
 
 export const agentsApi = {
@@ -413,7 +414,22 @@ export const historyApi = {
         requestRaw<HistoryListResponse>(
             `/api/v1/history/?limit=${limit}&offset=${offset}`
         ),
- 
+
+    // Replace a saved creation's variants (used after the user edits a post).
+    updateVariants: async (entryId: string, variants: HistoryVariant[]): Promise<void> => {
+        const url = `${API_BASE}/api/v1/history/${entryId}`;
+        const res = await fetch(url, {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ variants }),
+        });
+        if (!res.ok) {
+            if (res.status === 401) await handle401("/api/v1/history/...");
+            throw new ApiError(`Update failed (${res.status})`, res.status);
+        }
+    },
+
     delete: async (entryId: string): Promise<void> => {
         const url = `${API_BASE}/api/v1/history/${entryId}`;
         const res = await fetch(url, {

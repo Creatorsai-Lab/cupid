@@ -90,6 +90,7 @@ class RunStatusResponse(BaseModel):
     composer_output: list | None = None
     composer_evidence: list | None = None
     composer_sources: list | None = None
+    history_id: str | None = None
 
 
 # ── Background Pipeline ───────────────────────────────────────
@@ -171,7 +172,7 @@ async def run_agent_pipeline(
                     from app.core.db import async_session
 
                     async with async_session() as history_db:
-                        await history_service.save_creation(
+                        entry = await history_service.save_creation(
                             session=history_db,
                             user_id=uuid.UUID(user_id),
                             prompt=record.get("user_prompt", ""),
@@ -179,6 +180,10 @@ async def run_agent_pipeline(
                             target_platform=record.get("target_platform", "All"),
                             tone=record.get("tone"),
                         )
+                    # Expose the saved row's id so the frontend can PATCH it
+                    # when the user edits a variant after generation.
+                    if entry is not None:
+                        record["history_id"] = str(entry.id)
                 except Exception as exc:
                     logger.error(f"  History save failed (non-fatal): {exc}", run_id)
 
@@ -303,4 +308,5 @@ async def get_run_status(
         composer_output=state.get("composer_output"),
         composer_evidence= state.get("composer_evidence", []),
         composer_sources= state.get("composer_sources", []),
+        history_id=state.get("history_id"),
     )

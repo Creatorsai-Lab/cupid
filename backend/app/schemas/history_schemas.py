@@ -32,3 +32,8 @@ class HistoryListResponse(BaseModel):
     entries: list[HistoryEntry]
     total: int = Field(..., description="Total entries for this user")
     has_more: bool = Field(..., description="Whether more pages exist")
+
+
+class HistoryUpdateRequest(BaseModel):
+    """Body for editing the variants of a saved creation."""
+    variants: list[HistoryVariant]

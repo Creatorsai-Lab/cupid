@@ -27,7 +27,9 @@ from app.core.db import get_db
 from app.services import history_service 
 from app.models.user import User
 from app.routers.auth import get_current_user
-from app.schemas.history_schemas import HistoryEntry, HistoryListResponse
+from app.schemas.history_schemas import (
+    HistoryEntry, HistoryListResponse, HistoryUpdateRequest,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +53,25 @@ async def list_history(
         total=total,
         has_more=(offset + limit) < total,
     )
+
+
+@router.patch("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def update_history_entry(
+    entry_id: UUID,
+    body: HistoryUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    """Replace a history entry's variants (used after an edit). 404 if not yours."""
+    updated = await history_service.update_variants(
+        session,
+        current_user.id,
+        entry_id,
+        [v.model_dump() for v in body.variants],
+    )
+    if not updated:
+        raise HTTPException(404, "History entry not found")
+    # 204 No Content
 
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { ComposerResults } from "@/components/ComposerResults";
 import { useAuthStore } from "@/lib/store";
-import { Send, Loader2, ExternalLink, Compass, Mic, Upload, Link, ChevronDown, UserRoundPen } from "lucide-react";
+import { Send, Loader2, ExternalLink, Compass, Mic, Upload, Link, ChevronDown, UserRoundPen, Heart } from "lucide-react";
 import { agentsApi, profileApi, type ResearchData, type PageContent, type SearchResult } from "@/lib/api";
 
 const CONTENT_TYPES = ["Text", "Image", "Article", "Video", "Ads", "Poll"] as const;
@@ -14,12 +14,21 @@ const TONES = ["Casual", "Formal", "Informative", "GenZ", "Factual", "Hook First
 
 // ── Agent status label ────────────────────────────────────────
 
-function agentStatusLabel(currentAgent: string | null, status: string): string {
+// Driven by cumulative milestones, not the transient current_agent / completed
+// list. Streaming emits a node's update only AFTER it finishes, and the 2s poll
+// can skip the brief composer-running window — so instead we advance the label
+// by what data has ARRIVED (queries → research → cards). Each milestone, once
+// seen, persists, so the label moves forward monotonically and "Crafting your
+// post…" reliably shows for the whole composition step.
+function agentStatusLabel(
+    status: string,
+    hasQueries: boolean,
+    hasResearch: boolean,
+): string {
     if (status === "pending") return "Starting up…";
-    if (currentAgent === "personalization") return "Personalization agent is thinking…";
-    if (currentAgent === "research") return "Research agent is searching…";
-    if (currentAgent === "composer") return "Crafting your post…";
-    return status;
+    if (hasResearch) return "Crafting your post…";      // research done → composer running
+    if (hasQueries) return "Research agent is searching…"; // personalization done → research running
+    return "Personalization agent is thinking…";
 }
 
 // MAIN PAGE
@@ -69,8 +78,14 @@ export default function CreatePage() {
                 setCurrentAgent(res.current_agent);
                 setAgentsCompleted(res.agents_completed);
 
+                // Milestones arrive mid-run via streaming. Capture them as soon
+                // as they appear so the status label advances reliably (instead of
+                // depending on catching a transient between 2s polls).
                 if (res.personalization_queries?.length > 0) {
                     setPersonalizationQueries(res.personalization_queries);
+                }
+                if (res.research_data) {
+                    setResearchData(res.research_data);
                 }
 
                 if (res.status === "completed") {
@@ -90,7 +105,7 @@ export default function CreatePage() {
                 setIsGenerating(false);
                 clearInterval(interval);
             }
-        }, 2000);
+        }, 1200);
 
         return () => clearInterval(interval);
     }, [runId]);
@@ -127,25 +142,12 @@ export default function CreatePage() {
     return (
         <ProtectedRoute>
             <main
-                className={`min-h-[calc(100vh-60px)] px-6 py-10 flex flex-col transition-all duration-500 ease-in-out ${
-                    hasActiveResults ? "justify-start pt-12" : "justify-center"
-                }`}
-                style={{ backgroundColor: "var(--color-background)" }}
+                className={`min-h-[calc(100vh-60px)] w-full max-w-4xl mx-auto px-6 py-10 flex flex-col transition-all duration-500 ease-in-out ${hasActiveResults ? "justify-start" : "justify-center"}`}
             >
-                <div className="w-full max-w-3xl mx-auto -mt-30">
-                    
+
                     {/* Welcome Title */}
                     <div className="mb-6 text-center">
-                        <h1 className="font-normal tracking-tight mb-2"
-                            style={{
-                                fontFamily: "var(--font-display)",
-                                fontSize: "clamp(1.6rem, 3.5vw, 2.2rem)",
-                            }}>
-                            Canvas is your's,{" "}
-                            <em style={{ color: "var(--color-primary)", fontStyle: "italic" }}>
-                                {displayName}
-                            </em>
-                        </h1>
+                        <h1 className="font-normal tracking-tight mb-2 font-[family-name:var(--font-display)] text-[clamp(1.6rem,3.5vw,2.2rem)]">Canvas is your's, {displayName}</h1>
                     </div>
 
                     {/* Input Box Workplace */}
@@ -158,9 +160,8 @@ export default function CreatePage() {
                                     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleGenerate();
                                 }}
                                 placeholder="What do you want to post about?"
-                                className="w-full bg-transparent text-sm leading-relaxed resize-none outline-none mb-4"
-                                style={{ fontFamily: "var(--font-body)", color: "var(--color-text)" }}
-                                rows={5}
+                                className="w-full bg-transparent text-sm leading-relaxed resize-none outline-none mb-4 font-[family-name:var(--font-body)] text-[var(--color-text)]"
+                                rows={3}
                             />
 
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-auto">
@@ -217,18 +218,19 @@ export default function CreatePage() {
                     {/* Agent Progress Banner */}
                     {isGenerating && (
                         <div className="flex items-center gap-3 mb-5 p-3 rounded-lg px-5 py-2 bg-(--inline-bg)">
-                            <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-blue-500" />
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[var(--color-primary)]"/>
-                            </span>
+                            <Heart
+                                size={14}
+                                className="flex-shrink-0 animate-heartbeat fill-[var(--color-primary)] text-[var(--color-primary)]"
+                            />
                             <span className="text-xs text-(--color-input) font-bold">
-                                {agentStatusLabel(currentAgent, agentStatus)}
+                                {agentStatusLabel(agentStatus, personalizationQueries.length > 0, !!researchData)}
                             </span>
                         </div>
                     )}
 
-                    {/* Research Results */}
-                    {researchData && !isGenerating && (
+                    {/* Research Results — shows as a milestone as soon as research
+                        finishes, then stays (even while the composer runs) */}
+                    {researchData && (
                         <ResearchResults data={researchData} />
                     )}
 
@@ -240,10 +242,16 @@ export default function CreatePage() {
                             sources={composerSources}
                             userName={user?.full_name || "Creator"}
                             platform={platform}
+                            researchImages={
+                                (researchData?.fetched_pages ?? [])
+                                    .map((p) => p.image_url)
+                                    .filter((u): u is string => !!u)
+                            }
                         />
                     )}
 
-                </div>
+                <footer className="fixed bottom-0 left-0 right-0 text-center text-xs not-italic py-3 bg-red">Cupid can make mistakes, please review post before publishing</footer>
+
             </main>
         </ProtectedRoute>
     );
@@ -291,7 +299,7 @@ function PersonalizationQueriesItems({ queries }: { queries: string[] }) {
                 className="w-full flex rounded-2xl items-center mb-1.5 gap-3 px-4 py-1.5 bg-(--color-inline-bg)">
                 <UserRoundPen size={14} className="text-[var(--color-primary)] flex-shrink-0" />
                 <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-input)">
-                    Personalization agent generated the queries ✓
+                    Personalized queries generated ✓
                 </span>
                 <ChevronDown size={14} className="text-[var(--color-primary)] flex-shrink-0" />
             </button>
@@ -308,28 +316,34 @@ function PersonalizationQueriesItems({ queries }: { queries: string[] }) {
 
 // RESEARCH RESULTS
 function ResearchResults({ data }: { data: ResearchData }) {
+    const [open, setOpen] = useState(false);
     const results = data.top_search_results ?? [];
     const pages = data.fetched_pages ?? [];
     const hasResults = results.length > 0 || pages.length > 0;
 
     return (
-        <div>
-            <div className="w-full flex rounded-2xl items-center mb-1.5 gap-3 px-4 py-1.5 bg-(--color-inline-bg)">
+        <div className="mb-2 overflow-hidden">
+            <button
+                onClick={() => setOpen((p) => !p)}
+                className="w-full flex rounded-2xl items-center mb-1.5 gap-3 px-4 py-1.5 bg-(--color-inline-bg)">
                 <Compass size={14} className="text-[var(--color-primary)] flex-shrink-0" />
                 <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-input)">
                     Research completed: {results.length} Sources ✓
                 </span>
-            </div>
+                <ChevronDown size={14} className="text-[var(--color-primary)] flex-shrink-0" />
+            </button>
+
             {!hasResults && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 px-4">
                     <Compass size={14} className="text-[var(--color-primary)] flex-shrink-0" />
                     <span className="text-xs font-medium tracking-wide flex-1 text-left text-(--color-grayish-red)">
                         No results found ✗ (Try a more specific topic)
                     </span>
                 </div>
             )}
-            {pages.length > 0 && (
-            <div className="border border-[var(--color-border)] rounded-2xl overflow-hidden mx-5">
+
+            {open && pages.length > 0 && (
+            <div className="border border-[var(--color-border)] rounded-xl overflow-hidden mx-5">
                 <div className="divide-y divide-[var(--color-border)]">
                 {pages.map((p, i) => (
                     <div key={i} className="border-b border-[var(--color-border)] last:border-b-0">

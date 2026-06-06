@@ -19,6 +19,7 @@ import logging
 from uuid import UUID
 
 from sqlalchemy import delete as sa_delete
+from sqlalchemy import update as sa_update
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -120,6 +121,43 @@ async def list_history(
     entries = list((await session.execute(stmt)).scalars().all())
 
     return entries, total
+
+
+async def update_variants(
+    session: AsyncSession,
+    user_id: UUID,
+    entry_id: UUID,
+    variants: list[dict],
+) -> bool:
+    """
+    Replace the variants of one history entry IF it belongs to the user.
+
+    Used when the user edits a generated post after the fact. Returns True if
+    a row was updated, False if not found / not owned. The user_id in the WHERE
+    clause is the authorization gate.
+    """
+    slim_variants = [
+        {
+            "angle":      v.get("angle", ""),
+            "platform":   v.get("platform", ""),
+            "content":    v.get("content", ""),
+            "char_count": v.get("char_count", len(v.get("content", ""))),
+        }
+        for v in variants
+        if v.get("content")
+    ]
+    if not slim_variants:
+        return False
+
+    stmt = (
+        sa_update(CreationHistory)
+        .where(CreationHistory.id == entry_id)
+        .where(CreationHistory.user_id == user_id)
+        .values(variants=slim_variants)
+    )
+    result = await session.execute(stmt)
+    await session.commit()
+    return result.rowcount > 0
 
 
 async def delete_entry(
