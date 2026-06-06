@@ -26,7 +26,7 @@ export default function SettingsPage() {
 
   return (
     <ProtectedRoute>
-      <main className="max-w-4xl mx-auto transition-all duration-500 p-3">
+      <main className="max-w-5xl mx-auto transition-all duration-500 p-3">
         <div className="flex flex-col gap-1 my-8">
             <h1 className="tracking-tight text-[clamp(1.8rem, 4vw, 2.2rem)]">Settings</h1>
             <p>Manage your profile, preference, subscription plan, connected social accounts, and help.</p>

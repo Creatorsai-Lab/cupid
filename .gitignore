@@ -36,10 +36,11 @@ dist/
 .vscode/
 !.vscode/extensions.json
 .idea/
-*.swp
+*.swpW
 *.swo
 .claude/
 .cursor/
+.agents/
 # ── OS files ─────────────────────────────────────────
 .DS_Store
 Thumbs.db

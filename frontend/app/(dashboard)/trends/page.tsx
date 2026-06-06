@@ -81,7 +81,7 @@ export default function TrendsPage() {
 
   return (
     <ProtectedRoute>
-      <main className="max-w-4xl mx-auto transition-all duration-500 p-3">
+      <main className="max-w-5xl mx-auto transition-all duration-500 p-3">
         <div className="flex flex-col gap-1 my-8">
             <h1 className="tracking-tight text-[clamp(1.8rem, 4vw, 2.2rem)]">Personalized Trends and Recommendation</h1>
             <p>Trendy and hot topics in your niche</p>

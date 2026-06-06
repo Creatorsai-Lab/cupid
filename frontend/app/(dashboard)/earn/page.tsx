@@ -38,7 +38,7 @@ export default function EarnPage() {
     return (
         <ProtectedRoute>
             <main className="min-h-[calc(100vh-60px)] px-6 py-10" style={{ backgroundColor: "var(--color-background)" }}>
-                <div className="max-w-4xl mx-auto">
+                <div className="max-w-5xl mx-auto">
                     {checking && <CenterSpinner label="Loading your earning profile…" />}
                     {error && !checking && <ErrorState message={error} onRetry={checkProfile} />}
                     {!checking && !error && !hasProfile && <QAGate onComplete={() => setHasProfile(true)} />}

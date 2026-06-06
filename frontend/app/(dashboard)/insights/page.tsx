@@ -88,7 +88,7 @@ export default function InsightsPage() {
 
     return (
         <ProtectedRoute>
-            <main className="max-w-4xl mx-auto transition-all duration-500 p-3">
+            <main className="max-w-5xl mx-auto transition-all duration-500 p-3">
                     <div className="flex flex-col gap-1 my-8">
                         <h1 className="tracking-tight text-[clamp(1.8rem, 4vw, 2.2rem)]">Insights From Your Channels</h1>
                         <p>Analytics, growth, and posting patterns from your connected accounts</p>

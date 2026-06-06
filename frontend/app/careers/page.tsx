@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function CareersPage() {
   return (
     <div className="flex flex-col min-h-[calc(100vh-60px)]">
-    <main className="max-w-4xl w-full mx-auto flex-1 transition-all duration-500 p-3">
+    <main className="max-w-5xl w-full mx-auto flex-1 transition-all duration-500 p-3">
       <div className="flex flex-col gap-1 my-8">
         <h1 className="tracking-tight text-[clamp(1.8rem,4vw,2.2rem)]">Careers</h1>
         <p className="text-[var(--color-muted)]">

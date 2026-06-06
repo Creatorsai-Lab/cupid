@@ -141,7 +141,7 @@ export default function CreatePage() {
 
     return (
         <ProtectedRoute>
-            <main className={`min-h-[calc(100vh-60px)] max-w-4xl mx-auto flex flex-col transition-all duration-500 ease-in-out ${hasActiveResults ? "justify-start" : "justify-center"}`}>
+            <main className={`min-h-[calc(100vh-60px)] max-w-5xl mx-auto flex flex-col transition-all duration-500 ease-in-out ${hasActiveResults ? "justify-start" : "justify-center"}`}>
 
                     {/* Welcome Title */}
                     <div className="mb-6 text-center">

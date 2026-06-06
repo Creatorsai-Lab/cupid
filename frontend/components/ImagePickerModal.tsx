@@ -31,7 +31,7 @@ export function ImagePickerModal({
       onClick={onClose}
     >
       <div
-        className="rounded-2xl max-w-4xl w-full max-h-[90vh] min-h-[65vh] flex flex-col overflow-hidden border border-[var(--color-border)] shadow-xl backdrop-blur-sm"
+        className="rounded-2xl max-w-5xl w-full max-h-[90vh] min-h-[65vh] flex flex-col overflow-hidden border border-[var(--color-border)] shadow-xl backdrop-blur-sm"
         style={{ backgroundColor: "color-mix(in srgb, var(--color-background) 95%, transparent)" }}
         onClick={(e) => e.stopPropagation()}
       >

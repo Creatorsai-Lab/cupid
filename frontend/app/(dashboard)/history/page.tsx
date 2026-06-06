@@ -65,7 +65,7 @@ export default function HistoryPage() {
 
     return (
         <ProtectedRoute>
-                <main className="max-w-4xl mx-auto transition-all duration-500 p-3">
+                <main className="max-w-5xl mx-auto transition-all duration-500 p-3">
                     <div className="flex flex-col gap-1 my-8">
                         <h1 className="tracking-tight text-[clamp(1.8rem, 4vw, 2.2rem)]">Your Chat History</h1>
                         <p>
@@ -152,10 +152,11 @@ function HistoryCard({
 }) {
     return (
         <div
-            className="rounded-xl border bg-white p-3 transition-shadow hover:shadow-md cursor-pointer relative group"
-            style={{ borderColor: "var(--color-border)" }}
-            onClick={onOpen}
-        >
+    className="rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)] bg-white p-3 transition-all duration-200 ease-in-out hover:shadow-md cursor-pointer relative group"
+    onClick={onOpen}
+>
+
+
             {/* Header: prompt + date + delete */}
             <div className="flex items-start justify-between gap-4">
                 <h2
@@ -235,7 +236,7 @@ function DetailModal({
             onClick={onClose}
         >
             <div
-                className="bg-white rounded-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col"
+                className="bg-white rounded-2xl max-w-5xl w-full max-h-[85vh] overflow-hidden flex flex-col"
                 style={{ boxShadow: "var(--shadow-lg, 0 12px 32px rgba(0,0,0,0.15))" }}
                 onClick={(e) => e.stopPropagation()}
             >

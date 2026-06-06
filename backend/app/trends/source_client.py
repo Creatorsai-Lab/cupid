@@ -131,21 +131,7 @@ async def fetch_via_rss(
 def _parse_rss_item(item: dict[str, Any]) -> RawArticle:
     url = item.get("url", "")
     publisher = item.get("publisher", {}) if isinstance(item.get("publisher"), dict) else {}
-
-    # gnews returns a news.google.com redirect as `url` — the real publisher
-    # is in publisher.href. Use that for the domain (so the authority scoring
-    # in ingest._compute_velocity actually matches) and for the source name.
-    publisher_href = publisher.get("href", "")
-    domain = urlparse(publisher_href or url).netloc.replace("www.", "") or "unknown"
-    source = publisher.get("title") or domain
-
-    # RSS carries no image. Derive a publisher logo thumbnail from the domain
-    # so cards have a visual. The frontend falls back to a placeholder on error.
-    image_url = (
-        f"https://www.google.com/s2/favicons?domain={domain}&sz=128"
-        if domain != "unknown" else None
-    )
-
+    domain = urlparse(publisher.get("href") or url).netloc.replace("www.", "") or "unknown"
     published_at = _parse_date(item.get("published date", ""))
     title = _strip_publisher_suffix(item.get("title", ""))
 
@@ -153,8 +139,8 @@ def _parse_rss_item(item: dict[str, Any]) -> RawArticle:
         title=title,
         description=item.get("description", ""),
         url=url,
-        image_url=image_url,
-        source=source,
+        image_url=None,  # RSS carries no image; the API path provides real ones
+        source=publisher.get("title") or domain,
         domain=domain,
         published_at=published_at,
     )
@@ -186,6 +172,9 @@ async def fetch_via_api(
 ) -> list[RawArticle]:
     if not api_key:
         return []
+
+    # GNews free tier caps `max` at 10 per request — asking for more 400s.
+    max_results = min(max_results, 10)
 
     api_categories = {
         "technology": "technology", "business": "business", "health": "health",
@@ -256,16 +245,19 @@ async def fetch_category(
     api_key: str | None = None,
     max_results: int = 20,
 ) -> list[RawArticle]:
-    """RSS first. API fallback only if it's likely to work."""
-    articles = await fetch_via_rss(category, max_results)
-    if articles:
-        logger.info("[trends.source] %s: %d articles via RSS", category, len(articles))
-        return articles
+    """
+    API first (it returns real article images), RSS as fallback.
 
+    The GNews API free tier is 100 requests/day, so on quota exhaustion or any
+    failure we fall back to RSS — which has no images but is unlimited.
+    """
     if api_key:
         articles = await fetch_via_api(category, api_key, max_results)
         if articles:
             logger.info("[trends.source] %s: %d articles via API", category, len(articles))
-        return articles
+            return articles
 
-    return []
+    articles = await fetch_via_rss(category, max_results)
+    if articles:
+        logger.info("[trends.source] %s: %d articles via RSS (no images)", category, len(articles))
+    return articles

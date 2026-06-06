@@ -11,7 +11,7 @@ const LAST_UPDATED = "June 6, 2026";
 export default function TermsPage() {
   return (
     <div className="flex flex-col min-h-[calc(100vh-60px)]">
-    <main className="max-w-4xl w-full mx-auto flex-1 transition-all duration-500 p-3">
+    <main className="max-w-5xl w-full mx-auto flex-1 transition-all duration-500 p-3">
       <div className="flex flex-col gap-1 my-8">
         <h1 className="tracking-tight text-[clamp(1.8rem,4vw,2.2rem)]">Terms &amp; Conditions</h1>
         <p className="text-[var(--color-muted)]">Last updated: {LAST_UPDATED}</p>

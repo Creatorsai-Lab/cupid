@@ -1,9 +1,12 @@
 "use client";
+
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { type LucideIcon,
-  ChartColumn , Waves, ScanSearch, Flame, Layers, Brain, Edit3, ShieldCheck, CircleDollarSign,
-  Code2, Heart, Smile, GraduationCap, UserCheck, Mail, FileText, Search, Fingerprint, PenTool, CalendarClock, Send, User, Sparkles
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  type LucideIcon,
+  ArrowRight, Sparkles, Brain, PenTool, UserCheck, Flame,
+  Fingerprint, Layers, Lightbulb, ChevronDown,
 } from "lucide-react";
 import {
   XCard, LinkedInCard, InstagramCard, FacebookCard,
@@ -11,273 +14,389 @@ import {
 } from "@/components/SocialMediaCards";
 import Footer from "@/components/Footer";
 
-const PIPELINE_STAGES = [
-  {
-    key: "input",
-    label: "Input",
-    sub: "Your voice & samples",
-    desc: "You feed Cupid writing samples and a topic. It anchors to who you are before anything moves.",
-    icon: FileText,
-  },
-  {
-    key: "research",
-    label: "Research",
-    sub: "Angles & sources",
-    desc: "The Research agent scans your niche — finds angles, evidence, and the framing that fits your depth.",
-    icon: Search,
-  },
-  {
-    key: "personalization",
-    label: "Personalization",
-    sub: "Tuned to your persona",
-    desc: "Findings pass through your living persona model: tone, vocabulary, and the way you actually think.",
-    icon: User,
-  },
-  {
-    key: "creation",
-    label: "Creation",
-    sub: "Platform-native drafts",
-    desc: "The Composer assembles posts per platform, then runs a fidelity check — if it isn't you, it rewrites.",
-    icon: Sparkles,
-  },
-  {
-    key: "publish",
-    label: "Publish / Schedule",
-    sub: "On your timeline",
-    desc: "Approved posts ship now or queue to your calendar — every platform, on your schedule.",
-    icon: Send,
-  },
+// Modern sans for headings — overrides the global serif display, keeps the
+// page editorial and clean. (DM Sans is already loaded → no extra bundle cost.)
+const SANS = "[font-family:var(--font-dm-sans)]";
+
+// ─── Hero ───────────────────────────────────────────────────────
+
+function HeroBackground() {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      {/* Fine technical grid, faded out toward the edges */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--color-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-border)_1px,transparent_1px)] [background-size:46px_46px] [mask-image:radial-gradient(ellipse_55%_55%_at_50%_40%,black,transparent_80%)] opacity-50" />
+
+      {/* Soft breathing glows — scale/opacity only, no drifting (stays calm) */}
+      <motion.div
+        className="absolute -top-24 left-1/2 h-[26rem] w-[26rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(199,93,58,0.16),transparent_65%)] blur-3xl"
+        animate={{ scale: [1, 1.12, 1], opacity: [0.55, 0.85, 0.55] }}
+        transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute bottom-[-6rem] right-[-4rem] h-[22rem] w-[22rem] rounded-full bg-[radial-gradient(circle,rgba(212,160,76,0.14),transparent_70%)] blur-3xl"
+        animate={{ scale: [1.05, 0.95, 1.05], opacity: [0.5, 0.8, 0.5] }}
+        transition={{ duration: 13, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      {/* Hairline sheen at the very top */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--color-primary)]/30 to-transparent" />
+    </div>
+  );
+}
+
+function Hero() {
+  return (
+    <header className="relative isolate overflow-hidden bg-[var(--color-background)]">
+      <HeroBackground />
+      <div className="mx-auto max-w-5xl px-6 pt-24 pb-16 text-center md:pt-32 md:pb-24">
+        <motion.span
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className={`${SANS} relative inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white/60 px-4 py-1.5 text-xs font-medium tracking-wide text-[var(--color-muted)] backdrop-blur`}
+        >
+          {/* Micro-shimmer: a soft pulsing ring on the border */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-[var(--color-primary)]/25 animate-pulse"
+          />
+          <Sparkles className="relative h-3.5 w-3.5 text-[var(--color-primary)]" />
+          <span className="relative">A swarm of AI agents for creators</span>
+        </motion.span>
+
+        <div className="relative mt-7">
+          {/* Breathing ambient aura behind the core typography */}
+          <motion.span
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-1/2 w-[500px] h-[300px] max-w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#FFEBE5] opacity-40 blur-[90px] filter"
+            animate={{ scale: [1, 1.12, 1] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className={`${SANS} relative mx-auto max-w-4xl text-balance text-[clamp(2.6rem,7vw,5rem)] font-semibold leading-[0.98] tracking-[-0.03em] text-[var(--color-text)]`}
+          >
+            Content that sounds
+            <br className="hidden sm:block" />{" "}
+            <span className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] bg-clip-text text-transparent">
+              unmistakably you
+            </span>
+            .
+          </motion.h1>
+        </div>
+
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+          className="mx-auto mt-6 max-w-xl text-pretty text-[15px] leading-relaxed text-[var(--color-muted)] md:text-base"
+        >
+          Cupid learns your voice, tracks what&apos;s trending in your niche, and
+          ships platform-native posts on your schedule — so you create more and
+          grind less.
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          className="mt-9 flex flex-wrap items-center justify-center gap-3"
+        >
+          <Link
+            href="/register"
+            className={`${SANS} group inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-medium text-white shadow-[0_10px_30px_-10px_rgba(199,93,58,0.6)] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_25px_rgba(239,68,68,0.15)]`}
+          >
+            Start for free
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+          <Link
+            href="#agents"
+            className={`${SANS} inline-flex items-center rounded-full border border-[var(--color-border)] bg-white/50 px-6 py-3 text-sm font-medium text-[var(--color-text)] backdrop-blur transition-colors hover:border-[var(--color-border-hover)]`}
+          >
+            See how it works
+          </Link>
+        </motion.div>
+      </div>
+    </header>
+  );
+}
+
+// ─── Interactive Agent Swarm ────────────────────────────────────
+
+type Agent = { label: string; builds: string; icon: LucideIcon; tint: string };
+
+const AGENTS: Agent[] = [
+  { label: "Content Creator", builds: "Drafts platform-native posts, end to end.", icon: PenTool, tint: "#C75D3A" },
+  { label: "Influencer Agent", builds: "Tunes tone & persona to your audience.", icon: UserCheck, tint: "#af6d58" },
+  { label: "Script Writer", builds: "Hooks, captions, and video scripts.", icon: Layers, tint: "#D4A04C" },
+  { label: "Trend Scout", builds: "Surfaces what's rising in your niche.", icon: Flame, tint: "#B5403A" },
+  { label: "Persona Engine", builds: "Remembers your voice, privately.", icon: Fingerprint, tint: "#5A7A3E" },
 ];
 
-
-const CREATOR_BUSINESS_TYPES = [
-  { icon: Code2, label: "Influencers & Celebrities", sub: "Engineers shipping content alongside code." },
-  { icon: Heart, label: "Community Builders", sub: "Aesthetic-led, trend-sensitive feeds." },
-  { icon: Smile, label: "Side Hustler", sub: "Voice-led, timing-driven posts." },
-];
-const CAPABILITIES = [
-  { icon: ScanSearch, label: "Personalized Content Research", sub: "Sources tailored to your domain — not generic web noise." },
-  { icon: Flame, label: "Trends Recommendation", sub: "Reddit, HN, RSS — signal to published in minutes." },
-  { icon: Layers, label: "Platform-native Drafts", sub: "Twitter, LinkedIn, Instagram, YouTube — each properly formatted." },
-  { icon: Brain, label: "Persona Memory", sub: "Your voice, stored privately and refined as you keep writing." },
-  { icon: CircleDollarSign, label: "Monitization Coach", sub: "A live read on which revenue streams fit your tier and niche." },
-  { icon: ChartColumn, label: "Real-time Insights", sub: "Followers, views, top content — all the signal, none of the dashboards." },
-];
-
-//  HERO SECTION - CTA and Pipeline
-export function Hero() {
-  const [active, setActive] = useState(0);
+function AgentSwarm() {
   const [hovered, setHovered] = useState<number | null>(null);
-  const timer = useRef<NodeJS.Timeout | null>(null);
-
-  // Auto-advance the active stage in sync with the traveling pulse (13s total loop / 5 stages = 2600ms)
-  useEffect(() => {
-    if (hovered !== null) return;
-    timer.current = setInterval(() => {
-      setActive((i) => (i + 1) % PIPELINE_STAGES.length);
-    }, 2600);
-    return () => {
-      if (timer.current) clearInterval(timer.current);
-    };
-  }, [hovered]);
-
-  const current = hovered !== null ? hovered : active;
+  const R = 38; // orbit radius (% of container)
+  const nodes = AGENTS.map((a, i) => {
+    const ang = (-90 + i * (360 / AGENTS.length)) * (Math.PI / 180);
+    return { ...a, x: 50 + R * Math.cos(ang), y: 50 + R * Math.sin(ang) };
+  });
 
   return (
-    <section id="pipeline" className="mx-auto max-w-6xl px-4 py-12 md:py-20 text-(--color-text)">
-      <PipelineKeyframes />
-      <div className="mb-16 flex flex-col items-center text-center">
-        <h1 className="text-[clamp(4.5rem,11vw,8rem)] leading-[0.92] font-[family-name:var(--font-display)]">
-          Cupid
-        </h1>    
-        <h2 className="font-[family-name:var(--font-display)] animated-gradient-text italic text-xl md:text-2xl mt-2 tracking-tight">
-          A complete AI agents suite for content creation & influencers
-        </h2>    
-        <p className="text-[15px] text-muted-foreground leading-relaxed max-w-2xl mt-4">
-          Cupid agents learn your voice, track what's trending in your niche, and ship posts that 
-          sound authentically like you — across every platform, on your schedule.
-        </p>
-        <div className="flex gap-3 flex-wrap justify-center pt-5">
-          <Link href="/register" className="btn-primary">Start for free</Link>
-          <Link href="#agents" className="btn-secondary">See how it works</Link>
-        </div>
-      </div>
-
-      {/* ── ANIMATED TRACK PIPELINE ── */}
-      <div className="relative max-w-[1080px] mx-auto px-1 md:px-0">
-        
-        {/* Rail Base & Progress Timelines */}
-        <div className="absolute top-[28px] left-[28px] right-[28px] h-[2px] bg-(--color-border) rounded-full hidden md:block" aria-hidden="true">
-          <span className="absolute inset-0 origin-left bg-gradient-to-r from-(--color-primary) to-(--color-primary-dark) rounded-full animate-[cp-fill_13s_linear_infinite]" />
-          <span className="absolute top-1/2 w-[10px] h-[10px] -mt-[5px] -ml-[5px] rounded-full bg-(--color-primary) shadow-[0_0_0_5px_rgba(199,93,58,0.18),0_0_14px_2px_rgba(199,93,58,0.45)] animate-[cp-travel_13s_linear_infinite]" />
-        </div>
-
-        {/* Mobile Rail (Vertical Layout Toggle) */}
-        <div className="absolute top-[28px] bottom-[28px] left-[28px] w-[2px] bg-(--color-border) rounded-full block md:hidden" aria-hidden="true">
-          <span className="absolute inset-0 origin-top bg-gradient-to-b from-(--color-primary) to-(--color-primary-dark) rounded-full animate-[cp-fill-v_13s_linear_infinite]" />
-          <span className="absolute left-1/2 w-[10px] h-[10px] -mt-[5px] -ml-[5px] rounded-full bg-(--color-primary) shadow-[0_0_0_5px_rgba(199,93,58,0.18),0_0_14px_2px_rgba(199,93,58,0.45)] animate-[cp-travel-v_13s_linear_infinite]" />
-        </div>
-
-        {/* Stages Map List */}
-        <ol className="relative flex flex-col md:flex-row justify-between gap-8 md:gap-2 list-none p-0 m-0">
-          {PIPELINE_STAGES.map((s, i) => {
-            const Icon = s.icon;
-            const isCurrent = i === current;
-            const isDone = i < current;
-
-            return (
-              <li
-                key={s.key}
-                tabIndex={0}
-                onMouseEnter={() => setHovered(i)}
-                onMouseLeave={() => setHovered(null)}
-                onFocus={() => setHovered(i)}
-                onBlur={() => setHovered(null)}
-                className={`group flex flex-1 flex-row md:flex-col items-center text-left md:text-center gap-4 md:gap-[0.85rem] cursor-pointer outline-none min-w-0`}
-              >
-                {/* Node Structure */}
-                <div className="relative w-14 h-14 flex-shrink-0 grid place-items-center">
-                  
-                  {/* Outer Pulsing Active Ring */}
-                  <span className={`absolute -inset-[6px] rounded-full border border-transparent transition-all duration-[450ms] ${
-                    isCurrent ? "opacity-100 border-(--color-primary)/35 animate-[cp-ring_2.4s_ease-out_infinite]" : "opacity-0"
-                  }`} />
-                  
-                  {/* Central Node Circle */}
-                  <span className={`relative z-10 w-14 h-14 flex items-center justify-center rounded-full border transition-all duration-[450ms] ease-out ${
-                    isCurrent
-                      ? "text-white bg-(--color-primary) border-(--color-primary) scale-[1.08] shadow-[0_8px_22px_rgba(199,93,58,0.28)]"
-                      : isDone
-                      ? "text-(--color-primary) border-(--color-primary) bg-white dark:bg-zinc-900"
-                      : "text-(--color-subtle) border-(--color-border) bg-white dark:bg-zinc-900"
-                  }`}>
-                    <Icon className="w-5 h-5" strokeWidth={1.75} />
-                  </span>
-
-                  {/* Sequential Numeric Badge */}
-                  <span className={`absolute z-20 -top-1 -right-1 text-[9px] font-bold w-[18px] h-[18px] flex items-center justify-center rounded-full border transition-all duration-[450ms] ${
-                    isCurrent
-                      ? "text-white bg-(--color-primary-dark) border-(--color-primary-dark)"
-                      : isDone
-                      ? "text-(--color-primary) border-(--color-primary) bg-(--color-background)"
-                      : "text-(--color-subtle) border-(--color-border) bg-(--color-background)"
-                  }`}>
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                </div>
-
-                {/* Text Description Copy */}
-                <div className="min-w-0">
-                  <p className={`font-[family-name:var(--font-display)] text-[clamp(0.95rem,1.6vw,1.1rem)] font-normal m-0 leading-tight transition-colors duration-400 ${
-                    isCurrent ? "text-(--color-primary-dark)" : "text-(--color-text)"
-                  }`}>
-                    {s.label}
-                  </p>
-                  <p className="text-[11.5px] md:text-[12.5px] text-muted-foreground mt-1 m-0 leading-snug">
-                    {s.sub}
-                  </p>
-                </div>
+    <section id="agents" className="border-t border-[var(--color-border)]">
+      <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-24 lg:grid-cols-2 lg:gap-20 lg:py-32">
+        {/* Copy */}
+        <div className="order-2 lg:order-1">
+          <p className={`${SANS} mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-primary)]`}>
+            The architecture
+          </p>
+          <h2 className={`${SANS} max-w-md text-[clamp(1.9rem,3.4vw,2.6rem)] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--color-text)]`}>
+            A team of specialist agents, orbiting one core.
+          </h2>
+          <p className="mt-5 max-w-md text-[15px] leading-relaxed text-[var(--color-muted)]">
+            Each agent owns one craft and reports to the Core AI. Hover any node
+            to see exactly what it builds — they work in concert so every post is
+            researched, written, and shaped to sound like you.
+          </p>
+          <ul className="mt-7 flex flex-wrap gap-2">
+            {AGENTS.map((a, i) => (
+              <li key={a.label}>
+                <button
+                  onMouseEnter={() => setHovered(i)}
+                  onMouseLeave={() => setHovered(null)}
+                  className={`${SANS} rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    hovered === i
+                      ? "border-[var(--color-primary)] text-[var(--color-primary)]"
+                      : "border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-border-hover)]"
+                  }`}
+                >
+                  {a.label}
+                </button>
               </li>
-            );
-          })}
-        </ol>
-      </div>
+            ))}
+          </ul>
+        </div>
 
-      {/* ── DETAIL EXPLANATION PANEL ── */}
-      <div 
-        key={current} 
-        className="max-w-[1080px] mx-auto mt-10 md:mt-14 flex items-start gap-4 p-5 md:p-7 bg-white dark:bg-zinc-900 border border-(--color-border) rounded-[14px] shadow-sm animate-[cp-detail-in_0.5s_cubic-bezier(0.22,1,0.36,1)_both]"
-      >
-        <span className="font-[family-name:var(--font-display)] text-[clamp(1.6rem,4vw,2.2rem)] text-(--color-primary) line-height-1 shrink-0 font-normal">
-          {String(current + 1).padStart(2, "0")}
-          <span className="text-[0.55em] text-(--color-subtle)">/05</span>
-        </span>
-        <p className="text-[clamp(0.9rem,2vw,1.02rem)] leading-relaxed text-muted-foreground mt-[0.15rem] m-0 max-w-[52ch]">
-          {PIPELINE_STAGES[current].desc}
-        </p>
+        {/* Swarm graphic */}
+        <div className="order-1 mx-auto w-full max-w-md lg:order-2">
+          <div className="relative aspect-square w-full">
+            {/* Orbit rings */}
+            <div aria-hidden className="absolute inset-[8%] rounded-full border border-dashed border-[var(--color-border)]" />
+            <div aria-hidden className="absolute inset-[2%] rounded-full border border-[var(--color-border)]/50" />
+
+            {/* Connection lines */}
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
+              {nodes.map((n, i) => (
+                <line
+                  key={n.label}
+                  x1="50" y1="50" x2={n.x} y2={n.y}
+                  stroke={hovered === i ? n.tint : "var(--color-border)"}
+                  strokeWidth={hovered === i ? 0.8 : 0.5}
+                  strokeDasharray="2 2"
+                  vectorEffect="non-scaling-stroke"
+                  className="transition-all duration-300"
+                />
+              ))}
+            </svg>
+
+            {/* Core node */}
+            <motion.div
+              animate={{ scale: [1, 1.06, 1] }}
+              transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute left-1/2 top-1/2 grid h-[22%] w-[22%] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] text-white shadow-[0_0_0_8px_rgba(199,93,58,0.12),0_18px_40px_-12px_rgba(199,93,58,0.5)]"
+            >
+              <Brain className="h-1/2 w-1/2" strokeWidth={1.6} />
+            </motion.div>
+
+            {/* Sub-agent nodes */}
+            {nodes.map((n, i) => {
+              const Icon = n.icon;
+              const active = hovered === i;
+              return (
+                <div
+                  key={n.label}
+                  className="absolute -translate-x-1/2 -translate-y-1/2"
+                  style={{ left: `${n.x}%`, top: `${n.y}%` }}
+                >
+                  <motion.button
+                    onMouseEnter={() => setHovered(i)}
+                    onMouseLeave={() => setHovered(null)}
+                    onFocus={() => setHovered(i)}
+                    onBlur={() => setHovered(null)}
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ duration: 3.6 + i * 0.5, repeat: Infinity, ease: "easeInOut" }}
+                    whileHover={{ scale: 1.14 }}
+                    aria-label={`${n.label}: ${n.builds}`}
+                    className="grid h-12 w-12 place-items-center rounded-full border bg-white shadow-sm outline-none transition-shadow md:h-14 md:w-14"
+                    style={{
+                      borderColor: active ? n.tint : "var(--color-border)",
+                      boxShadow: active ? `0 10px 26px -10px ${n.tint}aa` : undefined,
+                      color: n.tint,
+                    }}
+                  >
+                    <Icon className="h-5 w-5" strokeWidth={1.7} />
+                  </motion.button>
+
+                  {/* Tooltip */}
+                  <AnimatePresence>
+                    {active && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                        transition={{ duration: 0.18 }}
+                        className="absolute left-1/2 top-full z-20 mt-2 w-44 -translate-x-1/2 rounded-xl border border-[var(--color-border)] bg-white/95 p-3 text-center shadow-lg backdrop-blur"
+                      >
+                        <p className={`${SANS} text-xs font-semibold text-[var(--color-text)]`}>{n.label}</p>
+                        <p className="mt-0.5 text-[11px] leading-snug text-[var(--color-muted)]">{n.builds}</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </section>
   );
 }
 
-/**
- * Clean injection component handling non-trivial multi-stage keyframe animations
- * that are outside normal Tailwind atomic configurations.
- */
-function PipelineKeyframes() {
-  return (
-    <style dangerouslySetInnerHTML={{ __html: `
-      @keyframes cp-fill {
-        0%   { transform: scaleX(0); }
-        90%  { transform: scaleX(1); }
-        100% { transform: scaleX(1); }
-      }
-      @keyframes cp-travel {
-        0%   { left: 0%;   opacity: 0; }
-        4%   { opacity: 1; }
-        90%  { left: 100%; opacity: 1; }
-        96%  { left: 100%; opacity: 0; }
-        100% { left: 100%; opacity: 0; }
-      }
-      @keyframes cp-fill-v {
-        0%   { transform: scaleY(0); }
-        90%  { transform: scaleY(1); }
-        100% { transform: scaleY(1); }
-      }
-      @keyframes cp-travel-v {
-        0%   { top: 0%;   opacity: 0; }
-        4%   { opacity: 1; }
-        90%  { top: 100%; opacity: 1; }
-        96%  { top: 100%; opacity: 0; }
-        100% { top: 100%; opacity: 0; }
-      }
-      @keyframes cp-ring {
-        0%   { transform: scale(1);   opacity: .7; }
-        70%  { transform: scale(1.5); opacity: 0; }
-        100% { transform: scale(1.5); opacity: 0; }
-      }
-      @keyframes cp-detail-in {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .animate-\\[cp-fill_13s_linear_infinite\\],
-        .animate-\\[cp-travel_13s_linear_infinite\\],
-        .animate-\\[cp-fill-v_13s_linear_infinite\\],
-        .animate-\\[cp-travel-v_13s_linear_infinite\\],
-        .animate-\\[cp-ring_2.4s_ease-out_infinite\\] {
-          animation: none !important;
-          transform: scale(1) !important;
-          opacity: 1 !important;
-        }
-      }
-    `}} />
-  );
-}
+// ─── Features Suite (3 pillars) ─────────────────────────────────
 
-// AGENTS SECTION
+const FEATURES = [
+  {
+    icon: Fingerprint,
+    title: "Voice Authenticity Engine",
+    body: "A private persona model learns your rhythm, vocabulary, and the words you'd never use — then checks every draft for fidelity before it ships.",
+    tint: "#C75D3A",
+  },
+  {
+    icon: Layers,
+    title: "Multi-Platform Adaptation",
+    body: "One idea, formatted natively for X, LinkedIn, Instagram, and YouTube — each with the right length, tone, and hooks for that audience.",
+    tint: "#5A7A3E",
+  },
+  {
+    icon: Lightbulb,
+    title: "Automated Ideation",
+    body: "Trend scouts watch your niche around the clock and surface fresh, on-brand angles, so you're never staring at a blank canvas.",
+    tint: "#D4A04C",
+  },
+];
 
-function AgentsSection() {
+function Features() {
   return (
-    <section id="agents" className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 py-24 grid lg:grid-cols-2 gap-16 items-center">
-          <div className="flex justify-center order-2 lg:order-1">
-            <AgentOrbit />
-          </div>
-          <div className="order-1 lg:order-2">
-            <p className="text-[11px] font-semibold tracking-[0.14em] uppercase text-primary mb-3">
-              The Architecture
-            </p>
-            <h2 className="text-[clamp(1.8rem,3vw,2.4rem)] font-normal tracking-tight text-foreground mb-8 leading-[1.1] font-[family-name:var(--font-display)]">
-              Team of Agents Swarm at your fingertips
-            </h2>
-            <p>Our agents are smart, Our agents are smart, Our agents are smart, Our agents are smart, Our agents are smart, Our agents are smart, Our agents are smart, Our agents are smart, Our agents are smart, Our agents are smart, </p>
-          </div>
+    <section id="features" className="border-t border-[var(--color-border)]">
+      <div className="mx-auto max-w-6xl px-6 py-24 lg:py-32">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className={`${SANS} mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-primary)]`}>
+            Built for creators
+          </p>
+          <h2 className={`${SANS} text-[clamp(1.9rem,3.4vw,2.6rem)] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--color-text)]`}>
+            Three engines doing the heavy lifting.
+          </h2>
         </div>
-      </section>
+
+        <div className="mt-16 grid gap-6 md:grid-cols-3">
+          {FEATURES.map((f) => (
+            <article
+              key={f.title}
+              className="group rounded-3xl border border-[var(--color-border)] bg-white/60 p-8 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-border-hover)] hover:shadow-lg"
+            >
+              <span
+                className="grid h-12 w-12 place-items-center rounded-2xl transition-transform duration-300 group-hover:scale-105"
+                style={{ backgroundColor: `${f.tint}1a`, color: f.tint }}
+              >
+                <f.icon className="h-6 w-6" strokeWidth={1.7} />
+              </span>
+              <h3 className={`${SANS} mt-6 text-lg font-semibold tracking-[-0.01em] text-[var(--color-text)]`}>
+                {f.title}
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">{f.body}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
+// ─── FAQ ────────────────────────────────────────────────────────
+
+const FAQS = [
+  {
+    q: "What exactly do Cupid's AI agents do?",
+    a: "A swarm of specialist agents research your niche, adapt findings to your persona, draft platform-native posts, and schedule them — an end-to-end pipeline from idea to publish, all tuned to your voice.",
+  },
+  {
+    q: "Is it safe to let AI replicate my creator voice?",
+    a: "Your persona model is private to your account and never used to train shared models. It only shapes your own drafts, and every output runs a fidelity check — if it doesn't sound like you, it's rewritten.",
+  },
+  {
+    q: "Which platforms does Cupid support?",
+    a: "X (Twitter), LinkedIn, Instagram, Facebook, and YouTube — each with native formatting, length, and tone. More platforms are added regularly.",
+  },
+  {
+    q: "Will my content sound generic or actually like me?",
+    a: "Cupid anchors to your writing samples first. Drafts inherit your sentence rhythm, vocabulary, and angles — not generic web filler — so they read as you, not as AI.",
+  },
+  {
+    q: "Do I keep ownership of everything Cupid creates?",
+    a: "Yes. You own every post you generate. Cupid only stores what's needed to operate the service and never sells your data.",
+  },
+];
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b border-[var(--color-border)]">
+      <h3>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className={`${SANS} flex w-full items-center justify-between gap-4 py-6 text-left text-[15px] font-medium text-[var(--color-text)] md:text-base`}
+        >
+          {q}
+          <ChevronDown
+            className={`h-5 w-5 flex-shrink-0 text-[var(--color-primary)] transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+          />
+        </button>
+      </h3>
+      {/* grid-rows trick: smooth height, zero layout shift */}
+      <div className={`grid transition-all duration-300 ease-out ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+        <div className="overflow-hidden">
+          <p className="pb-6 pr-8 text-sm leading-relaxed text-[var(--color-muted)]">{a}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Faq() {
+  return (
+    <section id="faq" className="border-t border-[var(--color-border)]">
+      <div className="mx-auto max-w-3xl px-6 py-24 lg:py-32">
+        <div className="text-center">
+          <p className={`${SANS} mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-primary)]`}>
+            Questions
+          </p>
+          <h2 className={`${SANS} text-[clamp(1.9rem,3.4vw,2.6rem)] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--color-text)]`}>
+            Everything you&apos;re wondering.
+          </h2>
+        </div>
+        <div className="mt-12">
+          {FAQS.map((f) => (
+            <FaqItem key={f.q} q={f.q} a={f.a} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Content Showcase (kept verbatim per request) ───────────────
 
 function PostsPreview() {
   return (
@@ -325,133 +444,16 @@ function PostsPreview() {
   );
 }
 
-
-function AgentOrbit() {
-  const agents = [
-    { label: "Persona", angle: 270, color: "#af6d58" },
-    { label: "Research", angle: 0, color: "#af6d58" },
-    { label: "Trend", angle: 90, color: "#af6d58" },
-    { label: "Composer", angle: 180, color: "#af6d58" },
-  ];
-  const cx = 190, cy = 190, r = 110;
-
-  return (
-    <svg width="500" height="500" viewBox="0 0 380 380" fill="none" className="max-w-full h-auto">
-      <circle cx={cx} cy={cy} r={r} stroke="#645A51" strokeWidth="1" strokeDasharray="4 6" />
-      <circle cx={cx} cy={cy} r={r + 28} stroke="#c58772" strokeWidth="0.5" strokeOpacity="0.3" />
-      <circle cx={cx} cy={cy} r={28} fill="#fff6ed" stroke="#C75D3A" strokeWidth="1" />
-      <circle cx={cx} cy={cy} r={20} fill="#C75D3A" />
-      <text x={cx} y={cy + 4} textAnchor="middle" fontSize="9" fontFamily="DM Sans,system-ui" fontWeight="500" letterSpacing="0.08em" fill="#ffffff">
-        CUPID
-      </text>
-      {agents.map((agent) => {
-        const rad = (agent.angle * Math.PI) / 180;
-        const nx = cx + r * Math.cos(rad);
-        const ny = cy + r * Math.sin(rad);
-        const lx = cx + (r + 46) * Math.cos(rad);
-        const ly = cy + (r + 46) * Math.sin(rad);
-        return (
-          <g key={agent.label}>
-            <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={agent.color} strokeWidth="0.75" strokeOpacity="0.25" strokeDasharray="3 4" />
-            <circle cx={nx} cy={ny} r={18} fill={agent.color} fillOpacity="0.06"
-              style={{ animation: "pulse-ring 3s ease-in-out infinite", animationDelay: `${agents.indexOf(agent) * 0.6}s`, transformOrigin: `${nx}px ${ny}px` }}
-            />
-            <circle cx={nx} cy={ny} r={11} fill={agent.color === "#d47a03" ? "#f0e0d1" : "#f0f3f8"} stroke={agent.color} strokeWidth="1.5" />
-            <text x={lx} y={ly + 4} textAnchor="middle" fontSize="9.5" fontFamily="DM Sans,system-ui" fontWeight="500" letterSpacing="0.05em" fill="#522a48" fillOpacity="0.7">
-              {agent.label.toUpperCase()}
-            </text>
-          </g>
-        );
-      })}
-      {[30, 350, 310, 90].map((deg, i) => {
-        const rd = (deg * Math.PI) / 180;
-        return <circle key={i} cx={cx + 155 * Math.cos(rd)} cy={cy + 155 * Math.sin(rd)} r={2} fill="#d47a03" fillOpacity="0.2" />;
-      })}
-    </svg>
-  );
-}
-
-
-function Description(){
-  return(
-  <section className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 py-24 lg:py-32 grid lg:grid-cols-[2fr_3fr] gap-12 lg:gap-20">
-          <div className="space-y-7 lg:sticky lg:top-24 lg:self-start">
-            <p className="text-[11px] font-semibold tracking-[0.14em] uppercase text-primary">
-              The product
-            </p>
-            <h2 className="text-[clamp(1.9rem,3.6vw,2.8rem)] font-normal tracking-tight leading-[1.08] font-[family-name:var(--font-display)] text-foreground">
-              An end-to-end agent suite engineered to amplify your <em className="animated-gradient-text">authentic voice</em>.
-            </h2>
-            <div className="space-y-5 text-[15px] text-muted-foreground leading-relaxed">
-              <p>
-                Our agents learn how you actually write — your sentence rhythm,
-                the jokes you'd make, the words you'd never use. They research
-                what your audience cares about. Then they draft, format, and
-                ship.
-              </p>
-              <p>
-                Set up your persona once. Let trend ingestion run in the
-                background. Wake up to drafts that sound exactly like you.
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-16">
-            <div>
-              <h3 className="text-lg font-medium text-foreground mb-8 font-[family-name:var(--font-display)]">
-                Agents that work the way creators think.
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-10">
-                {CAPABILITIES.map((f) => (
-                  <div key={f.label} className="group">
-                    <div className="w-9 h-9 rounded-lg border border-primary/15 bg-primary/5 flex items-center justify-center mb-3 group-hover:bg-primary/10 group-hover:border-primary/25 transition-colors">
-                      <f.icon className="w-4 h-4 text-primary" strokeWidth={1.75} />
-                    </div>
-                    <p className="text-[13.5px] font-medium text-foreground mb-1.5 leading-snug font-[family-name:var(--font-display)]">
-                      {f.label}
-                    </p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {f.sub}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-medium text-foreground mb-8 font-[family-name:var(--font-display)]">
-                Built for every kind of creator.
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-10">
-                {CREATOR_BUSINESS_TYPES.map((c) => (
-                  <div key={c.label} className="group">
-                    <div className="w-9 h-9 rounded-lg border border-primary/15 bg-primary/5 flex items-center justify-center mb-3 group-hover:bg-primary/10 group-hover:border-primary/25 transition-colors">
-                      <c.icon className="w-4 h-4 text-primary" strokeWidth={1.75} />
-                    </div>
-                    <p className="text-[13.5px] font-medium text-foreground mb-1.5 leading-snug font-[family-name:var(--font-display)]">
-                      {c.label}
-                    </p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {c.sub}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-  );
-}
+// ─── Page ───────────────────────────────────────────────────────
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen overflow-x-hidden bg-background text-text antialiased">
+    <main className="min-h-screen overflow-x-hidden bg-[var(--color-background)] text-[var(--color-text)] antialiased">
       <Hero />
-      <AgentsSection />
+      <AgentSwarm />
       <PostsPreview />
-      <Description/>
+      <Features />
+      <Faq />
       <Footer />
     </main>
   );

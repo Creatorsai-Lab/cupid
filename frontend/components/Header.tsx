@@ -36,8 +36,8 @@ export default function Header() {
             <Image
               src="/cupid_logo.webp"
               alt="Cupid Logo"
-              width={800}
-              height={764}
+              width={850}
+              height={814}
               className="w-10 h-auto"
               priority
             />
@@ -82,12 +82,11 @@ export default function Header() {
                         flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-300
                         ${isActive 
                           ? "text-(--color-primary) drop-shadow-[-1px_1px_1px_rgba(158,68,38,0.4)]" 
-                          /* FIX: Changed from hover:shadow to hover:drop-shadow and reduced the translate-y slightly for a cleaner icon lift */
                           : "text-(--color-text) hover:-translate-y-[2px] hover:drop-shadow-[-1px_1px_1px_rgba(158,68,38,0.4)]"
                         }
                       `}
                     >
-                      <Icon size={22} strokeWidth={2} /> 
+                      <Icon size={24} strokeWidth={2} /> 
                     </Link>
                   </li>
                 );
