@@ -200,18 +200,11 @@ function SectionStats({ stats }: { stats: ReadinessResponse["stats"] }) {
     return (
         <section>
             <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-                <div>
-                    <h1 className="font-normal tracking-tight"
-                        style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem,3vw,2rem)", color: "var(--color-text)" }}>
-                        Your <em style={{ color: "var(--color-primary)", fontStyle: "italic" }}>earning</em> dashboard
-                    </h1>
-                </div>
-                <span className="text-xs px-3 py-1.5 rounded-full font-medium"
-                      style={{ backgroundColor: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-body)" }}>
-                    {stats.tier_label}
-                </span>
+            <div>
+                <h1 className="tracking-tight text-[clamp(1.8rem, 4vw, 2.2rem)]">Your Monitization Coach</h1>
             </div>
-
+                <span className="text-xs px-3 py-1.5 rounded-full font-medium border border-[var(--color-primary)] text-[var(--color-primary)] font-[family-name:var(--font-body)]">{stats.tier_label}</span>
+            </div>
             <div className="grid grid-cols-3 gap-3 mb-3">
                 <StatTile icon={<Users size={15} />} label="Followers" value={fmt(stats.total_followers)} />
                 <StatTile icon={<Eye size={15} />} label="Monthly views" value={fmt(stats.monthly_views)} />

@@ -88,16 +88,9 @@ export default function InsightsPage() {
 
     return (
         <ProtectedRoute>
-            <main
-                className="min-h-[calc(100vh-60px)] px-6 py-10"
-                style={{ backgroundColor: "var(--color-background)" }}
-            >
-                <div className="max-w-6xl mx-auto">
-                    {/* Page header */}
-                    <div className="mb-8">
-                        <div className="flex items-baseline gap-3 mb-2">
-                            <h1 className="tracking-tight text-[clamp(1.6rem, 3vw, 2rem)] text-transform: capitalize">insights from your channels</h1>
-                        </div>
+            <main className="max-w-4xl mx-auto transition-all duration-500 p-3">
+                    <div className="flex flex-col gap-1 my-8">
+                        <h1 className="tracking-tight text-[clamp(1.8rem, 4vw, 2.2rem)]">Insights From Your Channels</h1>
                         <p>Analytics, growth, and posting patterns from your connected accounts</p>
                     </div>
 
@@ -140,7 +133,6 @@ export default function InsightsPage() {
                             )}
                         </>
                     )}
-                </div>
             </main>
         </ProtectedRoute>
     );

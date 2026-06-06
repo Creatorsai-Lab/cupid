@@ -214,11 +214,7 @@ export function FacebookCard({
                             <Heart size={9} className="text-white fill-white" strokeWidth={0} />
                         </div>
                     </div>
-                    <span className="text-xs text-[#65676b] ml-1">124</span>
-                </div>
-                <div className="flex gap-3">
-                    <span className="text-xs text-[#65676b]">18 comments</span>
-                    <span className="text-xs text-[#65676b]">4 shares</span>
+                    <span className="text-xs text-[#65676b]">0 comment · 4 shares</span>
                 </div>
             </div>
 
@@ -363,10 +359,10 @@ export function XCard({
             />
             <div className="flex items-center justify-between px-4 py-2">
                 {[
-                    { icon: MessageCircle, count: "24" },
-                    { icon: Repeat2, count: "18" },
-                    { icon: Heart, count: "247" },
-                    { icon: ChartNoAxesColumn, count: "3K" },
+                    { icon: MessageCircle, count: "" },
+                    { icon: Repeat2, count: "" },
+                    { icon: Heart, count: "" },
+                    { icon: ChartNoAxesColumn, count: "" },
                     { icon: Bookmark, count: null },
                     { icon: Share2, count: null },
                 ].map(({ icon: Icon, count }, i) => (
@@ -428,18 +424,8 @@ export function LinkedInCard({
                 platformLabel="Image"
             />
 
-            <div className="flex items-center justify-between px-4 py-2 border-t border-[#e0e0e0] border-b text-xs text-[#666]">
-                <div className="flex items-center gap-1.5">
-                    <div className="flex -space-x-0.5">
-                        {["#368ee7", "#df704d", "#68a84a"].map((c, i) => (
-                            <div key={i} className="w-4 h-4 rounded-full border border-white flex items-center justify-center" style={{ background: c }}>
-                                <ThumbsUp size={7} className="text-white" strokeWidth={2.5} />
-                            </div>
-                        ))}
-                    </div>
-                    <span>1,482</span>
-                </div>
-                <span>87 comments · 34 reposts</span>
+            <div className="flex items-center justify-end px-4 py-2 border-t border-[#e0e0e0] border-b text-xs text-[#666]">
+                <span>0 comments · 0 reposts</span>
             </div>
 
             <div className="flex p-4 justify-between">

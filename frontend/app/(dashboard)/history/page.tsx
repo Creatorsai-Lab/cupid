@@ -65,28 +65,15 @@ export default function HistoryPage() {
 
     return (
         <ProtectedRoute>
-            <main
-                className="min-h-[calc(100vh-60px)] px-6 py-10"
-                style={{ backgroundColor: "var(--color-background)" }}
-            >
-                <div className="max-w-4xl mx-auto">
-                    {/* Header */}
-                    <header className="mb-8">
-                        <div className="flex items-baseline gap-3 mb-2">
-                            <h1 className="tracking-tight text-[clamp(1.8rem, 4vw, 2.2rem)]">
-                                Your Chat History
-                            </h1>
-                        </div>
-                        <p
-                            className="text-sm"
-                            style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
-                        >
+                <main className="max-w-4xl mx-auto transition-all duration-500 p-3">
+                    <div className="flex flex-col gap-1 my-8">
+                        <h1 className="tracking-tight text-[clamp(1.8rem, 4vw, 2.2rem)]">Your Chat History</h1>
+                        <p>
                             {total > 0
-                                ? `${total} saved ${total === 1 ? "history" : "histories"}. Click any card to see the full posts.`
-                                : "Every post you generate is saved here automatically."}
+                            ? `${total} saved ${total === 1 ? "history" : "histories"}. Click any card to see the full posts.`
+                            : "Every post you generate is saved here automatically."}
                         </p>
-                    </header>
-
+                    </div>
                     {/* States */}
                     {loading && <ListSkeleton />}
 
@@ -135,8 +122,6 @@ export default function HistoryPage() {
                             </button>
                         </div>
                     )}
-                </div>
-
                 {/* Detail modal */}
                 {activeEntry && (
                     <DetailModal
@@ -144,7 +129,7 @@ export default function HistoryPage() {
                         onClose={() => setActiveEntry(null)}
                     />
                 )}
-            </main>
+                </main>
         </ProtectedRoute>
     );
 }
@@ -167,29 +152,28 @@ function HistoryCard({
 }) {
     return (
         <div
-            className="rounded-2xl border bg-white p-6 transition-shadow hover:shadow-md cursor-pointer relative group"
+            className="rounded-xl border bg-white p-3 transition-shadow hover:shadow-md cursor-pointer relative group"
             style={{ borderColor: "var(--color-border)" }}
             onClick={onOpen}
         >
             {/* Header: prompt + date + delete */}
-            <div className="flex items-start justify-between gap-4 mb-4 ">
+            <div className="flex items-start justify-between gap-4">
                 <h2
-                    className="text-ms font-semibold line-clamp-2 flex-1 text-[var(--color-text)] font-[family-name:var(--font-body)] ">
+                    className="text-base font-semibold line-clamp-2 flex-1 text-[var(--color-text)] font-[family-name:var(--font-body)] ">
                     {entry.prompt}
                 </h2>
                 <div className="flex items-center gap-3 flex-shrink-0">
                     <span
-                        className="text-xs italic whitespace-nowrap text-[var(--color-text)] font-[family-name:var(--color-muted)] ">
+                        className="text-xs italic whitespace-nowrap text-[var(--color-text)]">
                         {formatDate(entry.created_at)}
                     </span>
                     <button
                         onClick={(e) => {
-                            e.stopPropagation();   // don't open modal
+                            e.stopPropagation();  
                             onDelete();
                         }}
                         disabled={deleting}
-                        className="p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 disabled:opacity-50"
-                        style={{ color: "#dc2626" }}
+                        className="p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 disabled:opacity-50 text-[var(--color-destructive)]"
                         title="Delete"
                     >
                         {deleting ? (
@@ -202,7 +186,7 @@ function HistoryCard({
             </div>
 
             {/* Three variant previews */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                 {entry.variants.slice(0, 3).map((variant, i) => (
                     <PreviewCard key={i} variant={variant} />
                 ))}
@@ -214,35 +198,15 @@ function HistoryCard({
 
 function PreviewCard({ variant }: { variant: HistoryVariant }) {
     return (
-        <div
-            className="rounded-xl border p-4 h-36 overflow-hidden relative"
-            style={{
-                borderColor: "var(--color-border)",
-                backgroundColor: "var(--color-background)",
-            }}
-        >
-            <p
-                className="text-sm leading-relaxed line-clamp-5"
-                style={{ color: "var(--color-text)", fontFamily: "var(--font-body)" }}
-            >
-                {variant.content}
-            </p>
-            {/* Fade-out gradient at the bottom to hint there's more */}
-            <div
-                className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none"
-                style={{
-                    background: "linear-gradient(to bottom, transparent, var(--color-background))",
-                }}
-            />
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-3 h-[120px] overflow-hidden relative">
+            <p className="text-sm leading-relaxed line-clamp-5">{variant.content}</p>
+            <div className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none" style={{
+                background: "linear-gradient(to bottom, transparent, var(--color-background))",}}></div>
         </div>
     );
 }
 
-
-// ────────────────────────────────────────────────────────────────
-//  Detail modal — full prompt + full 3 variants
-// ────────────────────────────────────────────────────────────────
-
+//  Open Detail modal
 function DetailModal({
     entry,
     onClose,

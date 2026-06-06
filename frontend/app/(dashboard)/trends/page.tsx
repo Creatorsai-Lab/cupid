@@ -81,17 +81,11 @@ export default function TrendsPage() {
 
   return (
     <ProtectedRoute>
-      <main
-        className="min-h-[calc(100vh-60px)] px-6 py-10"
-        style={{ backgroundColor: "var(--color-background)" }}
-      >
-        <div className="max-w-3xl mx-auto">
-
-          {/* Page header */}
-            <div className="flex items-baseline gap-3 mb-6">
-              <h1 className="tracking-tight text-[clamp(1.8rem, 4vw, 2.2rem)] text-transform: capitalize">{data?.niche ?? "niche"} Trends and Recommendation</h1>
-            </div>
-
+      <main className="max-w-4xl mx-auto transition-all duration-500 p-3">
+        <div className="flex flex-col gap-1 my-8">
+            <h1 className="tracking-tight text-[clamp(1.8rem, 4vw, 2.2rem)]">Personalized Trends and Recommendation</h1>
+            <p>Trendy and hot topics in your niche</p>
+        </div>
           {/* Tab bar + actions */}
           <div className="flex items-center justify-between mb-6 bg-[var(--inline-bg)] rounded-lg">
             <div className="flex gap-1">
@@ -147,7 +141,6 @@ export default function TrendsPage() {
 
           {tab === "posts" && <PostsTab />}
 
-        </div>
       </main>
     </ProtectedRoute>
   );

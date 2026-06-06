@@ -141,9 +141,7 @@ export default function CreatePage() {
 
     return (
         <ProtectedRoute>
-            <main
-                className={`min-h-[calc(100vh-60px)] w-full max-w-4xl mx-auto px-6 py-10 flex flex-col transition-all duration-500 ease-in-out ${hasActiveResults ? "justify-start" : "justify-center"}`}
-            >
+            <main className={`min-h-[calc(100vh-60px)] max-w-4xl mx-auto flex flex-col transition-all duration-500 ease-in-out ${hasActiveResults ? "justify-start" : "justify-center"}`}>
 
                     {/* Welcome Title */}
                     <div className="mb-6 text-center">
@@ -151,7 +149,7 @@ export default function CreatePage() {
                     </div>
 
                     {/* Input Box Workplace */}
-                    <div className="animated-gradient-border mb-8">
+                    <div className="animated-gradient-border m-3">
                         <div className="animated-gradient-border-inner relative flex flex-col p-4">
                             <textarea
                                 value={prompt}
@@ -159,7 +157,7 @@ export default function CreatePage() {
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleGenerate();
                                 }}
-                                placeholder="What do you want to post about?"
+                                placeholder="Describe here in detail what you want to create..."
                                 className="w-full bg-transparent text-sm leading-relaxed resize-none outline-none mb-4 font-[family-name:var(--font-body)] text-[var(--color-text)]"
                                 rows={3}
                             />

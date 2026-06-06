@@ -26,32 +26,11 @@ export default function SettingsPage() {
 
   return (
     <ProtectedRoute>
-      <main style={{
-        minHeight: "calc(100vh - 60px)",
-        backgroundColor: "var(--color-background)",
-        padding: "2rem 1.5rem",
-      }}>
-        <div style={{ maxWidth: "800px", margin: "0 auto" }}>
-          {/* Page header */}
-          <div style={{ marginBottom: "2rem" }}>
-            <h1 style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "1.8rem",
-              fontWeight: 400,
-              color: "var(--color-text)",
-              letterSpacing: "-0.02em",
-            }}>
-              Settings
-            </h1>
-            <p style={{
-              fontSize: "0.88rem",
-              color: "var(--color-muted)",
-              fontFamily: "var(--font-body)",
-              marginTop: "0.25rem",
-            }}>
-              Manage your profile and preferences
-            </p>
-          </div>
+      <main className="max-w-4xl mx-auto transition-all duration-500 p-3">
+        <div className="flex flex-col gap-1 my-8">
+            <h1 className="tracking-tight text-[clamp(1.8rem, 4vw, 2.2rem)]">Settings</h1>
+            <p>Manage your profile, preference, subscription plan, connected social accounts, and help.</p>
+        </div>
 
           {/* Tabs */}
           <div style={{
@@ -93,7 +72,6 @@ export default function SettingsPage() {
           {activeTab === "settings" && <SettingsTab />}
           {activeTab === "connect" && <ConnectTab />}
           {activeTab === "help" && <HelpTab />}
-        </div>
       </main>
     </ProtectedRoute>
   );
