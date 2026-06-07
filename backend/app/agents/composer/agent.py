@@ -65,7 +65,7 @@ def _get_groq_llm() -> Any | None:
         logger.warning("[composer] langchain-groq not installed")
         return None
     except Exception as exc:
-        logger.warning("[composer] Groq init failed: %s", str(exc)[:200])
+        logger.warning(f"[composer] Groq init failed: {str(exc)[:200]}")
         return None
 
 
@@ -141,7 +141,7 @@ async def _generate_variant(
         text = _clean_output(response.content)
         return text if text else None
     except Exception as exc:
-        logger.warning("[composer] angle=%s failed: %s", angle, str(exc)[:120])
+        logger.warning(f"[composer] angle={angle} failed: {str(exc)[:120]}")
         return None
 
 

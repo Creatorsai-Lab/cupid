@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:8000/api/v1/connections/youtube/callback"
+    
     @field_validator("secret_key")
     @classmethod
     def _reject_weak_secret(cls, v: str) -> str:

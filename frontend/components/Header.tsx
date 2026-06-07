@@ -29,7 +29,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-(--color-background)">
-      <div className="max-w-[1200px] mx-auto py-2 px-3 flex items-center gap-6">
+      <div className="max-w-5xl mx-auto py-2 px-3 flex items-center gap-6">
         <div className="flex items-center gap-3 shrink-0">
           {/* Logo */}
           <Link href="/" className="flex items-center no-underline">

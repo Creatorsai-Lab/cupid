@@ -151,12 +151,7 @@ function HistoryCard({
     deleting: boolean;
 }) {
     return (
-        <div
-    className="rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)] bg-white p-3 transition-all duration-200 ease-in-out hover:shadow-md cursor-pointer relative group"
-    onClick={onOpen}
->
-
-
+        <div className="rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)] bg-white p-3 transition-all duration-200 ease-in-out hover:shadow-md cursor-pointer relative group"onClick={onOpen}>
             {/* Header: prompt + date + delete */}
             <div className="flex items-start justify-between gap-4">
                 <h2

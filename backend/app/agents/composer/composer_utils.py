@@ -1,24 +1,21 @@
 """
-Composer Utilities — consolidated source ranking, evidence extraction, and quality scoring.
+Composer Utilities — source ranking and quality scoring.
 
-This module combines three previously separate concerns into a single, cohesive utility layer:
+Two stateless concerns:
     1. SOURCE RANKING  — BM25 + persona-aware boosting to pick top K sources
-    2. EVIDENCE DISTILLATION — LLM-based atomic fact extraction from sources
-    3. QUALITY SCORING — multi-axis deterministic evaluation of composed variants
+    2. QUALITY SCORING — multi-axis deterministic evaluation of composed variants
 
-All functions are stateless and can be called independently.
+(Evidence distillation was removed — the composer grounds variants directly on
+the ranked source text instead of an extra LLM fact-extraction call.)
 """
 from __future__ import annotations
 
-import json
 import logging
 import math
 import re
 from collections import Counter
 from dataclasses import dataclass
 from typing import Any
-
-from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.agents.composer.platform_rules import PlatformRule
 
@@ -188,117 +185,6 @@ def rank_sources(
         len(top), len(pages), [round(s, 3) for s, _ in scored[:top_k]],
     )
     return top
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# EVIDENCE DISTILLATION — atomic fact extraction
-# ═══════════════════════════════════════════════════════════════════════════════
-
-_EVIDENCE_SYSTEM_PROMPT = """\
-You are a research assistant. Extract ATOMIC FACTS from source material.
-
-An atomic fact is:
-- A single, verifiable claim
-- Attributed to a specific source
-- Categorized by type (stat, quote, entity, claim, relationship)
-
-TYPES:
-- stat: A number, percentage, or quantitative claim
-- quote: A direct statement from a person or document
-- entity: A named person, company, product, or place
-- claim: A qualitative assertion (e.g., "X is the leading Y")
-- relationship: A connection between two entities (e.g., "X acquired Y")
-
-RULES:
-- Extract 5-12 facts total across all sources
-- Prioritize surprising or specific information
-- Do NOT paraphrase quotes — keep them verbatim
-- Do NOT invent facts not present in the sources
-- Attribute each fact to its source number (0, 1, 2, etc.)
-
-OUTPUT FORMAT (JSON array):
-[
-  {"fact": "...", "source": 0, "type": "stat"},
-  {"fact": "...", "source": 1, "type": "quote"},
-  ...
-]
-
-Return ONLY the JSON array. No preamble, no markdown fences, no explanation.
-"""
-
-
-async def distill_evidence(
-    llm: Any,
-    user_prompt: str,
-    sources: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    """
-    Extract atomic facts from top sources using LLM.
-
-    Args:
-        llm: LangChain-compatible LLM (must support .ainvoke([messages]))
-        user_prompt: user's original content request (for context)
-        sources: top ranked pages from rank_sources
-
-    Returns:
-        List of fact dicts: [{"fact": str, "source": int, "type": str}, ...]
-    """
-    if not sources:
-        logger.warning("[distill_evidence] no sources provided")
-        return []
-
-    # Format sources for LLM
-    sources_block = []
-    for i, src in enumerate(sources):
-        title = src.get("title", "Untitled")
-        domain = src.get("domain", "unknown")
-        text = src.get("text_content", "")[:2000]  # cap at 2k chars per source
-        sources_block.append(f"[SOURCE {i}] {title} ({domain})\n{text}\n")
-    
-    user_message = (
-        f"USER REQUEST\n{user_prompt}\n\n"
-        f"SOURCES\n{chr(10).join(sources_block)}\n\n"
-        f"Extract the atomic facts now."
-    )
-
-    try:
-        response = await llm.ainvoke([
-            SystemMessage(content=_EVIDENCE_SYSTEM_PROMPT),
-            HumanMessage(content=user_message),
-        ])
-        raw = response.content.strip()
-
-        # Strip markdown fences if present
-        if raw.startswith("```"):
-            raw = re.sub(r"^```(?:json)?\s*", "", raw)
-            raw = re.sub(r"\s*```$", "", raw)
-
-        facts = json.loads(raw)
-
-        if not isinstance(facts, list):
-            logger.warning("[distill_evidence] LLM returned non-list: %s", type(facts))
-            return []
-
-        # Validate structure
-        valid_facts = []
-        for f in facts:
-            if isinstance(f, dict) and "fact" in f and "source" in f and "type" in f:
-                valid_facts.append({
-                    "fact": str(f["fact"]),
-                    "source": int(f["source"]),
-                    "type": str(f["type"]),
-                })
-
-        logger.info("[distill_evidence] extracted %d facts", len(valid_facts))
-        return valid_facts
-
-    except json.JSONDecodeError as exc:
-        logger.error("[distill_evidence] JSON parse failed: %s", exc)
-        logger.debug("[distill_evidence] raw output: %s", raw[:500])
-        return []
-    except Exception as exc:
-        logger.error("[distill_evidence] failed: %s", exc, exc_info=True)
-        return []
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

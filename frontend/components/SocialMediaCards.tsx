@@ -49,6 +49,11 @@ import {
     Square
 } from "lucide-react";
 
+// True when the media URL points at a video file (so we render <video>, not <img>).
+function isVideoSrc(url?: string): boolean {
+    return !!url && /\.(mp4|webm|mov|ogg)$/i.test(url);
+}
+
 // ─── Shared types ──────────────────────────────────────────────
 
 export interface CardProps {
@@ -140,11 +145,23 @@ function MediaBlock({
     className?: string;
 }) {
     if (mediaUrl) {
+        const isVid = isVideoSrc(mediaUrl);
         return (
             <div className={`relative w-full overflow-hidden ${className}`} style={{ aspectRatio }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={mediaUrl} alt={alt ?? "post media"} className="w-full h-full object-cover" />
-                {isVideo && (
+                {isVid ? (
+                    <video
+                        src={mediaUrl}
+                        className="w-full h-full object-cover"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                    />
+                ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={mediaUrl} alt={alt ?? "post media"} className="w-full h-full object-cover" />
+                )}
+                {isVideo && !isVid && (
                     <div className="absolute inset-0 flex items-center justify-center">
                         <div className="bg-black/50 rounded-full p-3 backdrop-blur-sm">
                             <Play size={22} className="text-white" fill="white" />
@@ -239,8 +256,12 @@ export function InstagramReelCard({
 
             {/* Full-bleed background media */}
             {mediaUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={mediaUrl} alt="Reel" className="absolute inset-0 w-full h-full object-cover" />
+                isVideoSrc(mediaUrl) ? (
+                    <video src={mediaUrl} className="absolute inset-0 w-full h-full object-cover" autoPlay muted loop playsInline />
+                ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={mediaUrl} alt="Reel" className="absolute inset-0 w-full h-full object-cover" />
+                )
             ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ background: "linear-gradient(160deg,#833ab4,#fd1d1d,#fcb045)" }}>
                     <div className="bg-white/20 rounded-full p-5 backdrop-blur-sm">
@@ -504,8 +525,12 @@ export function YouTubeShortsCard({
       >
         {/* Background media or placeholder */}
         {mediaUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={mediaUrl} alt="Short" className="absolute inset-0 w-full h-full object-cover" />
+          isVideoSrc(mediaUrl) ? (
+            <video src={mediaUrl} className="absolute inset-0 w-full h-full object-cover" autoPlay muted loop playsInline />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={mediaUrl} alt="Short" className="absolute inset-0 w-full h-full object-cover" />
+          )
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
               <Play size={28} fill="#ffffffff" strokeWidth={0} />

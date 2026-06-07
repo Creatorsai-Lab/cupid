@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Copy, Check, X, ChevronLeft, ChevronRight, DraftingCompass} from "lucide-react";
+  Copy, Check, X, ChevronLeft, ChevronRight, DraftingCompass, Download } from "lucide-react";
 import { SocialMediaCard, type Platform } from "@/components/SocialMediaCards";
 import { ImagePickerModal } from "@/components/ImagePickerModal";
 import { historyApi } from "@/lib/api";
@@ -360,6 +360,27 @@ function SourceCard({
     setTimeout(() => setCopied(false), 1800);
   };
 
+  // Download the selected image so the user can publish manually (no publish
+  // feature yet). Fetch → blob forces a real download; falls back to opening
+  // the image if the host blocks cross-origin fetch.
+  const handleDownload = async () => {
+    if (!mediaUrl) return;
+    try {
+      const res = await fetch(mediaUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `cupid-variant-${index + 1}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(mediaUrl, "_blank", "noopener,noreferrer");
+    }
+  };
+
   return (
     <div
       className="flex flex-col mt-5 bg-[var(--color-inline-bg)] rounded-xl transition-colors border border-[var(--color-border)]">
@@ -388,12 +409,25 @@ function SourceCard({
       </div>
 
       {/* Platform-accurate social media card */}
-      <SocialMediaCard
-        platform={platformKey}
-        name={userName}
-        content={variant.content}
-        mediaUrl={mediaUrl}
-      />
+      <div className="relative">
+        <SocialMediaCard
+          platform={platformKey}
+          name={userName}
+          content={variant.content}
+          mediaUrl={mediaUrl}
+        />
+        {/* Download — only when an image has been picked for this variant */}
+        {mediaUrl && (
+          <button
+            onClick={handleDownload}
+            title="Download image"
+            className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--color-inline-bg)_30%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-white cursor-pointer"
+          >
+            <Download size={13} />
+            Download
+          </button>
+        )}
+      </div>
     </div>
   );
 }

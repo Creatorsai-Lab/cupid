@@ -12,6 +12,15 @@ const PLATFORMS = ["Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube", "W
 const LENGTHS = ["Short", "Medium", "Long", "Full Article"] as const;
 const TONES = ["Casual", "Formal", "Informative", "GenZ", "Factual", "Hook First", "Data Driven", "Story Led"] as const;
 
+// Welcome lines — one is picked at random and locked for 24h (see effect below).
+const GREETINGS = [
+    "What should we focus on, {name}?",
+    "What's today's agenda, {name}?",
+    "Let's jump in, {name}.",
+    "What are we creating today, {name}?",
+    "How can I help you {name}?",
+];
+
 // ── Agent status label ────────────────────────────────────────
 
 // Driven by cumulative milestones, not the transient current_agent / completed
@@ -39,9 +48,9 @@ export default function CreatePage() {
     const [contentType, setContentType] = useState<string>("Text");
     const [platform, setPlatform] = useState<string>("Twitter");
     const [length, setLength] = useState<string>("Medium");
-    const [tone, setTone] = useState<string>("Casual");
-
+    const [tone, setTone] = useState<string>("Formal");
     const [nickname, setNickname] = useState<string | null>(null);
+    const [greetIdx, setGreetIdx] = useState(0);
     const [isGenerating, setIsGenerating] = useState(false);
     const [runId, setRunId] = useState<string | null>(null);
     const [agentStatus, setAgentStatus] = useState<string>("");
@@ -65,6 +74,47 @@ export default function CreatePage() {
         profileApi.get().then((res) => {
             if (res.data?.nickname) setNickname(res.data.nickname);
         }).catch(() => {});
+    }, []);
+
+    // Restore an unsent prompt draft so a refresh or accidentally-closed tab
+    // doesn't lose the user's thinking. The draft is saved on every keystroke
+    // (effect below) and cleared once the prompt is successfully sent.
+    useEffect(() => {
+        try {
+            const draft = localStorage.getItem("cupid-prompt-draft");
+            if (draft) setPrompt(draft);
+        } catch {}
+    }, []);
+
+    // Keep the draft in sync with the textarea.
+    useEffect(() => {
+        try {
+            if (prompt.trim()) localStorage.setItem("cupid-prompt-draft", prompt);
+            else localStorage.removeItem("cupid-prompt-draft");
+        } catch {}
+    }, [prompt]);
+
+    // Pick a welcome line, then keep it for 24h. Reuses the stored choice until
+    // a day has passed, then rolls a fresh one — so it changes once per day, not
+    // on every visit. (localStorage runs client-side → no hydration mismatch.)
+    useEffect(() => {
+        const KEY = "cupid-greeting";
+        const DAY = 24 * 60 * 60 * 1000;
+        try {
+            const raw = localStorage.getItem(KEY);
+            if (raw) {
+                const { i, ts } = JSON.parse(raw);
+                if (typeof i === "number" && Date.now() - ts < DAY) {
+                    setGreetIdx(i % GREETINGS.length);
+                    return;
+                }
+            }
+        } catch {}
+        const i = Math.floor(Math.random() * GREETINGS.length);
+        setGreetIdx(i);
+        try {
+            localStorage.setItem(KEY, JSON.stringify({ i, ts: Date.now() }));
+        } catch {}
     }, []);
 
     // Poll run status every 2 seconds until complete or failed
@@ -133,6 +183,8 @@ export default function CreatePage() {
             });
             setRunId(res.run_id);
             setAgentStatus(res.status);
+            // Sent successfully → the draft is no longer needed.
+            try { localStorage.removeItem("cupid-prompt-draft"); } catch {}
         } catch (e: any) {
             setError(e.message);
             setIsGenerating(false);
@@ -145,7 +197,7 @@ export default function CreatePage() {
 
                     {/* Welcome Title */}
                     <div className="mb-6 text-center">
-                        <h1 className="font-normal tracking-tight mb-2 font-[family-name:var(--font-display)] text-[clamp(1.6rem,3.5vw,2.2rem)]">Canvas is your's, {displayName}</h1>
+                        <h1 className="font-normal tracking-tight mb-2 font-[family-name:var(--font-display)] text-[clamp(1.6rem,3.5vw,2.2rem)]">{GREETINGS[greetIdx].replace("{name}", displayName)}</h1>
                     </div>
 
                     {/* Input Box Workplace */}
@@ -157,8 +209,8 @@ export default function CreatePage() {
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleGenerate();
                                 }}
-                                placeholder="Describe here in detail what you want to create..."
-                                className="w-full bg-transparent text-sm leading-relaxed resize-none outline-none mb-4 font-[family-name:var(--font-body)] text-[var(--color-text)]"
+                                placeholder="Describe here your idea and intent in detail what you want to create..."
+                                className="w-full bg-transparent text-base leading-relaxed resize-none outline-none mb-4 font-[family-name:var(--font-body)] text-[var(--color-text)]"
                                 rows={3}
                             />
 
@@ -202,7 +254,6 @@ export default function CreatePage() {
                     {error && (
                         <div className="mb-5 p-4 rounded-lg border-1 border-[var(--color-destructive)] bg-[color-mix(in_srgb,var(--color-destructive)_20%,transparent)]">
                             <div className="flex-1">
-                                <b className="text-(--color-destructive) mb-1" >Validation Error</b>
                                 <p className="text-sm text-(--color-destructive)">{error}</p>
                             </div>
                         </div>

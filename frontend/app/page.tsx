@@ -165,11 +165,10 @@ function AgentSwarm() {
                 <button
                   onMouseEnter={() => setHovered(i)}
                   onMouseLeave={() => setHovered(null)}
-                  className={`${SANS} rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                    hovered === i
+                  className={`${SANS} rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${hovered === i
                       ? "border-[var(--color-primary)] text-[var(--color-primary)]"
                       : "border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-border-hover)]"
-                  }`}
+                    }`}
                 >
                   {a.label}
                 </button>
@@ -402,44 +401,45 @@ function PostsPreview() {
   return (
     <section id="examples" className="border-t border-border bg-muted/20">
       <div className="max-w-6xl mx-auto px-6 py-24">
-      <h2 className="text-[clamp(1.8rem,3vw,2.4rem)] tracking-tight mb-3 text-center">Posts that already sound like you</h2>
+        <h2 className="text-[clamp(1.8rem,3vw,2.4rem)] tracking-tight mb-3 text-center">Posts that already sound like you</h2>
         <p className="text-center mb-14">Intelligence personalized to each social media platform formats and tone</p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <XCard name="Adya Prasad" handle="adyaprasad" content="Just shipped persona fidelity scoring for Cupid." />
-                  <FacebookCard name="Rakul Bansal" content="Just shipped persona fidelity scoring for Cupid." />
-                  <LinkedInCard name="Rakul Bansal" content="Just shipped persona fidelity scoring for Cupid." />
-                  <InstagramCard
-                    name="Rakul Bansal"
-                    content="Just shipped persona fidelity scoring for Cupid."
-                    mediaUrl="/public/media/boy_profile.webp"
-                  />
-                  <YouTubeShortsCard name="Adya Prasad" content="Cute Couple Status." />
-                  <YouTubeShortsCard
-                    name="Adya Prasad"
-                    handle="adyaprasad"
-                    content="Just shipped persona fidelity scoring for Cupid AI."
-                    mediaUrl="/short-thumbnail.jpg"
-                  />
-                  <YouTubeCard name="Rakul Bansal" content="Just shipped persona fidelity scoring for Cupid." />
-                  <PollCard
-                    name="Adya Prasad"
-                    handle="adyaprasad"
-                    question="Which framework should I use for Cupid's agent layer?"
-                    options={["LangGraph", "CrewAI", "AutoGen", "Build from scratch"]}
-                    timeLeft="18h left"
-                  />
-                  <PollCard
-                    name="Adya Prasad"
-                    handle="adyaprasad"
-                    question="Which framework should I use for Cupid's agent layer?"
-                    options={["LangGraph", "CrewAI", "AutoGen", "Build from scratch"]}
-                    votes={[48, 27, 16, 9]}
-                    totalVotes={1284}
-                    timeLeft="18h left"
-                  />
-                </div>
-    </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <XCard name="Hubert" handle="hthieblot" content="Just move to SF, it will change your life.
+                  Go in debt if you have to." mediaUrl="/media/sf_scene.png" />
+          <FacebookCard name="Rakul Bansal" content="Just shipped persona fidelity scoring for Cupid." />
+          <LinkedInCard name="AIM" content="Google India has signed a five-year lease for approximately 617,000 square feet of office space at Atrium Place in Gurugram, with a total rental outlay of Rs 671 crore, according to transaction documents accessed by Propstack. The space, spread across floors two to 16 of Tower 1, is part of a joint venture between DLF and Hines, and the lease commenced on 1 October 2025." mediaUrl="/media/Google_deal.jpg" />
+          <InstagramCard
+            name="Rakul Bansal"
+            content="Just shipped persona fidelity scoring for Cupid."
+            mediaUrl="/media/boy_profile.webp"
+          />
+          <YouTubeShortsCard name="Adya Prasad" content="Cute Couple Status." />
+          <YouTubeShortsCard
+            name="Adya Prasad"
+            handle="adyaprasad"
+            content="Just shipped persona fidelity scoring for Cupid AI."
+            mediaUrl="/media/food_comedy.mp4"
+          />
+          <YouTubeCard name="Rakul Bansal" content="Just shipped persona fidelity scoring for Cupid." mediaUrl="/media/creative_designer.mp4" />
+          <PollCard
+            name="Adya Prasad"
+            handle="adyaprasad"
+            question="Which framework should I use for Cupid's agent layer?"
+            options={["LangGraph", "CrewAI", "AutoGen", "Build from scratch"]}
+            timeLeft="18h left"
+          />
+          <PollCard
+            name="Adya Prasad"
+            handle="adyaprasad"
+            question="Which framework should I use for Cupid's agent layer?"
+            options={["LangGraph", "CrewAI", "AutoGen", "Build from scratch"]}
+            votes={[48, 27, 16, 9]}
+            totalVotes={1284}
+            timeLeft="18h left"
+          />
+        </div>
+      </div>
     </section>
   );
 }
