@@ -24,10 +24,11 @@ same flexible-blob pattern you used for creation_history.variants and the
 insights snapshots: data that's always read and written as a whole unit, never
 queried field-by-field, belongs in one JSONB column, not a child table.
 """
+
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, DateTime, Index, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -40,12 +41,13 @@ from app.models.user import Base
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 # ─────────────────────────────────────────────────────────────────────────
 #  EarnProfile — the Q&A answers; existence == gate passed
 # ─────────────────────────────────────────────────────────────────────────
+
 
 class EarnProfile(Base):
     __tablename__ = "earn_profile"
@@ -109,7 +111,9 @@ class EarnOpportunity(Base):
     # The minimum tier a creator must be to see this (matches Tier values:
     # "nano"/"micro"/"mid"/"macro"). Stored as string for the same reason as
     # opp_type — flexible, migration-free.
-    min_tier: Mapped[str] = mapped_column(String(16), nullable=False, default="nano", index=True)
+    min_tier: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="nano", index=True
+    )
 
     # Free-text commission/payout note ("Up to 10%", "Recurring 30%"), shown
     # on the card. Never a structured number — these vary wildly and we don't
@@ -119,7 +123,9 @@ class EarnOpportunity(Base):
     url: Mapped[str] = mapped_column(String(1000), nullable=False)
 
     # curated (hand-seeded, trusted) vs discovered (from the search job).
-    source: Mapped[str] = mapped_column(String(16), nullable=False, default=SOURCE_CURATED)
+    source: Mapped[str] = mapped_column(
+        String(16), nullable=False, default=SOURCE_CURATED
+    )
 
     # Soft on/off so we can retire stale discovered entries without deleting.
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

@@ -12,12 +12,17 @@ Why two separate models (Article + Response)?
     or cache state on every article. We send one envelope (Response) that
     contains a list of clean Articles plus high-level metadata.
 """
+
 from __future__ import annotations
+
 from datetime import datetime
+
 from pydantic import BaseModel, Field, HttpUrl
+
 
 class TrendingArticle(BaseModel):
     """One news article ranked into the user's trend feed."""
+
     id: str = Field(..., description="Stable article ID (URL hash)")
     title: str
     description: str | None = None
@@ -30,11 +35,14 @@ class TrendingArticle(BaseModel):
 
     # Ranking fields — useful for the frontend if we want to show a trend score
     relevance_score: float = Field(0.0, description="How well it matches user persona")
-    velocity_score: float = Field(0.0, description="Recency + source authority composite")
+    velocity_score: float = Field(
+        0.0, description="Recency + source authority composite"
+    )
 
 
 class TrendsResponse(BaseModel):
     """Wraps the article list with metadata about the request."""
+
     articles: list[TrendingArticle]
     niche: str = Field(..., description="The niche we ranked against")
     total_pool: int = Field(..., description="How many articles we ranked from")

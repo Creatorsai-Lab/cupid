@@ -33,6 +33,7 @@ in a same-site scenario. Server-side state is the canonical defense.
 
 ═══════════════════════════════════════════════════════════════════════════
 """
+
 from __future__ import annotations
 
 import secrets

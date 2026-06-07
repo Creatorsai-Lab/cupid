@@ -2,7 +2,7 @@ r"""
 Sync Orchestrator — pulls fresh data for one connection and writes
 snapshots to the DB.
 
-Token refresh as a transparent middleware. Higher-level code (sync.py) never thinks about token expiry. It just calls get_valid_access_token() and trusts it. 
+Token refresh as a transparent middleware. Higher-level code (sync.py) never thinks about token expiry. It just calls get_valid_access_token() and trusts it.
 This is the same pattern Stripe, Slack, and every well-built OAuth-consuming service uses.
 
 UPSERT vs DELETE+INSERT for different data shapes. Snapshots are one-row-per-day-per-connection — UPSERT lets multiple syncs update the same row. Top content is ten-rows-per-day-per-connection — UPSERT would accumulate, so we DELETE then INSERT atomically.
@@ -40,7 +40,7 @@ in sequence — one bad token shouldn't block the others.
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from uuid import UUID
 
 from sqlalchemy import delete, select
@@ -49,7 +49,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.insights import youtube_client
 from app.insights.token_manager import (
-    TokenRefreshFailed, get_valid_access_token,
+    TokenRefreshError,
+    get_valid_access_token,
 )
 from app.insights.youtube_client import YouTubeAPIError
 from app.models.insights_snapshot import InsightsSnapshot
@@ -95,19 +96,25 @@ async def sync_connection(
         # 2) Fetch fresh data from YouTube
         channel_stats = await youtube_client.get_channel_stats(access_token)
         videos = await youtube_client.get_recent_videos(
-            access_token, max_results=25,
+            access_token,
+            max_results=25,
         )
 
         logger.info(
             "[sync] %s: %d subs, %d videos fetched",
             connection.handle or connection.platform_user_id,
-            channel_stats["subscriber_count"], len(videos),
+            channel_stats["subscriber_count"],
+            len(videos),
         )
 
         # 3) Compute today's snapshot
         today = date.today()
         snapshot = await _upsert_snapshot(
-            session, connection, today, channel_stats, videos,
+            session,
+            connection,
+            today,
+            channel_stats,
+            videos,
         )
 
         # 4) Replace today's top content
@@ -115,17 +122,17 @@ async def sync_connection(
 
         # 5) Mark sync complete
         connection.sync_status = "idle"
-        connection.last_synced_at = datetime.now(timezone.utc)
+        connection.last_synced_at = datetime.now(UTC)
         await session.commit()
 
         return {
-            "snapshot_id":     str(snapshot.id),
-            "subscribers":     channel_stats["subscriber_count"],
-            "videos_fetched":  len(videos),
-            "follower_delta":  snapshot.follower_delta,
+            "snapshot_id": str(snapshot.id),
+            "subscribers": channel_stats["subscriber_count"],
+            "videos_fetched": len(videos),
+            "follower_delta": snapshot.follower_delta,
         }
 
-    except TokenRefreshFailed as exc:
+    except TokenRefreshError as exc:
         # User revoked access — mark for reconnect
         connection.sync_status = "failed"
         connection.last_error = (
@@ -133,7 +140,9 @@ async def sync_connection(
         )
         await session.commit()
         logger.warning(
-            "[sync] %s: token refresh failed: %s", connection_id, exc,
+            "[sync] %s: token refresh failed: %s",
+            connection_id,
+            exc,
         )
         raise
 
@@ -143,7 +152,9 @@ async def sync_connection(
         connection.last_error = f"YouTube API: {exc}"
         await session.commit()
         logger.warning(
-            "[sync] %s: YouTube API error: %s", connection_id, exc,
+            "[sync] %s: YouTube API error: %s",
+            connection_id,
+            exc,
         )
         raise
 
@@ -159,6 +170,7 @@ async def sync_connection(
 # ──────────────────────────────────────────────────────────────────
 #  Snapshot upsert
 # ──────────────────────────────────────────────────────────────────
+
 
 async def _upsert_snapshot(
     session: AsyncSession,
@@ -181,31 +193,25 @@ async def _upsert_snapshot(
     )
     prev = (await session.execute(prev_stmt)).scalar_one_or_none()
 
-    follower_delta = (
-        channel["subscriber_count"] - prev.follower_count
-        if prev else 0
-    )
-    views_delta = (
-        channel["total_views"] - prev.total_views
-        if prev else 0
-    )
+    follower_delta = channel["subscriber_count"] - prev.follower_count if prev else 0
+    views_delta = channel["total_views"] - prev.total_views if prev else 0
 
     # Total engagement = sum of likes + comments across recent videos
     total_engagement = sum(v["views"] + v["likes"] + v["comments"] for v in videos)
 
     # Build the row payload
     row_data = {
-        "connection_id":       connection.id,
-        "snapshot_date":       snapshot_date,
-        "follower_count":      channel["subscriber_count"],
+        "connection_id": connection.id,
+        "snapshot_date": snapshot_date,
+        "follower_count": channel["subscriber_count"],
         "total_content_count": channel["total_videos"],
-        "total_views":         channel["total_views"],
-        "total_engagement":    total_engagement,
-        "follower_delta":      follower_delta,
-        "views_delta":         views_delta,
+        "total_views": channel["total_views"],
+        "total_engagement": total_engagement,
+        "follower_delta": follower_delta,
+        "views_delta": views_delta,
         "raw_data": {
             "channel": channel,
-            "fetched_at": datetime.now(timezone.utc).isoformat(),
+            "fetched_at": datetime.now(UTC).isoformat(),
         },
     }
 
@@ -214,13 +220,13 @@ async def _upsert_snapshot(
     stmt = stmt.on_conflict_do_update(
         index_elements=["connection_id", "snapshot_date"],
         set_={
-            "follower_count":      stmt.excluded.follower_count,
+            "follower_count": stmt.excluded.follower_count,
             "total_content_count": stmt.excluded.total_content_count,
-            "total_views":         stmt.excluded.total_views,
-            "total_engagement":    stmt.excluded.total_engagement,
-            "follower_delta":      stmt.excluded.follower_delta,
-            "views_delta":         stmt.excluded.views_delta,
-            "raw_data":            stmt.excluded.raw_data,
+            "total_views": stmt.excluded.total_views,
+            "total_engagement": stmt.excluded.total_engagement,
+            "follower_delta": stmt.excluded.follower_delta,
+            "views_delta": stmt.excluded.views_delta,
+            "raw_data": stmt.excluded.raw_data,
         },
     ).returning(InsightsSnapshot)
 
@@ -231,6 +237,7 @@ async def _upsert_snapshot(
 # ──────────────────────────────────────────────────────────────────
 #  Top content replace
 # ──────────────────────────────────────────────────────────────────
+
 
 async def _replace_top_content(
     session: AsyncSession,
@@ -257,24 +264,26 @@ async def _replace_top_content(
     # Insert new rows
     rows = []
     for rank, video in enumerate(sorted_videos, start=1):
-        rows.append(TopContent(
-            connection_id=connection_id,
-            snapshot_date=snapshot_date,
-            rank=rank,
-            content_id=video["video_id"],
-            title=video["title"][:512],
-            url=f"https://www.youtube.com/watch?v={video['video_id']}",
-            thumbnail_url=video["thumbnail_url"],
-            published_at=_ensure_aware(video["published_at"]),
-            views=video["views"],
-            likes=video["likes"],
-            comments=video["comments"],
-            shares=None,   # YouTube doesn't expose share counts
-        ))
+        rows.append(
+            TopContent(
+                connection_id=connection_id,
+                snapshot_date=snapshot_date,
+                rank=rank,
+                content_id=video["video_id"],
+                title=video["title"][:512],
+                url=f"https://www.youtube.com/watch?v={video['video_id']}",
+                thumbnail_url=video["thumbnail_url"],
+                published_at=_ensure_aware(video["published_at"]),
+                views=video["views"],
+                likes=video["likes"],
+                comments=video["comments"],
+                shares=None,  # YouTube doesn't expose share counts
+            )
+        )
 
     session.add_all(rows)
 
 
 def _ensure_aware(dt: datetime) -> datetime:
     """Naïve datetimes get treated as UTC."""
-    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)

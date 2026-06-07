@@ -29,22 +29,21 @@ clutter the page with streams they said they don't want.
   │ not interested│ SUPPRESSED      │ SUPPRESSED          │
   └─────────────┴──────────────────┴─────────────────────┘
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 from app.earn.config import Tier
 from app.earn.streams import (
     INTEREST_DOING,
     INTEREST_NO,
-    INTEREST_WANT,
     RevenueStream,
     StreamCategory,
     all_streams,
 )
 from app.earn.tiers import TierAssessment
-
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Tunables specific to readiness (kept here, not config.py, because they're
@@ -61,46 +60,51 @@ EMERGING_FRACTION: float = 0.7
 #  Enums for the two axes and the resulting state
 # ─────────────────────────────────────────────────────────────────────────
 
-class Eligibility(str, Enum):
-    ELIGIBLE = "eligible"    # meets the floor — go
-    EMERGING = "emerging"    # within EMERGING_FRACTION of the floor — almost
-    LOCKED = "locked"        # not yet — needs real growth first
+
+class Eligibility(StrEnum):
+    ELIGIBLE = "eligible"  # meets the floor — go
+    EMERGING = "emerging"  # within EMERGING_FRACTION of the floor — almost
+    LOCKED = "locked"  # not yet — needs real growth first
 
 
-class StreamState(str, Enum):
+class StreamState(StrEnum):
     """The single state per stream that the UI renders from."""
-    GREEN_LIGHT = "green_light"    # wants it + eligible → the headline: go, here are opps
+
+    GREEN_LIGHT = "green_light"  # wants it + eligible → the headline: go, here are opps
     ALMOST_THERE = "almost_there"  # wants it + emerging → here's the gap to close
-    FOUNDATION = "foundation"      # wants it + locked → not yet, build this first
-    OPTIMIZE = "optimize"          # already doing it → tips to do it better, never "start"
-    SUPPRESSED = "suppressed"      # not interested → hidden from the page entirely
+    FOUNDATION = "foundation"  # wants it + locked → not yet, build this first
+    OPTIMIZE = "optimize"  # already doing it → tips to do it better, never "start"
+    SUPPRESSED = "suppressed"  # not interested → hidden from the page entirely
 
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Output records
 # ─────────────────────────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class StreamReadiness:
     """Everything the UI needs to render one stream's card."""
+
     stream_id: str
     label: str
     category: str
     durability: str
     effort: str
     eligibility: Eligibility
-    interest: str                 # doing / want / no
+    interest: str  # doing / want / no
     state: StreamState
     tradeoff_label: str
     short_pitch: str
     time_to_first_revenue: str
     min_followers: int
-    followers_gap: int            # how many more followers to reach the floor (0 if met)
+    followers_gap: int  # how many more followers to reach the floor (0 if met)
 
 
 @dataclass(frozen=True)
 class ReadinessReport:
     """The complete computed picture — input to opportunities, coach, and the API."""
+
     tier: Tier
     assessment: TierAssessment
     # All non-suppressed streams, in canonical journey order (for the grid view).
@@ -116,6 +120,7 @@ class ReadinessReport:
 # ─────────────────────────────────────────────────────────────────────────
 #  Eligibility
 # ─────────────────────────────────────────────────────────────────────────
+
 
 def _base_eligibility(followers: int, min_followers: int) -> Eligibility:
     """Raw eligibility from follower count vs. the stream's floor."""
@@ -167,6 +172,7 @@ def _eligibility_for(stream: RevenueStream, assessment: TierAssessment) -> Eligi
 #  The state machine: (eligibility × interest) → state
 # ─────────────────────────────────────────────────────────────────────────
 
+
 def _state_for(eligibility: Eligibility, interest: str) -> StreamState:
     """
     Combine the two axes into the single state the UI renders.
@@ -217,6 +223,7 @@ def _gap_sort_key(sr: StreamReadiness) -> tuple[int, int, int]:
 #  Public entry point
 # ─────────────────────────────────────────────────────────────────────────
 
+
 def build_readiness(
     assessment: TierAssessment,
     answers: dict[str, str],
@@ -260,7 +267,11 @@ def build_readiness(
     visible = tuple(s for s in per_stream if s.state != StreamState.SUPPRESSED)
     gaps = tuple(
         sorted(
-            (s for s in per_stream if s.state in (StreamState.GREEN_LIGHT, StreamState.ALMOST_THERE)),
+            (
+                s
+                for s in per_stream
+                if s.state in (StreamState.GREEN_LIGHT, StreamState.ALMOST_THERE)
+            ),
             key=_gap_sort_key,
         )
     )

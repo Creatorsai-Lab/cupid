@@ -25,6 +25,7 @@ This prevents user A from probing for user B's connection IDs.
 404 vs 403 for unauthorized access. The auth gate returns 404 ("Connection not found") even when the connection exists but belongs to another user. This prevents enumeration attacks where an attacker probes for valid IDs. Real-world security pattern — Stripe, GitHub, basically everyone does this.
 ═══════════════════════════════════════════════════════════════════════════
 """
+
 from __future__ import annotations
 
 import logging
@@ -40,7 +41,10 @@ from app.models.social_connection import SocialConnection
 from app.models.user import User
 from app.routers.auth import get_current_user
 from app.schemas.insights_schema import (
-    HeatmapResponse, SummaryResponse, TimeSeriesResponse, TopContentResponse,
+    HeatmapResponse,
+    SummaryResponse,
+    TimeSeriesResponse,
+    TopContentResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,6 +53,7 @@ router = APIRouter(prefix="/insights", tags=["insights"])
 
 
 # ─── Helper: load + authorize connection ───────────────────────
+
 
 async def _get_authorized_connection(
     connection_id: UUID,
@@ -76,6 +81,7 @@ async def _get_authorized_connection(
 
 # ─── List endpoint (no connection_id needed) ───────────────────
 
+
 @router.get("/", response_model=list[SummaryResponse])
 async def list_connections_with_summary(
     current_user: User = Depends(get_current_user),
@@ -86,9 +92,7 @@ async def list_connections_with_summary(
 
     Use case: dashboard "you have N connected platforms" overview.
     """
-    stmt = select(SocialConnection).where(
-        SocialConnection.user_id == current_user.id
-    )
+    stmt = select(SocialConnection).where(SocialConnection.user_id == current_user.id)
     connections = (await session.execute(stmt)).scalars().all()
 
     summaries = []
@@ -100,6 +104,7 @@ async def list_connections_with_summary(
 
 
 # ─── Summary ───────────────────────────────────────────────────
+
 
 @router.get("/{connection_id}/summary", response_model=SummaryResponse)
 async def get_summary(
@@ -113,6 +118,7 @@ async def get_summary(
 
 
 # ─── Time series ───────────────────────────────────────────────
+
 
 @router.get("/{connection_id}/timeseries", response_model=TimeSeriesResponse)
 async def get_timeseries(
@@ -128,6 +134,7 @@ async def get_timeseries(
 
 # ─── Top content ───────────────────────────────────────────────
 
+
 @router.get("/{connection_id}/top-content", response_model=TopContentResponse)
 async def get_top_content(
     connection_id: UUID,
@@ -141,6 +148,7 @@ async def get_top_content(
 
 
 # ─── Heatmap ───────────────────────────────────────────────────
+
 
 @router.get("/{connection_id}/heatmap", response_model=HeatmapResponse)
 async def get_heatmap(

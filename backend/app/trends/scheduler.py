@@ -50,15 +50,16 @@ Why Celery in production but not dev?
 The CORE LOGIC stays identical. Both dev and prod call the same
 `ingest_all_categories()` function. We swap only HOW it's invoked.
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import FastAPI
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import async_session as async_session_factory
@@ -72,12 +73,13 @@ logger = logging.getLogger(__name__)
 # Keep these as module constants for easy tuning. In a real product
 # you'd put these in app/config.py as Settings fields.
 
-INTERVAL_HOURS = 48                  # how often the loop wakes
-FRESHNESS_THRESHOLD_HOURS = 36       # stale if no articles within this window
-STARTUP_DELAY_SECONDS = 5            # let FastAPI finish booting before we touch DB
+INTERVAL_HOURS = 48  # how often the loop wakes
+FRESHNESS_THRESHOLD_HOURS = 36  # stale if no articles within this window
+STARTUP_DELAY_SECONDS = 5  # let FastAPI finish booting before we touch DB
 
 
 # ─── DB freshness check ────────────────────────────────────────
+
 
 async def _hours_since_last_article(session: AsyncSession) -> float | None:
     """
@@ -98,9 +100,9 @@ async def _hours_since_last_article(session: AsyncSession) -> float | None:
 
     # Make sure both datetimes are timezone-aware
     if latest.tzinfo is None:
-        latest = latest.replace(tzinfo=timezone.utc)
+        latest = latest.replace(tzinfo=UTC)
 
-    delta = datetime.now(timezone.utc) - latest
+    delta = datetime.now(UTC) - latest
     return delta.total_seconds() / 3600
 
 
@@ -116,13 +118,15 @@ async def _is_stale() -> bool:
     is_stale = hours >= FRESHNESS_THRESHOLD_HOURS
     logger.info(
         "[trends.scheduler] last ingest %.1fh ago (threshold %dh) -> %s",
-        hours, FRESHNESS_THRESHOLD_HOURS,
+        hours,
+        FRESHNESS_THRESHOLD_HOURS,
         "STALE, will fetch" if is_stale else "fresh, skipping",
     )
     return is_stale
 
 
 # ─── Background loop ───────────────────────────────────────────
+
 
 async def _scheduler_loop() -> None:
     """
@@ -150,7 +154,7 @@ async def _scheduler_loop() -> None:
 
         # Sleep until the next check
         sleep_seconds = INTERVAL_HOURS * 3600
-        next_run = datetime.now(timezone.utc) + timedelta(seconds=sleep_seconds)
+        next_run = datetime.now(UTC) + timedelta(seconds=sleep_seconds)
         logger.info(
             "[trends.scheduler] next check at %s",
             next_run.strftime("%Y-%m-%d %H:%M UTC"),
@@ -196,6 +200,7 @@ async def stop_scheduler() -> None:
 
 
 # ─── Optional: lifespan context manager ────────────────────────
+
 
 @asynccontextmanager
 async def trends_lifespan(app: FastAPI):

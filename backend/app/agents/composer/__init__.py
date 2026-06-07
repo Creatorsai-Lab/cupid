@@ -11,6 +11,7 @@ Public API::
     from app.agents.composer import build_composer_graph
     composer = build_composer_graph().compile()
 """
+
 from app.agents.composer.agent import build_composer_graph, composer_node
 
 __all__ = [

@@ -10,7 +10,7 @@ Relationship:
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
@@ -25,8 +25,8 @@ class UserPersonalization(Base):
     # Mapped[uuid.UUID] tells Python's type system: "this field holds a UUID type"
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        primary_key=True, # the unique identifier for each row
-        default=uuid.uuid4, # automatically generates a new UUID `using uuid.uuid4()` when a new profile is created
+        primary_key=True,  # the unique identifier for each row
+        default=uuid.uuid4,  # automatically generates a new UUID `using uuid.uuid4()` when a new profile is created
     )
 
     # A foreign key is a column in one table that references the primary key of another table
@@ -34,7 +34,7 @@ class UserPersonalization(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
-        unique=True,        # one profile per user
+        unique=True,  # one profile per user
         nullable=False,
         index=True,
     )
@@ -53,12 +53,12 @@ class UserPersonalization(Base):
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
     )
 
     # Relationship — lets you access user.personalization or personalization.user

@@ -48,11 +48,12 @@ The CI just needs:
     - Environment variable TEST_DATABASE_URL pointing at the test DB
 The conftest doesn't change — the environment provides the DB URL.
 """
+
 from __future__ import annotations
 
 import asyncio
 import os
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
@@ -64,10 +65,10 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-# Import your application bits
-from app.models.user import Base
 from app.main import app
 
+# Import your application bits
+from app.models.user import Base
 
 # ─── Test database URL ─────────────────────────────────────────
 # Override via env var for CI; default to a dev-friendly local DB.
@@ -84,6 +85,7 @@ TEST_DATABASE_URL = os.environ.get(
 # pytest-asyncio creates a new event loop per test by default. For shared
 # fixtures (like the engine), we want one loop for the whole session.
 
+
 @pytest.fixture(scope="session")
 def event_loop():
     """Session-scoped event loop so async fixtures can be session-scoped too."""
@@ -93,6 +95,7 @@ def event_loop():
 
 
 # ─── Database engine (session-scoped) ──────────────────────────
+
 
 @pytest_asyncio.fixture(scope="session")
 async def engine() -> AsyncGenerator[AsyncEngine, None]:
@@ -119,6 +122,7 @@ async def engine() -> AsyncGenerator[AsyncEngine, None]:
 
 # ─── Database session (function-scoped, with rollback isolation) ──
 
+
 @pytest_asyncio.fixture
 async def db_session(engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
     """
@@ -132,11 +136,13 @@ async def db_session(engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
     async with engine.connect() as connection:
         transaction = await connection.begin()
 
-        Session = async_sessionmaker(
-            bind=connection, expire_on_commit=False, class_=AsyncSession,
+        session_factory = async_sessionmaker(
+            bind=connection,
+            expire_on_commit=False,
+            class_=AsyncSession,
         )
 
-        async with Session() as session:
+        async with session_factory() as session:
             yield session
 
         # Rollback — nothing this test wrote actually persists
@@ -144,6 +150,7 @@ async def db_session(engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
 
 
 # ─── HTTP test client ──────────────────────────────────────────
+
 
 @pytest_asyncio.fixture
 async def client() -> AsyncGenerator[AsyncClient, None]:
@@ -163,6 +170,7 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
 # ─── Sample data fixtures ──────────────────────────────────────
 # These are the "Lego blocks" tests use to build scenarios. Define
 # common shapes once, reuse everywhere.
+
 
 @pytest.fixture
 def sample_persona() -> dict:

@@ -13,14 +13,15 @@ can be called from anywhere the pipeline finishes — whether that's the
 agents router, a Celery task, or a future webhook.
 ═══════════════════════════════════════════════════════════════════════════
 """
+
 from __future__ import annotations
 
 import logging
 from uuid import UUID
 
 from sqlalchemy import delete as sa_delete
-from sqlalchemy import update as sa_update
 from sqlalchemy import func, select
+from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.creation_history import CreationHistory
@@ -55,9 +56,9 @@ async def save_creation(
     # hashtags, and any other intermediate fields the history view ignores.
     slim_variants = [
         {
-            "angle":      v.get("angle", ""),
-            "platform":   v.get("platform", target_platform),
-            "content":    v.get("content", ""),
+            "angle": v.get("angle", ""),
+            "platform": v.get("platform", target_platform),
+            "content": v.get("content", ""),
             "char_count": v.get("char_count", len(v.get("content", ""))),
         }
         for v in variants
@@ -80,7 +81,9 @@ async def save_creation(
         await session.refresh(entry)
         logger.info(
             "[history] saved creation %s for user %s (%d variants)",
-            entry.id, user_id, len(slim_variants),
+            entry.id,
+            user_id,
+            len(slim_variants),
         )
         return entry
     except Exception as exc:
@@ -138,9 +141,9 @@ async def update_variants(
     """
     slim_variants = [
         {
-            "angle":      v.get("angle", ""),
-            "platform":   v.get("platform", ""),
-            "content":    v.get("content", ""),
+            "angle": v.get("angle", ""),
+            "platform": v.get("platform", ""),
+            "content": v.get("content", ""),
             "char_count": v.get("char_count", len(v.get("content", ""))),
         }
         for v in variants

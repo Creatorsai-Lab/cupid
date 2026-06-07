@@ -12,34 +12,46 @@ Composite index on (category, published_at DESC) would be ideal for the
 common query "give me recent articles in tech" — Postgres can use it as
 a sorted scan. Add that as an Alembic migration when traffic grows.
 """
+
 from __future__ import annotations
+
 from datetime import datetime
+
 from sqlalchemy import (
-    DateTime, Float, Index, String, Text,
+    DateTime,
+    Float,
+    Index,
+    String,
+    Text,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.user import Base
 
+
 class TrendingArticle(Base):
     __tablename__ = "trending_articles"
 
     # url_hash is the primary key — deterministic dedup across runs.
     # Using sha256(url)[:32] gives us collision-free strings under 32 chars.
-    url_hash:    Mapped[str]      = mapped_column(String(32), primary_key=True)
+    url_hash: Mapped[str] = mapped_column(String(32), primary_key=True)
 
-    title:       Mapped[str]      = mapped_column(String(512), nullable=False)
-    description: Mapped[str|None] = mapped_column(Text, nullable=True)
-    url:         Mapped[str]      = mapped_column(Text, nullable=False)
-    image_url:   Mapped[str|None] = mapped_column(Text, nullable=True)
+    title: Mapped[str] = mapped_column(String(512), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    url: Mapped[str] = mapped_column(Text, nullable=False)
+    image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    source:      Mapped[str]      = mapped_column(String(128), nullable=False)
-    domain:      Mapped[str]      = mapped_column(String(128), nullable=False, index=True)
-    category:    Mapped[str]      = mapped_column(String(64),  nullable=False, index=True)
+    source: Mapped[str] = mapped_column(String(128), nullable=False)
+    domain: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    category: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
 
-    published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
-    ingested_at:  Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    published_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    ingested_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     # Pre-computed at ingestion so serving doesn't recompute on every request
     velocity_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)

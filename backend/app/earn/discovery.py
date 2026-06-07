@@ -30,6 +30,7 @@ If the search library is unavailable or every query fails, discovery simply
 finds nothing this cycle and the curated seeds carry the feature. It never
 raises into the scheduler.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -80,7 +81,9 @@ class OpportunityDiscovery:
     def __init__(self) -> None:
         # Dedicated, bounded pool. A hung search thread can only ever exhaust
         # THIS (size 3), never the global executor the app relies on.
-        self._executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="earn-discovery")
+        self._executor = ThreadPoolExecutor(
+            max_workers=3, thread_name_prefix="earn-discovery"
+        )
 
     def close(self) -> None:
         # wait=False so shutdown can't itself block on a stuck thread.
@@ -88,12 +91,15 @@ class OpportunityDiscovery:
 
     # ── one search ────────────────────────────────────────────────────────
     async def _search(self, opp_type: str, niche: str) -> list[_Candidate]:
-        query = next(t for k, t in _QUERY_TEMPLATES if k == opp_type).format(niche=niche)
+        query = next(t for k, t in _QUERY_TEMPLATES if k == opp_type).format(
+            niche=niche
+        )
 
         def _sync() -> list[dict]:
             # NATIVE timeout on the client — see module docstring for why this
             # is the load-bearing line, not the asyncio.wait_for below.
             from ddgs import DDGS
+
             with DDGS(timeout=_DDG_TIMEOUT) as ddgs:
                 return list(ddgs.text(query, max_results=_RESULTS_PER_QUERY))
 
@@ -104,7 +110,9 @@ class OpportunityDiscovery:
                 timeout=_OUTER_TIMEOUT,
             )
         except Exception as exc:  # noqa: BLE001 — timeouts, rate limits, import errors
-            logger.info("[earn.discovery] search '%s' failed (%s)", query, str(exc)[:120])
+            logger.info(
+                "[earn.discovery] search '%s' failed (%s)", query, str(exc)[:120]
+            )
             return []
 
         out: list[_Candidate] = []

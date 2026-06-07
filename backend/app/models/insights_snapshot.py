@@ -37,6 +37,7 @@ This is the "extracted highlights + flexible blob" pattern from Stripe
 and Segment. Standard for ingesting third-party API data.
 ═══════════════════════════════════════════════════════════════════════════
 """
+
 from __future__ import annotations
 
 import uuid
@@ -44,7 +45,13 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import (
-    Date, DateTime, ForeignKey, Index, Integer, UniqueConstraint, func,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    UniqueConstraint,
+    func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -113,18 +120,20 @@ class InsightsSnapshot(Base):
     # Stored efficiently and indexable.
 
     # ── Relationship ────────────────────────────────────────────
-    connection: Mapped["SocialConnection"] = relationship()
+    connection: Mapped[SocialConnection] = relationship()
 
     __table_args__ = (
         # One snapshot per connection per day. UPSERT target.
         UniqueConstraint(
-            "connection_id", "snapshot_date",
+            "connection_id",
+            "snapshot_date",
             name="uq_connection_date",
         ),
         # Common query: "give me snapshots for this connection in date range"
         Index(
             "ix_snapshot_connection_date",
-            "connection_id", "snapshot_date",
+            "connection_id",
+            "snapshot_date",
         ),
     )
 

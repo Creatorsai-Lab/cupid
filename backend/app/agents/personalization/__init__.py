@@ -7,9 +7,10 @@ Public API::
 
     graph.add_node("personalization", personalization_node)
 """
+
 from app.agents.personalization.agent import (
-    personalization_node,
     build_personalization_graph,
+    personalization_node,
 )
 
 __all__ = [

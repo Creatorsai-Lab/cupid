@@ -32,30 +32,30 @@
 /*  LIGHT MODE  */
 :root {
   /*  PRIMARY COLOR PALLETR */
---color-primary:       #C75D3A;   
-  --color-secondary: #af6d58; 
-  --color-background: #FFF9F3;     
-  --color-inline-bg:  #eae6e1;      
+  --color-primary: #c75d3a;
+  --color-secondary: #af6d58;
+  --color-background: #fff9f3;
+  --color-inline-bg: #eae6e1;
 
   /* ─── TEXT ────────────────────────────────────────────── */
-  --color-text:       #645A51;      /* warm near-black, not stark grey */
-  --color-muted:      #8B7F75;      /* warm grey for captions, helper text */
+  --color-text: #645a51; /* warm near-black, not stark grey */
+  --color-muted: #8b7f75; /* warm grey for captions, helper text */
 
   /* ─── BORDERS ─────────────────────────────────────────── */
-  --color-border:       #E8DFD3;    /* warm soft border, replaces dark blue */
-  --color-border-hover: #D4C7B6;    /* slightly stronger on hover */
+  --color-border: #e8dfd3; /* warm soft border, replaces dark blue */
+  --color-border-hover: #d4c7b6; /* slightly stronger on hover */
 
   /* ─── SEMANTIC (kept restrained) ──────────────────────── */
-  --color-success:     #5A7A3E;     /* warm olive green */
-  --color-warning:     #D4A04C;     /* amber that fits the warm palette */
-  --color-destructive: #B5403A;     /* warm red that fits cream */
-  --color-info:        #6B7B8C;     /* dust blue for non-action info */
-  --color-input-focus:  #C75D3A;    /* same as primary */
+  --color-success: #5a7a3e; /* warm olive green */
+  --color-warning: #d4a04c; /* amber that fits the warm palette */
+  --color-destructive: #b5403a; /* warm red that fits cream */
+  --color-info: #6b7b8c; /* dust blue for non-action info */
+  --color-input-focus: #c75d3a; /* same as primary */
 
   /* ─── DEPTH ───────────────────────────────────────────── */
   --shadow-sm: 0 1px 3px rgba(139, 63, 35, 0.06);
   --shadow-md: 0 4px 16px rgba(139, 63, 35, 0.08);
-  --shadow-lg: 0 12px 32px rgba(139, 63, 35, 0.10);
+  --shadow-lg: 0 12px 32px rgba(139, 63, 35, 0.1);
 
   --border-radius: 0.625rem;
   --font-display: var(--font-instrument-serif, "Georgia", serif);
@@ -63,9 +63,8 @@
   /* ─── EXISTING ────────────────────────────────────────── */
   --radius: 0.625rem;
   --font-display: var(--font-instrument-serif, "Georgia", serif);
-  --font-body:    var(--font-dm-sans, system-ui, sans-serif);
+  --font-body: var(--font-dm-sans, system-ui, sans-serif);
 }
-
 
 :root {
   --gradient-main: linear-gradient(-45deg, #f54586, #fa5a46, #eb8c0b, #6cbc3e, #2f8cee);
@@ -147,24 +146,46 @@
 /* ANIMATIONS CLASSED: */
 
 @keyframes gradient-flow {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 @keyframes fade-in {
-  from {opacity: 0;}
-  to {opacity: 1;}
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes pulse-ring {
   0%,
-  100% {transform: scale(1);opacity: 0.6;}
-  50% {transform: scale(1.5);opacity: 0.15;}
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.15;
+  }
 }
 
 @keyframes float-up {
-  from {opacity: 0; transform: translateY(24px);}
-  to {opacity: 1;transform: translateY(0);}
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes border-rotate {
@@ -185,12 +206,24 @@
 
 /* Double-thump heartbeat — two quick beats, then a rest */
 @keyframes heartbeat {
-  0%   { transform: scale(1); }
-  14%  { transform: scale(1.28); }
-  28%  { transform: scale(1); }
-  42%  { transform: scale(1.28); }
-  70%  { transform: scale(1); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.28);
+  }
+  28% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.28);
+  }
+  70% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .animate-heartbeat {
@@ -198,7 +231,6 @@
   transform-origin: center;
   will-change: transform;
 }
-
 
 /* ANIMATIONS END  */
 
@@ -256,12 +288,13 @@
   background: var(--gradient-main);
   background-size: var(--gradient-size);
   animation: gradient-flow var(--gradient-duration) linear infinite;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-
 .btn-primary:hover {
-  transform: scale(0.90);
+  transform: scale(0.9);
 }
 
 .btn-primary:active {
@@ -283,13 +316,14 @@
   background-color: transparent;
   cursor: pointer;
   letter-spacing: 0.01em;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .btn-secondary:hover {
-  transform: scale(0.90);
+  transform: scale(0.9);
 }
-
 
 .animate-float-up {
   animation: float-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -298,4 +332,3 @@
 .animate-fade-in {
   animation: fade-in 0.5s ease both;
 }
-

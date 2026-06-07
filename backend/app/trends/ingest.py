@@ -11,20 +11,21 @@ Run schedule (when Celery is hooked up):
     Every 30 minutes. ~7 categories × 3s stagger = ~25s per run.
     Fetches ~7-15 RSS requests per run = well under Google's tolerance.
 """
+
 from __future__ import annotations
 
 import asyncio
 import hashlib
 import logging
 import random
-from datetime import datetime, timezone
-from typing import Iterable
+from collections.abc import Iterable
+from datetime import UTC, datetime
 
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db import async_session as async_session_factory
 from app.config import settings
+from app.core.db import async_session as async_session_factory
 from app.models.trending_article import TrendingArticle
 from app.trends.source_client import RawArticle, fetch_category
 
@@ -32,14 +33,24 @@ logger = logging.getLogger(__name__)
 
 # Core categories — fetched on every run
 CORE_CATEGORIES: tuple[str, ...] = (
-    "technology", "business", "world", "ai",
-    "health", "science", "entertainment",
+    "technology",
+    "business",
+    "world",
+    "ai",
+    "health",
+    "science",
+    "entertainment",
 )
 
 # Niche categories — rotated, only some per run to reduce request load
 ROTATING_CATEGORIES: tuple[str, ...] = (
-    "crypto", "marketing", "startups", "fitness",
-    "design", "productivity", "sports",
+    "crypto",
+    "marketing",
+    "startups",
+    "fitness",
+    "design",
+    "productivity",
+    "sports",
 )
 
 # Track which rotating categories were last fetched (in-memory)
@@ -74,34 +85,36 @@ def _select_categories_for_run() -> list[str]:
 # ──────────────────────────────────────────────────────────────────
 
 _AUTHORITY: dict[str, float] = {
-    "reuters.com":      0.95,
-    "timesofindia.indiatimes.com":       0.95,
+    "reuters.com": 0.95,
+    "timesofindia.indiatimes.com": 0.95,
     "hindustantimes.com": 0.95,
-    "wsj.com":          0.95,
-    "aninews.in":       0.95,
+    "wsj.com": 0.95,
+    "aninews.in": 0.95,
     "republicworld.com": 0.90,
-    "ft.com":           0.90,
-    "bloomberg.com":    0.85,
-    "theverge.com":     0.80,
-    "techcrunch.com":   0.80,
-    "arstechnica.com":  0.80,
-    "wired.com":        0.78,
-    "guardian.com":     0.78,
-    "axios.com":        0.75,
-    "cnbc.com":         0.75,
-    "forbes.com":       0.70,
+    "ft.com": 0.90,
+    "bloomberg.com": 0.85,
+    "theverge.com": 0.80,
+    "techcrunch.com": 0.80,
+    "arstechnica.com": 0.80,
+    "wired.com": 0.78,
+    "guardian.com": 0.78,
+    "axios.com": 0.75,
+    "cnbc.com": 0.75,
+    "forbes.com": 0.70,
 }
 
 
 def _compute_velocity(article: RawArticle) -> float:
     authority = _AUTHORITY.get(article.domain, 0.5)
-    age_hours = (datetime.now(timezone.utc) - _ensure_aware(article.published_at)).total_seconds() / 3600
+    age_hours = (
+        datetime.now(UTC) - _ensure_aware(article.published_at)
+    ).total_seconds() / 3600
     freshness = max(0.0, 1.0 - age_hours / 48.0)
     return round(0.6 * authority + 0.4 * freshness, 4)
 
 
 def _ensure_aware(dt: datetime) -> datetime:
-    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
 
 
 def _url_hash(url: str) -> str:
@@ -112,6 +125,7 @@ def _url_hash(url: str) -> str:
 #  Persist with upsert
 # ──────────────────────────────────────────────────────────────────
 
+
 async def _persist_articles(
     session: AsyncSession,
     category: str,
@@ -121,18 +135,20 @@ async def _persist_articles(
     for art in articles:
         if not art.url or not art.title:
             continue
-        rows.append({
-            "url_hash":       _url_hash(art.url),
-            "title":          art.title[:512],
-            "description":    art.description or None,
-            "url":            art.url,
-            "image_url":      art.image_url,
-            "source":         art.source[:128],
-            "domain":         art.domain[:128],
-            "category":       category,
-            "published_at":   _ensure_aware(art.published_at),
-            "velocity_score": _compute_velocity(art),
-        })
+        rows.append(
+            {
+                "url_hash": _url_hash(art.url),
+                "title": art.title[:512],
+                "description": art.description or None,
+                "url": art.url,
+                "image_url": art.image_url,
+                "source": art.source[:128],
+                "domain": art.domain[:128],
+                "category": category,
+                "published_at": _ensure_aware(art.published_at),
+                "velocity_score": _compute_velocity(art),
+            }
+        )
 
     if not rows:
         return 0
@@ -156,6 +172,7 @@ async def _persist_articles(
 #  Main ingestion entry point
 # ──────────────────────────────────────────────────────────────────
 
+
 async def ingest_all_categories() -> dict[str, int]:
     """
     Sequential ingestion with stagger — respects rate limits.
@@ -176,7 +193,9 @@ async def ingest_all_categories() -> dict[str, int]:
 
             try:
                 fetched = await fetch_category(
-                    category, api_key=api_key, max_results=20,
+                    category,
+                    api_key=api_key,
+                    max_results=20,
                 )
             except Exception as exc:
                 logger.error("[trends.ingest] %s fetch raised: %s", category, exc)
@@ -198,7 +217,9 @@ async def ingest_all_categories() -> dict[str, int]:
             summary[category] = inserted
             logger.info(
                 "[trends.ingest] %s: %d fetched, %d new",
-                category, len(fetched), inserted,
+                category,
+                len(fetched),
+                inserted,
             )
 
         await session.commit()

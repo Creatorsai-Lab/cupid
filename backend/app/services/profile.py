@@ -36,7 +36,7 @@ async def upsert_profile(
 ) -> UserPersonalization:
     """
     Create or update a user's profile (upsert pattern).
-    
+
     Why upsert? The first time a user saves, no profile exists (CREATE).
     Every time after, we UPDATE the existing profile. Upsert handles both
     cases in one function — cleaner than separate create/update endpoints.
@@ -71,8 +71,8 @@ async def upsert_profile(
             target_audience=target_audience,
             usp=usp,
         )
-        db.add(profile) # queues the INSERT
+        db.add(profile)  # queues the INSERT
 
-    await db.commit() # sends INSERT to PostgreSQL
-    await db.refresh(profile) # updates the Python object with the DB-generated ID
+    await db.commit()  # sends INSERT to PostgreSQL
+    await db.refresh(profile)  # updates the Python object with the DB-generated ID
     return profile

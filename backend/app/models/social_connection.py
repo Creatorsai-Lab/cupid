@@ -30,6 +30,7 @@ This is the standard "envelope encryption" pattern used everywhere from
 Stripe to AWS Secrets Manager.
 ═══════════════════════════════════════════════════════════════════════════
 """
+
 from __future__ import annotations
 
 import uuid
@@ -37,7 +38,12 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
-    DateTime, ForeignKey, String, Text, UniqueConstraint, func,
+    DateTime,
+    ForeignKey,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -83,12 +89,14 @@ class SocialConnection(Base):
     # NEVER write a plaintext token here.
     access_token_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
     refresh_token_encrypted: Mapped[str | None] = mapped_column(
-        Text, nullable=True,
+        Text,
+        nullable=True,
     )
     # Some platforms don't issue refresh tokens at all. Nullable for those.
 
     expires_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True,
+        DateTime(timezone=True),
+        nullable=True,
     )
     # When the access_token expires. We use this to know when to refresh
     # before making a YouTube API call.
@@ -107,12 +115,15 @@ class SocialConnection(Base):
     )
 
     last_synced_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True,
+        DateTime(timezone=True),
+        nullable=True,
     )
     # Updated whenever the background sync job successfully fetches data.
 
     sync_status: Mapped[str] = mapped_column(
-        String(16), default="idle", nullable=False,
+        String(16),
+        default="idle",
+        nullable=False,
     )
     # One of: 'idle', 'syncing', 'failed'. Surfaced in the UI so users
     # see "syncing..." vs "ready" vs "failed — reconnect".
@@ -121,7 +132,7 @@ class SocialConnection(Base):
     # If sync_status='failed', what went wrong. Helps support and debugging.
 
     # ── Relationships ───────────────────────────────────────────
-    user: Mapped["User"] = relationship(back_populates="social_connections")
+    user: Mapped[User] = relationship(back_populates="social_connections")
 
     # ── Constraints ─────────────────────────────────────────────
     __table_args__ = (
@@ -131,4 +142,6 @@ class SocialConnection(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<SocialConnection {self.platform}:{self.handle or self.platform_user_id}>"
+        return (
+            f"<SocialConnection {self.platform}:{self.handle or self.platform_user_id}>"
+        )

@@ -15,6 +15,7 @@ is the only user whose history can be read or modified — there's no way
 to pass another user's ID.
 ═══════════════════════════════════════════════════════════════════════════
 """
+
 from __future__ import annotations
 
 import logging
@@ -24,12 +25,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.services import history_service 
 from app.models.user import User
 from app.routers.auth import get_current_user
 from app.schemas.history_schemas import (
-    HistoryEntry, HistoryListResponse, HistoryUpdateRequest,
+    HistoryEntry,
+    HistoryListResponse,
+    HistoryUpdateRequest,
 )
+from app.services import history_service
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +48,10 @@ async def list_history(
 ) -> HistoryListResponse:
     """Return the current user's creation history, newest first."""
     entries, total = await history_service.list_history(
-        session, current_user.id, limit=limit, offset=offset,
+        session,
+        current_user.id,
+        limit=limit,
+        offset=offset,
     )
 
     return HistoryListResponse(
@@ -82,7 +88,9 @@ async def delete_history_entry(
 ):
     """Delete one history entry. 404 if it doesn't exist or isn't yours."""
     deleted = await history_service.delete_entry(
-        session, current_user.id, entry_id,
+        session,
+        current_user.id,
+        entry_id,
     )
     if not deleted:
         raise HTTPException(404, "History entry not found")

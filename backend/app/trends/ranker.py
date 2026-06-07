@@ -19,14 +19,14 @@ We use BM25 over IR-classic over embeddings because:
     - No embedding model dependency (yet)
     - Plenty good for sub-100-article corpora
 """
+
 from __future__ import annotations
 
 import math
 import re
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
-
 
 # ──────────────────────────────────────────────────────────────────
 #  Tokenization
@@ -34,14 +34,64 @@ from typing import Any
 
 _WORD_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9\-\+\.#]*")
 
-_STOPWORDS: frozenset[str] = frozenset({
-    "a", "an", "the", "and", "or", "but", "is", "are", "was", "were",
-    "be", "been", "being", "have", "has", "had", "do", "does", "did",
-    "will", "would", "i", "you", "we", "they", "it", "of", "in", "on",
-    "at", "for", "with", "by", "from", "about", "as", "to", "this",
-    "that", "these", "those", "what", "which", "who", "when", "where",
-    "why", "how", "more", "most", "some", "such", "now", "new",
-})
+_STOPWORDS: frozenset[str] = frozenset(
+    {
+        "a",
+        "an",
+        "the",
+        "and",
+        "or",
+        "but",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "have",
+        "has",
+        "had",
+        "do",
+        "does",
+        "did",
+        "will",
+        "would",
+        "i",
+        "you",
+        "we",
+        "they",
+        "it",
+        "of",
+        "in",
+        "on",
+        "at",
+        "for",
+        "with",
+        "by",
+        "from",
+        "about",
+        "as",
+        "to",
+        "this",
+        "that",
+        "these",
+        "those",
+        "what",
+        "which",
+        "who",
+        "when",
+        "where",
+        "why",
+        "how",
+        "more",
+        "most",
+        "some",
+        "such",
+        "now",
+        "new",
+    }
+)
 
 
 def _tokenize(text: str) -> list[str]:
@@ -56,6 +106,7 @@ def _tokenize(text: str) -> list[str]:
 # ──────────────────────────────────────────────────────────────────
 #  Persona vocabulary extraction
 # ──────────────────────────────────────────────────────────────────
+
 
 def _persona_terms(persona: dict[str, Any]) -> set[str]:
     """
@@ -86,6 +137,7 @@ def _persona_terms(persona: dict[str, Any]) -> set[str]:
 #   - A term that appears in every document is uninformative (low IDF).
 #   - A term repeated 100x in one doc isn't 100x more relevant than once.
 #   - A 5000-word doc shouldn't beat a 500-word doc just by length.
+
 
 def _bm25(
     query_terms: set[str],
@@ -120,6 +172,7 @@ def _bm25(
 #  Recency decay — fresh news matters
 # ──────────────────────────────────────────────────────────────────
 
+
 def _recency_score(published_at: datetime, half_life_hours: float = 18.0) -> float:
     """
     Exponential decay: an article's "freshness" halves every 18h.
@@ -133,8 +186,8 @@ def _recency_score(published_at: datetime, half_life_hours: float = 18.0) -> flo
     barely matters. Exponential captures that natural decay curve.
     """
     if published_at.tzinfo is None:
-        published_at = published_at.replace(tzinfo=timezone.utc)
-    age_hours = (datetime.now(timezone.utc) - published_at).total_seconds() / 3600
+        published_at = published_at.replace(tzinfo=UTC)
+    age_hours = (datetime.now(UTC) - published_at).total_seconds() / 3600
     age_hours = max(age_hours, 0.0)
     return math.exp(-age_hours * math.log(2) / half_life_hours)
 
@@ -143,8 +196,9 @@ def _recency_score(published_at: datetime, half_life_hours: float = 18.0) -> flo
 #  Public ranker
 # ──────────────────────────────────────────────────────────────────
 
+
 def rank_articles(
-    articles: list[Any],          # SQLAlchemy TrendingArticle rows
+    articles: list[Any],  # SQLAlchemy TrendingArticle rows
     persona: dict[str, Any],
     top_k: int = 9,
     weights: tuple[float, float, float] = (0.5, 0.25, 0.25),
@@ -168,8 +222,7 @@ def rank_articles(
 
     # Tokenize all articles once — used for corpus stats and per-doc scoring
     tokenized: list[list[str]] = [
-        _tokenize(f"{a.title} {a.description or ''}")
-        for a in articles
+        _tokenize(f"{a.title} {a.description or ''}") for a in articles
     ]
 
     # Corpus statistics needed for BM25

@@ -1,0 +1,17 @@
+# Normalize line endings to LF in the repo (Windows checkouts stay CRLF locally
+# via core.autocrlf, but the committed blob is always LF). Keeps the
+# mixed-line-ending / Prettier / Ruff hooks from fighting CRLF.
+* text=auto eol=lf
+
+# Binary assets — never normalize or diff these
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.gif   binary
+*.ico   binary
+*.mp4   binary
+*.webm  binary
+*.woff  binary
+*.woff2 binary
+*.pdf   binary

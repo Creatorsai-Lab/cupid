@@ -32,17 +32,18 @@ ANATOMY OF A PYTEST TEST
 
 That's it. No special methods, no test runner config, no boilerplate.
 """
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from app.trends.ingest import _compute_velocity, _ensure_aware, _url_hash
 from app.trends.source_client import RawArticle
 
-
 # ─── _url_hash ─────────────────────────────────────────────────
+
 
 class TestUrlHash:
     """Tests for the URL hashing function used as primary key."""
@@ -73,12 +74,17 @@ class TestUrlHash:
 
 # ─── _compute_velocity ─────────────────────────────────────────
 
+
 def make_article(domain: str, hours_ago: float) -> RawArticle:
     """Helper — keeps test bodies focused on the assertion, not setup."""
     return RawArticle(
-        title="test", description="", url=f"https://{domain}/x",
-        image_url=None, source=domain, domain=domain,
-        published_at=datetime.now(timezone.utc) - timedelta(hours=hours_ago),
+        title="test",
+        description="",
+        url=f"https://{domain}/x",
+        image_url=None,
+        source=domain,
+        domain=domain,
+        published_at=datetime.now(UTC) - timedelta(hours=hours_ago),
     )
 
 
@@ -104,12 +110,15 @@ class TestComputeVelocity:
         assert 0 <= _compute_velocity(very_old) <= 1
         assert 0 <= _compute_velocity(very_fresh) <= 1
 
-    @pytest.mark.parametrize("domain,expected_min", [
-        ("reuters.com", 0.85),
-        ("bbc.com", 0.85),
-        ("nytimes.com", 0.85),
-        ("forbes.com", 0.65),
-    ])
+    @pytest.mark.parametrize(
+        "domain,expected_min",
+        [
+            ("reuters.com", 0.85),
+            ("bbc.com", 0.85),
+            ("nytimes.com", 0.85),
+            ("forbes.com", 0.65),
+        ],
+    )
     def test_known_authorities_score_above_threshold(self, domain, expected_min):
         """Recognized publishers with fresh articles should beat the threshold.
 
@@ -124,6 +133,7 @@ class TestComputeVelocity:
 
 # ─── _ensure_aware ─────────────────────────────────────────────
 
+
 class TestEnsureAware:
     """Defensive timezone handling — RSS feeds sometimes return naive datetimes."""
 
@@ -136,7 +146,7 @@ class TestEnsureAware:
 
     def test_aware_datetime_passes_through(self):
         """Timezone-aware datetimes should not be modified."""
-        original = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        original = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
         result = _ensure_aware(original)
         assert result == original
-        assert result.tzinfo == timezone.utc
+        assert result.tzinfo == UTC

@@ -5,7 +5,7 @@ Usage:
     cd D:\\Cupid\\backend
     python -m scripts.run_youtube_sync                 # sync all youtube connections
     python -m scripts.run_youtube_sync <connection_id> # sync just one
-    
+
 Note: Ensure the docker contains connections
     docker exec -it cupid_postgres psql -U cupid -d cupid_db -c "SELECT id, handle FROM social_connections;"
 
@@ -14,6 +14,7 @@ Run this when you want to:
     - See real numbers land in the DB without waiting 6 hours
     - Debug a specific connection's sync failure
 """
+
 import asyncio
 import logging
 import sys

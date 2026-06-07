@@ -7,6 +7,7 @@ Endpoints:
 
 The router is intentionally thin. All real logic lives in service.py.
 """
+
 from __future__ import annotations
 
 import logging
@@ -15,8 +16,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db import get_db                   
-from app.core.redis import get_redis 
+from app.core.db import get_db
+from app.core.redis import get_redis
 from app.models.user import User
 from app.routers.auth import get_current_user
 from app.schemas.trends import TrendsResponse
@@ -52,7 +53,9 @@ async def get_trending_news(
             bypass_cache=refresh,
         )
     except Exception as exc:
-        logger.error("[trends.api] failed for user %s: %s", current_user.id, exc, exc_info=True)
+        logger.error(
+            "[trends.api] failed for user %s: %s", current_user.id, exc, exc_info=True
+        )
         raise HTTPException(status_code=500, detail="Failed to load trending news")
 
     return response
@@ -66,11 +69,11 @@ def _extract_persona(user: User) -> dict:
     If it's on a separate Profile model, fetch that here.
     """
     return {
-        "name":             getattr(user, "full_name", None),
-        "content_niche":    getattr(user, "content_niche", None),
-        "target_audience":  getattr(user, "target_audience", None),
-        "target_country":   getattr(user, "target_country", None),
-        "content_intent":   getattr(user, "content_intent", None),
-        "usp":              getattr(user, "usp", None),
-        "bio":              getattr(user, "bio", None),
+        "name": getattr(user, "full_name", None),
+        "content_niche": getattr(user, "content_niche", None),
+        "target_audience": getattr(user, "target_audience", None),
+        "target_country": getattr(user, "target_country", None),
+        "content_intent": getattr(user, "content_intent", None),
+        "usp": getattr(user, "usp", None),
+        "bio": getattr(user, "bio", None),
     }

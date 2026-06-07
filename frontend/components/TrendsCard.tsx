@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ExternalLink, Image as ImageIcon } from "lucide-react";
 import { type TrendArticle } from "@/lib/api";
-import {timeAgo} from "@/lib/timeAgo";
+import { timeAgo } from "@/lib/timeAgo";
 
 /**
  * A single news article card.
@@ -26,45 +26,45 @@ export function NewsCard({ article }: { article: TrendArticle }) {
       href={article.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex gap-4 p-2 rounded-xl border border-grey-500 bg-white hover:border-[var(--color-primary)] hover:shadow-sm transition-all duration-200"
+      className="group border-grey-500 flex gap-4 rounded-xl border bg-white p-2 transition-all duration-200 hover:border-[var(--color-primary)] hover:shadow-sm"
     >
       {/* Image (or placeholder) */}
-      <div className="flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden bg-[#fff6ed]">
+      <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-[#fff6ed]">
         {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={article.image_url!}
             alt=""
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover"
             onError={() => setImageFailed(true)}
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
+          <div className="flex h-full w-full items-center justify-center">
             <ImageIcon size={24} className="text-[var(--color-primary)] opacity-50" />
           </div>
         )}
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between">
+      <div className="flex min-w-0 flex-1 flex-col justify-between">
         <h3
-          className="text-sm font-medium leading-snug line-clamp-3 group-hover:text-[var(--color-primary)] transition-colors"
+          className="line-clamp-3 text-sm leading-snug font-medium transition-colors group-hover:text-[var(--color-primary)]"
           style={{ color: "var(--color-text)", fontFamily: "var(--font-body)" }}
         >
           {article.title}
         </h3>
 
         <div
-          className="flex items-center gap-2 mt-2 text-xs"
+          className="mt-2 flex items-center gap-2 text-xs"
           style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
         >
-          <span className="font-medium truncate max-w-[140px]">{article.source}</span>
+          <span className="max-w-[140px] truncate font-medium">{article.source}</span>
           <span>·</span>
           <span>{timeAgo(article.published_at)}</span>
           <ExternalLink
             size={11}
-            className="ml-auto flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="ml-auto flex-shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
           />
         </div>
       </div>

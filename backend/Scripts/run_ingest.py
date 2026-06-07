@@ -18,6 +18,7 @@ What it does:
 
 Exactly equivalent to a Celery task, just without Celery's overhead.
 """
+
 import asyncio
 import logging
 import sys

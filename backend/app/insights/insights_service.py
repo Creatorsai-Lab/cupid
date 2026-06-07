@@ -20,12 +20,12 @@ If you ever measure these endpoints and find them slow at scale, layer
 Redis the same way trends does. For MVP, skip the complexity.
 ═══════════════════════════════════════════════════════════════════════════
 """
+
 from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from datetime import date, datetime, timedelta, timezone
-from uuid import UUID
+from datetime import UTC, date, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,16 +34,20 @@ from app.models.insights_snapshot import InsightsSnapshot
 from app.models.social_connection import SocialConnection
 from app.models.top_content import TopContent
 from app.schemas.insights_schema import (
-    HeatmapCell, HeatmapResponse,
+    HeatmapCell,
+    HeatmapResponse,
     SummaryResponse,
-    TimeSeriesPoint, TimeSeriesResponse,
-    TopContentItem, TopContentResponse,
+    TimeSeriesPoint,
+    TimeSeriesResponse,
+    TopContentItem,
+    TopContentResponse,
 )
 
 logger = logging.getLogger(__name__)
 
 
 # ─── Summary ───────────────────────────────────────────────────
+
 
 async def get_summary(
     connection: SocialConnection,
@@ -117,6 +121,7 @@ async def get_summary(
 
 # ─── Time series ───────────────────────────────────────────────
 
+
 async def get_timeseries(
     connection: SocialConnection,
     session: AsyncSession,
@@ -156,6 +161,7 @@ async def get_timeseries(
 
 
 # ─── Top content ───────────────────────────────────────────────
+
 
 async def get_top_content(
     connection: SocialConnection,
@@ -229,6 +235,7 @@ async def get_top_content(
 
 # ─── Heatmap (posting times analysis) ──────────────────────────
 
+
 async def get_heatmap(
     connection: SocialConnection,
     session: AsyncSession,
@@ -243,10 +250,7 @@ async def get_heatmap(
     Insight string surfaces the best cell as a human-readable hint.
     """
     # Pull all top_content rows we have for this connection
-    stmt = (
-        select(TopContent)
-        .where(TopContent.connection_id == connection.id)
-    )
+    stmt = select(TopContent).where(TopContent.connection_id == connection.id)
     rows = (await session.execute(stmt)).scalars().all()
 
     # Bucket by (day_of_week, hour) — accumulate sums and counts
@@ -254,7 +258,9 @@ async def get_heatmap(
         lambda: {"sum_views": 0, "count": 0}
     )
 
-    seen_video_ids: set[str] = set()  # dedupe: same video may appear in multiple snapshots
+    seen_video_ids: set[str] = (
+        set()
+    )  # dedupe: same video may appear in multiple snapshots
 
     for row in rows:
         if row.content_id in seen_video_ids:
@@ -263,11 +269,11 @@ async def get_heatmap(
 
         published = row.published_at
         if published.tzinfo is None:
-            published = published.replace(tzinfo=timezone.utc)
+            published = published.replace(tzinfo=UTC)
 
         # Convert to user's local-ish time. For MVP we use UTC.
         # Future enhancement: store user timezone, convert here.
-        dow = published.weekday()    # 0 = Monday, 6 = Sunday
+        dow = published.weekday()  # 0 = Monday, 6 = Sunday
         hour = published.hour
 
         bucket = buckets[(dow, hour)]
@@ -306,8 +312,15 @@ def _build_heatmap_insight(cells: list[HeatmapCell]) -> str:
         return "Post a few more videos to unlock posting-time insights."
 
     best = max(eligible, key=lambda c: c.avg_views)
-    days = ["Monday", "Tuesday", "Wednesday", "Thursday",
-            "Friday", "Saturday", "Sunday"]
+    days = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ]
 
     return (
         f"Your best-performing videos publish on {days[best.day_of_week]}s "

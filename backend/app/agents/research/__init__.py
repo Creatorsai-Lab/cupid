@@ -19,9 +19,10 @@ Public API::
 
     results = await SearchPipeline().run(["query1", "query2"])
 """
+
 from app.agents.research.agent import (
-    research_node,
     build_research_graph,
+    research_node,
 )
 from app.agents.research.search import SearchPipeline, SearchResult
 

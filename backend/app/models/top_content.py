@@ -26,6 +26,7 @@ This lets us answer both "what was top yesterday" and "how much did the
 #3 video grow week over week."
 ═══════════════════════════════════════════════════════════════════════════
 """
+
 from __future__ import annotations
 
 import uuid
@@ -33,7 +34,14 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
-    Date, DateTime, ForeignKey, Index, Integer, String, Text, func,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    func,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -74,7 +82,8 @@ class TopContent(Base):
     thumbnail_url: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     published_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False,
+        DateTime(timezone=True),
+        nullable=False,
     )
 
     # ── Engagement metrics (universal across platforms) ─────────
@@ -90,13 +99,15 @@ class TopContent(Base):
         nullable=False,
     )
 
-    connection: Mapped["SocialConnection"] = relationship()
+    connection: Mapped[SocialConnection] = relationship()
 
     __table_args__ = (
         # Common query path: top-K for a connection on a date
         Index(
             "ix_top_content_connection_date_rank",
-            "connection_id", "snapshot_date", "rank",
+            "connection_id",
+            "snapshot_date",
+            "rank",
         ),
     )
 

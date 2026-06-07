@@ -15,20 +15,23 @@ isn't disrupted by the Google round-trip.
 
 ═══════════════════════════════════════════════════════════════════════════
 """
+
 from __future__ import annotations
 
 import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.connections import youtube_oauth
 from app.connections.oauth_state import (
-    consume_state, generate_state_token, store_state,
+    consume_state,
+    generate_state_token,
+    store_state,
 )
 from app.connections.token_crypto import encrypt_token
 from app.core.db import get_db
@@ -37,7 +40,8 @@ from app.models.social_connection import SocialConnection
 from app.models.user import User
 from app.routers.auth import get_current_user
 from app.schemas.connections import (
-    ConnectionResponse, ConnectionStartResponse,
+    ConnectionResponse,
+    ConnectionStartResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -47,25 +51,24 @@ router = APIRouter(prefix="/connections", tags=["connections"])
 
 # ─── List connected platforms ──────────────────────────────────
 
+
 @router.get("/", response_model=list[ConnectionResponse])
 async def list_connections(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> list[ConnectionResponse]:
     """Return all platforms the current user has connected."""
-    stmt = select(SocialConnection).where(
-        SocialConnection.user_id == current_user.id
-    )
+    stmt = select(SocialConnection).where(SocialConnection.user_id == current_user.id)
     result = await session.execute(stmt)
     connections = result.scalars().all()
 
     return [
-        ConnectionResponse.model_validate(c, from_attributes=True)
-        for c in connections
+        ConnectionResponse.model_validate(c, from_attributes=True) for c in connections
     ]
 
 
 # ─── Start the OAuth flow ──────────────────────────────────────
+
 
 @router.get("/youtube/connect", response_model=ConnectionStartResponse)
 async def start_youtube_connection(
@@ -88,6 +91,7 @@ async def start_youtube_connection(
 
 
 # ─── OAuth callback target ─────────────────────────────────────
+
 
 @router.get("/youtube/callback", response_class=HTMLResponse)
 async def youtube_callback(
@@ -149,9 +153,7 @@ async def youtube_callback(
 
     # Find the channel info
     try:
-        channel = await youtube_oauth.get_connected_channel_info(
-            tokens["access_token"]
-        )
+        channel = await youtube_oauth.get_connected_channel_info(tokens["access_token"])
     except Exception as exc:
         logger.error("[connections.callback] channel lookup failed: %s", exc)
         return _close_window_html(
@@ -189,7 +191,8 @@ async def youtube_callback(
             access_token_encrypted=encrypt_token(tokens["access_token"]),
             refresh_token_encrypted=(
                 encrypt_token(tokens["refresh_token"])
-                if tokens.get("refresh_token") else None
+                if tokens.get("refresh_token")
+                else None
             ),
             expires_at=expires_at,
             scopes=tokens.get("scope", ""),
@@ -200,7 +203,8 @@ async def youtube_callback(
     await session.commit()
     logger.info(
         "[connections.callback] connected youtube for user=%s channel=%s",
-        user_id, channel["channel_id"],
+        user_id,
+        channel["channel_id"],
     )
 
     return _close_window_html(
@@ -208,7 +212,9 @@ async def youtube_callback(
         message=f"Connected to YouTube channel: {channel['title']}",
     )
 
+
 # ─── Disconnect ────────────────────────────────────────────────
+
 
 @router.delete("/{connection_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def disconnect(
@@ -232,6 +238,7 @@ async def disconnect(
 
 # ─── HTML response helper ──────────────────────────────────────
 
+
 def _close_window_html(*, success: bool, message: str) -> HTMLResponse:
     """
     Render a small HTML page that closes itself or shows an error.
@@ -249,7 +256,8 @@ def _close_window_html(*, success: bool, message: str) -> HTMLResponse:
     icon = "✓" if success else "✕"
     title = "Connected" if success else "Connection failed"
 
-    return HTMLResponse(content=f"""<!DOCTYPE html>
+    return HTMLResponse(
+        content=f"""<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -290,4 +298,5 @@ def _close_window_html(*, success: bool, message: str) -> HTMLResponse:
     }}
   </script>
 </body>
-</html>""")
+</html>"""
+    )

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Copy, Check, X, ChevronLeft, ChevronRight, DraftingCompass, Download } from "lucide-react";
+import { Copy, Check, X, ChevronLeft, ChevronRight, DraftingCompass, Download } from "lucide-react";
 import { SocialMediaCard, type Platform } from "@/components/SocialMediaCards";
 import { ImagePickerModal } from "@/components/ImagePickerModal";
 import { historyApi } from "@/lib/api";
@@ -45,11 +44,11 @@ export interface ComposerSource {
 // ─── Platform → card key map ────────────────────────────────────
 
 const PLATFORM_KEY_MAP: Record<string, Platform> = {
-  Twitter:   "x",
-  LinkedIn:  "linkedin",
+  Twitter: "x",
+  LinkedIn: "linkedin",
   Instagram: "instagram",
-  Facebook:  "facebook",
-  YouTube:   "youtube",
+  Facebook: "facebook",
+  YouTube: "youtube",
 };
 
 function getPlatformKey(platformName: string): Platform {
@@ -154,9 +153,7 @@ export function ComposerResults({
   const internalW = peek ? vw : SLIDE_MAX;
   // Centre the current card. On mobile the stage is one card wide, so neighbours
   // sit fully outside it and get clipped — no peek.
-  const trackOffset = peek
-    ? vw / 2 - current * stride - SLIDE_MAX / 2
-    : -current * stride;
+  const trackOffset = peek ? vw / 2 - current * stride - SLIDE_MAX / 2 : -current * stride;
 
   const goPrev = () => setCurrent((c) => Math.max(0, c - 1));
   const goNext = () => setCurrent((c) => Math.min(last, c + 1));
@@ -213,10 +210,10 @@ export function ComposerResults({
   };
 
   return (
-    <div className="space-y-4 mb-15">
+    <div className="mb-15 space-y-4">
       <div
         ref={viewportRef}
-        className="overflow-hidden w-full"
+        className="w-full overflow-hidden"
         style={{ height: stageH ? stageH * scale : undefined }}
       >
         <div
@@ -240,31 +237,29 @@ export function ComposerResults({
                 key={i}
                 style={{ width: SLIDE_MAX }}
                 onClick={() => !editing && i !== current && setCurrent(i)}
-              className={`flex-shrink-0 transition-all duration-300 ${
-                i === current
-                  ? "opacity-100"
-                  : "opacity-40 scale-95 cursor-pointer"
-              }`}
-            >
-              {editing && i === current ? (
-                <EditCard
-                  index={i}
-                  draft={draft}
-                  saving={saving}
-                  onChange={setDraft}
-                  onSave={saveEdit}
-                  onCancel={cancelEdit}
-                />
-              ) : (
-                <SourceCard
-                  variant={v}
-                  index={i}
-                  selected={i === current}
-                  userName={userName}
-                  platformKey={platformKey}
-                  mediaUrl={cardImages[i]}
-                />
-              )}
+                className={`flex-shrink-0 transition-all duration-300 ${
+                  i === current ? "opacity-100" : "scale-95 cursor-pointer opacity-40"
+                }`}
+              >
+                {editing && i === current ? (
+                  <EditCard
+                    index={i}
+                    draft={draft}
+                    saving={saving}
+                    onChange={setDraft}
+                    onSave={saveEdit}
+                    onCancel={cancelEdit}
+                  />
+                ) : (
+                  <SourceCard
+                    variant={v}
+                    index={i}
+                    selected={i === current}
+                    userName={userName}
+                    platformKey={platformKey}
+                    mediaUrl={cardImages[i]}
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -276,12 +271,15 @@ export function ComposerResults({
           onClick={goPrev}
           disabled={current === 0 || editing}
           title="Previous variant"
-          className="p-2 rounded-full border border-[var(--color-primary)] text-[var(--color-text)] disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-default"
+          className="cursor-pointer rounded-full border border-[var(--color-primary)] p-2 text-[var(--color-text)] transition-colors disabled:cursor-default disabled:opacity-30"
         >
           <ChevronLeft size={16} />
         </button>
 
-        <span className="text-xs font-medium min-w-[90px] text-center" style={{ color: "var(--color-muted)" }}>
+        <span
+          className="min-w-[90px] text-center text-xs font-medium"
+          style={{ color: "var(--color-muted)" }}
+        >
           Variant {current + 1} of {items.length}
         </span>
 
@@ -289,35 +287,44 @@ export function ComposerResults({
           onClick={goNext}
           disabled={current === last || editing}
           title="Next variant"
-          className="p-2 rounded-full border border-[var(--color-primary)] text-[var(--color-text)] disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-default"
+          className="cursor-pointer rounded-full border border-[var(--color-primary)] p-2 text-[var(--color-text)] transition-colors disabled:cursor-default disabled:opacity-30"
         >
           <ChevronRight size={16} />
         </button>
       </div>
 
       {/* Action buttons — always one row; smaller on mobile */}
-      <div className="relative grid grid-cols-4 gap-1.5 sm:gap-3 w-full text-[11px] sm:text-sm">
+      <div className="relative grid w-full grid-cols-4 gap-1.5 text-[11px] sm:gap-3 sm:text-sm">
         <div className="w-full" title="Require PRO">
-          <button disabled className="btn-primary w-full justify-center px-1.5 sm:px-4 whitespace-nowrap opacity-40 cursor-not-allowed pointer-events-none">
-            <DraftingCompass size={13} />Improve
+          <button
+            disabled
+            className="btn-primary pointer-events-none w-full cursor-not-allowed justify-center px-1.5 whitespace-nowrap opacity-40 sm:px-4"
+          >
+            <DraftingCompass size={13} />
+            Improve
           </button>
         </div>
-        <button className="btn-secondary w-full justify-center px-1.5 sm:px-4 whitespace-nowrap" onClick={() => setImageOpen(true)}>
+        <button
+          className="btn-secondary w-full justify-center px-1.5 whitespace-nowrap sm:px-4"
+          onClick={() => setImageOpen(true)}
+        >
           Image
         </button>
         <button
-          className="btn-secondary w-full justify-center px-1.5 sm:px-4 whitespace-nowrap disabled:opacity-40"
+          className="btn-secondary w-full justify-center px-1.5 whitespace-nowrap disabled:opacity-40 sm:px-4"
           onClick={startEdit}
           disabled={editing}
           title="Edit the front variant"
         >
           Edit
         </button>
-        <button className="btn-primary w-full justify-center px-1.5 sm:px-4 whitespace-nowrap">Publish</button>
+        <button className="btn-primary w-full justify-center px-1.5 whitespace-nowrap sm:px-4">
+          Publish
+        </button>
 
         {/* "Requires Pro" pill for Improve */}
         {proNote && (
-          <div className="absolute -top-9 left-0 text-xs font-medium px-3 py-1.5 rounded-md bg-[var(--color-text)] text-white shadow">
+          <div className="absolute -top-9 left-0 rounded-md bg-[var(--color-text)] px-3 py-1.5 text-xs font-medium text-white shadow">
             Requires Pro
           </div>
         )}
@@ -382,8 +389,7 @@ function SourceCard({
   };
 
   return (
-    <div
-      className="flex flex-col mt-5 bg-[var(--color-inline-bg)] rounded-xl transition-colors border border-[var(--color-border)]">
+    <div className="mt-5 flex flex-col rounded-xl border border-[var(--color-border)] bg-[var(--color-inline-bg)] transition-colors">
       {/* Source badge row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4 px-4 py-3">
@@ -396,11 +402,11 @@ function SourceCard({
           <button
             onClick={handleCopy}
             title="Copy post"
-            className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors cursor-pointer
-              ${copied
-                ? "text-[var(--color-primary)] bg-[var(--inline-bg)]"
-                : "text-[var(--color-muted)] bg-transparent"
-              }`}
+            className={`flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${
+              copied
+                ? "bg-[var(--inline-bg)] text-[var(--color-primary)]"
+                : "bg-transparent text-[var(--color-muted)]"
+            }`}
           >
             {copied ? <Check size={12} /> : <Copy size={12} />}
             {copied ? "Copied" : "Copy"}
@@ -421,7 +427,7 @@ function SourceCard({
           <button
             onClick={handleDownload}
             title="Download image"
-            className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--color-inline-bg)_30%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-white cursor-pointer"
+            className="absolute right-3 bottom-3 z-10 flex cursor-pointer items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--color-inline-bg)_30%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-white"
           >
             <Download size={13} />
             Download
@@ -451,7 +457,7 @@ function EditCard({
 }) {
   return (
     <div className="mt-10 w-full rounded-xl border-2 border-[var(--color-primary)] bg-[var(--color-inline-bg)] p-4">
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-3 flex items-center justify-between">
         <span className="text-xs font-semibold text-[var(--color-primary)]">
           Editing Variant {index + 1}
         </span>
@@ -460,7 +466,7 @@ function EditCard({
             onClick={onSave}
             disabled={saving || !draft.trim()}
             title="Save"
-            className="p-1.5 rounded-md text-green-600 hover:bg-green-50 disabled:opacity-40 transition-colors cursor-pointer disabled:cursor-default"
+            className="cursor-pointer rounded-md p-1.5 text-green-600 transition-colors hover:bg-green-50 disabled:cursor-default disabled:opacity-40"
           >
             <Check size={16} />
           </button>
@@ -468,7 +474,7 @@ function EditCard({
             onClick={onCancel}
             disabled={saving}
             title="Cancel"
-            className="p-1.5 rounded-md text-red-500 hover:bg-red-50 disabled:opacity-40 transition-colors cursor-pointer disabled:cursor-default"
+            className="cursor-pointer rounded-md p-1.5 text-red-500 transition-colors hover:bg-red-50 disabled:cursor-default disabled:opacity-40"
           >
             <X size={16} />
           </button>
@@ -496,7 +502,7 @@ function QualityBadge({ score }: { score: number }) {
   const color = score >= 70 ? "#059669" : score >= 45 ? "#d18904" : "#9ca3af";
   return (
     <div
-      className="text-xs font-semibold px-2 py-0.5 rounded-full"
+      className="rounded-full px-2 py-0.5 text-xs font-semibold"
       style={{ backgroundColor: `${color}18`, color }}
     >
       {score}%

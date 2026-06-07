@@ -18,6 +18,7 @@ Keep this list SMALL and HIGH-QUALITY. It's a starting floor, not a directory.
 The seeding function is idempotent — safe to run on every startup; it won't
 create duplicates.
 """
+
 from __future__ import annotations
 
 import logging
@@ -44,7 +45,7 @@ _SEED: tuple[dict, ...] = (
         "title": "Amazon Associates",
         "brand_name": "Amazon",
         "description": "The most accessible affiliate program — link almost any product and earn "
-                       "commission. Ideal first affiliate program for any niche.",
+        "commission. Ideal first affiliate program for any niche.",
         "niche_tags": ["all"],
         "min_tier": "nano",
         "commission_note": "Varies by category",
@@ -55,7 +56,7 @@ _SEED: tuple[dict, ...] = (
         "title": "Impact Marketplace",
         "brand_name": "Impact.com",
         "description": "A large marketplace of brand affiliate programs across many niches — "
-                       "browse and apply to ones that fit your content.",
+        "browse and apply to ones that fit your content.",
         "niche_tags": ["all"],
         "min_tier": "nano",
         "commission_note": "Varies by brand",
@@ -66,7 +67,7 @@ _SEED: tuple[dict, ...] = (
         "title": "ShareASale Network",
         "brand_name": "ShareASale",
         "description": "Long-running affiliate network with thousands of merchants, strong for "
-                       "lifestyle, home, fashion, and DIY niches.",
+        "lifestyle, home, fashion, and DIY niches.",
         "niche_tags": ["all"],
         "min_tier": "nano",
         "commission_note": "Varies by merchant",
@@ -77,7 +78,7 @@ _SEED: tuple[dict, ...] = (
         "title": "Awin Affiliate Network",
         "brand_name": "Awin",
         "description": "Global affiliate network with a large brand catalog; accessible sign-up "
-                       "for newer creators (small refundable deposit).",
+        "for newer creators (small refundable deposit).",
         "niche_tags": ["all"],
         "min_tier": "nano",
         "commission_note": "Varies by brand",
@@ -88,7 +89,7 @@ _SEED: tuple[dict, ...] = (
         "title": "Collabstr Creator Marketplace",
         "brand_name": "Collabstr",
         "description": "List yourself and get discovered by brands seeking creators for paid "
-                       "collaborations — strong for micro and mid creators.",
+        "collaborations — strong for micro and mid creators.",
         "niche_tags": ["all"],
         "min_tier": "micro",
         "commission_note": None,
@@ -99,7 +100,7 @@ _SEED: tuple[dict, ...] = (
         "title": "Afluencer Brand Collabs",
         "brand_name": "Afluencer",
         "description": "Free-to-join platform with AI brand matching, well-suited to nano and "
-                       "micro creators landing their first collaborations.",
+        "micro creators landing their first collaborations.",
         "niche_tags": ["all"],
         "min_tier": "nano",
         "commission_note": None,

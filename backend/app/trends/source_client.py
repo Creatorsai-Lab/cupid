@@ -13,6 +13,7 @@ Rate limit reality:
     - GNews API free tier: 100 requests/day total
     - We fetch 7 core categories per run; 4 runs/day = 28 RSS requests = safe
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -36,24 +37,24 @@ _USER_AGENT = (
 
 # Categories with native Google News topic codes
 GOOGLE_NEWS_TOPICS: dict[str, str] = {
-    "technology":    "TECHNOLOGY",
-    "business":      "BUSINESS",
-    "health":        "HEALTH",
-    "science":       "SCIENCE",
-    "sports":        "SPORTS",
+    "technology": "TECHNOLOGY",
+    "business": "BUSINESS",
+    "health": "HEALTH",
+    "science": "SCIENCE",
+    "sports": "SPORTS",
     "entertainment": "ENTERTAINMENT",
-    "world":         "WORLD",
-    "nation":        "NATION",
+    "world": "WORLD",
+    "nation": "NATION",
 }
 
 # Niches handled via keyword search instead
 KEYWORD_NICHES: dict[str, str] = {
-    "ai":           "AI artificial intelligence",
-    "crypto":       "cryptocurrency bitcoin",
-    "fitness":      "fitness workout",
-    "marketing":    "marketing growth digital",
-    "startups":     "startup founders venture capital",
-    "design":       "design UX UI",
+    "ai": "AI artificial intelligence",
+    "crypto": "cryptocurrency bitcoin",
+    "fitness": "fitness workout",
+    "marketing": "marketing growth digital",
+    "startups": "startup founders venture capital",
+    "design": "design UX UI",
     "productivity": "productivity workflow tools",
 }
 
@@ -72,6 +73,7 @@ class RawArticle:
 # ──────────────────────────────────────────────────────────────────
 #  PRIMARY: Google News RSS via gnews library
 # ──────────────────────────────────────────────────────────────────
+
 
 def _fetch_via_gnews_sync(category: str, max_results: int) -> list[dict[str, Any]]:
     """Sync RSS fetch — wrapped in to_thread by the caller."""
@@ -108,30 +110,45 @@ async def fetch_via_rss(
                 return [_parse_rss_item(item) for item in raw if item.get("url")]
             # Empty response could mean rate-limited — retry once
             if attempt < retry_attempts:
-                wait = 3.0 * (2 ** attempt) + random.uniform(0, 1)
-                logger.debug("[trends.source] %s: empty RSS, retrying in %.1fs", category, wait)
+                wait = 3.0 * (2**attempt) + random.uniform(0, 1)
+                logger.debug(
+                    "[trends.source] %s: empty RSS, retrying in %.1fs", category, wait
+                )
                 await asyncio.sleep(wait)
         except Exception as exc:
             err_str = str(exc).lower()
             is_rate_limited = any(s in err_str for s in ("429", "rate", "too many"))
             if attempt < retry_attempts:
-                wait = (4.0 if is_rate_limited else 2.0) * (2 ** attempt) + random.uniform(0, 1)
+                wait = (4.0 if is_rate_limited else 2.0) * (
+                    2**attempt
+                ) + random.uniform(0, 1)
                 logger.warning(
                     "[trends.source] %s: %s (attempt %d), retrying in %.1fs",
-                    category, "rate-limited" if is_rate_limited else "error", attempt + 1, wait,
+                    category,
+                    "rate-limited" if is_rate_limited else "error",
+                    attempt + 1,
+                    wait,
                 )
                 await asyncio.sleep(wait)
             else:
-                logger.warning("[trends.source] %s: gave up after %d attempts: %s",
-                               category, attempt + 1, str(exc)[:100])
+                logger.warning(
+                    "[trends.source] %s: gave up after %d attempts: %s",
+                    category,
+                    attempt + 1,
+                    str(exc)[:100],
+                )
 
     return []
 
 
 def _parse_rss_item(item: dict[str, Any]) -> RawArticle:
     url = item.get("url", "")
-    publisher = item.get("publisher", {}) if isinstance(item.get("publisher"), dict) else {}
-    domain = urlparse(publisher.get("href") or url).netloc.replace("www.", "") or "unknown"
+    publisher = (
+        item.get("publisher", {}) if isinstance(item.get("publisher"), dict) else {}
+    )
+    domain = (
+        urlparse(publisher.get("href") or url).netloc.replace("www.", "") or "unknown"
+    )
     published_at = _parse_date(item.get("published date", ""))
     title = _strip_publisher_suffix(item.get("title", ""))
 
@@ -153,6 +170,7 @@ def _strip_publisher_suffix(title: str) -> str:
 def _parse_date(raw: str) -> datetime:
     try:
         from email.utils import parsedate_to_datetime
+
         return parsedate_to_datetime(raw)
     except (TypeError, ValueError):
         return datetime.now()
@@ -177,9 +195,14 @@ async def fetch_via_api(
     max_results = min(max_results, 10)
 
     api_categories = {
-        "technology": "technology", "business": "business", "health": "health",
-        "science": "science", "sports": "sports", "entertainment": "entertainment",
-        "world": "world", "nation": "nation",
+        "technology": "technology",
+        "business": "business",
+        "health": "health",
+        "science": "science",
+        "sports": "sports",
+        "entertainment": "entertainment",
+        "world": "world",
+        "nation": "nation",
     }
 
     if category in api_categories:
@@ -208,7 +231,9 @@ async def fetch_via_api(
             resp.raise_for_status()
             data = resp.json()
     except Exception as exc:
-        logger.warning("[trends.source] API failed for %s: %s", category, str(exc)[:100])
+        logger.warning(
+            "[trends.source] API failed for %s: %s", category, str(exc)[:100]
+        )
         return []
 
     return [_parse_api_article(a) for a in data.get("articles", [])]
@@ -240,6 +265,7 @@ def _parse_iso(raw: str) -> datetime:
 #  Public: try RSS, fall back to API only if it succeeded recently
 # ──────────────────────────────────────────────────────────────────
 
+
 async def fetch_category(
     category: str,
     api_key: str | None = None,
@@ -254,10 +280,16 @@ async def fetch_category(
     if api_key:
         articles = await fetch_via_api(category, api_key, max_results)
         if articles:
-            logger.info("[trends.source] %s: %d articles via API", category, len(articles))
+            logger.info(
+                "[trends.source] %s: %d articles via API", category, len(articles)
+            )
             return articles
 
     articles = await fetch_via_rss(category, max_results)
     if articles:
-        logger.info("[trends.source] %s: %d articles via RSS (no images)", category, len(articles))
+        logger.info(
+            "[trends.source] %s: %d articles via RSS (no images)",
+            category,
+            len(articles),
+        )
     return articles

@@ -10,20 +10,21 @@ can refactor the engine's internals without breaking the client.
 The readiness response is organized to mirror the four page sections 1:1, so
 the frontend can map section → component with no reshaping.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-
 # ─────────────────────────────────────────────────────────────────────────
 #  Q&A gate
 # ─────────────────────────────────────────────────────────────────────────
 
+
 class QuestionOption(BaseModel):
-    value: str          # "want" | "doing" | "no"
-    label: str          # human-facing
+    value: str  # "want" | "doing" | "no"
+    label: str  # human-facing
 
 
 class EarnQuestionOut(BaseModel):
@@ -52,16 +53,17 @@ class ProfileResponse(BaseModel):
 #  Section 1 — stats snapshot
 # ─────────────────────────────────────────────────────────────────────────
 
+
 class StatsSnapshot(BaseModel):
     total_followers: int
     monthly_views: int
     total_posts: int
     connected_platforms: int
-    tier: str                       # nano/micro/mid/macro
-    tier_label: str                 # "Micro creator"
+    tier: str  # nano/micro/mid/macro
+    tier_label: str  # "Micro creator"
     tier_blurb: str
-    confidence: str                 # high/low
-    engagement_note: str | None = None   # the flex reason, if any
+    confidence: str  # high/low
+    engagement_note: str | None = None  # the flex reason, if any
     has_data: bool
 
 
@@ -69,32 +71,34 @@ class StatsSnapshot(BaseModel):
 #  Section 2 — eligibility verdict
 # ─────────────────────────────────────────────────────────────────────────
 
+
 class StreamCard(BaseModel):
     stream_id: str
     label: str
     category: str
     durability: str
     effort: str
-    eligibility: str                # eligible/emerging/locked
-    interest: str                   # want/doing/no
-    state: str                      # green_light/almost_there/foundation/optimize
+    eligibility: str  # eligible/emerging/locked
+    interest: str  # want/doing/no
+    state: str  # green_light/almost_there/foundation/optimize
     tradeoff_label: str
     short_pitch: str
     time_to_first_revenue: str
-    followers_gap: int              # 0 if already eligible
+    followers_gap: int  # 0 if already eligible
 
 
 class EligibilityVerdict(BaseModel):
-    coach_summary: str              # LLM narrative grounded in the computed report
+    coach_summary: str  # LLM narrative grounded in the computed report
     green_lights: list[StreamCard]  # ranked best moves (eligible + wanted)
     almost_there: list[StreamCard]  # emerging + wanted
-    optimizing: list[StreamCard]    # already doing
-    foundation: list[StreamCard]    # wanted but locked
+    optimizing: list[StreamCard]  # already doing
+    foundation: list[StreamCard]  # wanted but locked
 
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Section 3 — matched opportunities
 # ─────────────────────────────────────────────────────────────────────────
+
 
 class OpportunityOut(BaseModel):
     id: str
@@ -104,11 +108,11 @@ class OpportunityOut(BaseModel):
     description: str | None = None
     commission_note: str | None = None
     url: str
-    source: str                     # curated/discovered
+    source: str  # curated/discovered
 
 
 class OpportunitySection(BaseModel):
-    intro: str                      # e.g. "You're cleared for affiliate — here are programs to start with"
+    intro: str  # e.g. "You're cleared for affiliate — here are programs to start with"
     opportunities: list[OpportunityOut]
     # When nothing matches yet, give the creator an honest, useful message
     # rather than an empty void.
@@ -119,10 +123,11 @@ class OpportunitySection(BaseModel):
 #  Section 4 — creative niche ideas
 # ─────────────────────────────────────────────────────────────────────────
 
+
 class CreativeIdea(BaseModel):
-    title: str                      # short headline
-    idea: str                       # 1-2 sentence concrete suggestion
-    related_stream: str | None = None   # which stream it supports, if any
+    title: str  # short headline
+    idea: str  # 1-2 sentence concrete suggestion
+    related_stream: str | None = None  # which stream it supports, if any
 
 
 class CreativeSection(BaseModel):
@@ -133,6 +138,7 @@ class CreativeSection(BaseModel):
 # ─────────────────────────────────────────────────────────────────────────
 #  The full page payload
 # ─────────────────────────────────────────────────────────────────────────
+
 
 class ReadinessResponse(BaseModel):
     stats: StatsSnapshot

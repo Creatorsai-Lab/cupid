@@ -21,7 +21,7 @@ async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
 async def create_user(db: AsyncSession, name: str, email: str, password: str) -> User:
     """
     Register a new user.
-    
+
     Steps:
     1. Hash the password (never store plain text)
     2. Create User object
@@ -35,14 +35,14 @@ async def create_user(db: AsyncSession, name: str, email: str, password: str) ->
     )
     db.add(user)
     await db.commit()
-    await db.refresh(user)    # reload from DB to get id + created_at
+    await db.refresh(user)  # reload from DB to get id + created_at
     return user
 
 
 async def authenticate_user(db: AsyncSession, email: str, password: str) -> User | None:
     """
     Verify login credentials.
-    
+
     Returns the User if credentials are valid, None otherwise.
     Note: we return None for BOTH "user not found" and "wrong password".
     This prevents attackers from discovering which emails are registered

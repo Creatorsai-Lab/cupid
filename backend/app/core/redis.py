@@ -7,6 +7,7 @@ The singleton pattern ensures we don't open a new connection per request.
 Redis maintains a connection pool internally — we just need one client
 instance shared across the app.
 """
+
 from __future__ import annotations
 
 from redis.asyncio import Redis

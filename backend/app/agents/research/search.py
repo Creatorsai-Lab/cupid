@@ -17,6 +17,7 @@ Design decisions:
 - trafilatura for content extraction, BS4 only as true fallback.
 - Entire pipeline is async; DDG's sync API runs in a thread pool.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -37,8 +38,10 @@ from ddgs import DDGS
 try:
     from langsmith import traceable
 except ImportError:
+
     def traceable(**kw):  # type: ignore[misc]
         return lambda fn: fn
+
 
 try:
     import trafilatura
@@ -65,56 +68,105 @@ _CHROME_UA = (
 
 _NICHE_DOMAIN_MAP: dict[str, dict[str, float]] = {
     "ai/ml": {
-        "arxiv.org": 0.30, "huggingface.co": 0.25, "openai.com": 0.22,
-        "anthropic.com": 0.22, "deepmind.com": 0.22, "ai.google": 0.20,
-        "mlops.community": 0.15, "paperswithcode.com": 0.20,
-        "towardsdatascience.com": 0.12, "distill.pub": 0.20,
-        "blog.google": 0.10, "microsoft.com/en-us/research": 0.18,
+        "arxiv.org": 0.30,
+        "huggingface.co": 0.25,
+        "openai.com": 0.22,
+        "anthropic.com": 0.22,
+        "deepmind.com": 0.22,
+        "ai.google": 0.20,
+        "mlops.community": 0.15,
+        "paperswithcode.com": 0.20,
+        "towardsdatascience.com": 0.12,
+        "distill.pub": 0.20,
+        "blog.google": 0.10,
+        "microsoft.com/en-us/research": 0.18,
     },
     "software": {
-        "github.com": 0.25, "stackoverflow.com": 0.20, "dev.to": 0.12,
-        "martinfowler.com": 0.22, "developer.mozilla.org": 0.22,
-        "docs.python.org": 0.20, "realpython.com": 0.15,
-        "engineering.atspotify.com": 0.15, "netflixtechblog.com": 0.15,
-        "aws.amazon.com/blogs": 0.12, "cloud.google.com/blog": 0.12,
+        "github.com": 0.25,
+        "stackoverflow.com": 0.20,
+        "dev.to": 0.12,
+        "martinfowler.com": 0.22,
+        "developer.mozilla.org": 0.22,
+        "docs.python.org": 0.20,
+        "realpython.com": 0.15,
+        "engineering.atspotify.com": 0.15,
+        "netflixtechblog.com": 0.15,
+        "aws.amazon.com/blogs": 0.12,
+        "cloud.google.com/blog": 0.12,
     },
     "fitness": {
-        "pubmed.ncbi.nlm.nih.gov": 0.25, "strongerbyscience.com": 0.25,
-        "examine.com": 0.22, "nsca.com": 0.18, "acefitness.org": 0.15,
-        "mensjournal.com": 0.10, "t-nation.com": 0.10,
+        "pubmed.ncbi.nlm.nih.gov": 0.25,
+        "strongerbyscience.com": 0.25,
+        "examine.com": 0.22,
+        "nsca.com": 0.18,
+        "acefitness.org": 0.15,
+        "mensjournal.com": 0.10,
+        "t-nation.com": 0.10,
     },
     "finance": {
-        "bloomberg.com": 0.22, "reuters.com": 0.22, "ft.com": 0.20,
-        "wsj.com": 0.18, "sec.gov": 0.25, "imf.org": 0.18,
-        "federalreserve.gov": 0.22, "investopedia.com": 0.12,
-        "cnbc.com": 0.10, "morningstar.com": 0.15, "economist.com": 0.18,
+        "bloomberg.com": 0.22,
+        "reuters.com": 0.22,
+        "ft.com": 0.20,
+        "wsj.com": 0.18,
+        "sec.gov": 0.25,
+        "imf.org": 0.18,
+        "federalreserve.gov": 0.22,
+        "investopedia.com": 0.12,
+        "cnbc.com": 0.10,
+        "morningstar.com": 0.15,
+        "economist.com": 0.18,
     },
     "marketing": {
-        "hubspot.com": 0.18, "backlinko.com": 0.18, "ahrefs.com": 0.18,
-        "moz.com": 0.15, "semrush.com": 0.15, "neilpatel.com": 0.10,
-        "searchengineland.com": 0.15, "marketingweek.com": 0.12,
-        "marketingcharts.com": 0.15, "hbr.org": 0.18,
+        "hubspot.com": 0.18,
+        "backlinko.com": 0.18,
+        "ahrefs.com": 0.18,
+        "moz.com": 0.15,
+        "semrush.com": 0.15,
+        "neilpatel.com": 0.10,
+        "searchengineland.com": 0.15,
+        "marketingweek.com": 0.12,
+        "marketingcharts.com": 0.15,
+        "hbr.org": 0.18,
     },
     "health": {
-        "pubmed.ncbi.nlm.nih.gov": 0.28, "who.int": 0.25, "cdc.gov": 0.25,
-        "nih.gov": 0.25, "mayoclinic.org": 0.20, "health.harvard.edu": 0.20,
-        "nejm.org": 0.25, "thelancet.com": 0.22, "bmj.com": 0.20,
+        "pubmed.ncbi.nlm.nih.gov": 0.28,
+        "who.int": 0.25,
+        "cdc.gov": 0.25,
+        "nih.gov": 0.25,
+        "mayoclinic.org": 0.20,
+        "health.harvard.edu": 0.20,
+        "nejm.org": 0.25,
+        "thelancet.com": 0.22,
+        "bmj.com": 0.20,
     },
     "creator": {
-        "youtube.com/creators": 0.18, "creatoreconomy.so": 0.18,
-        "tubefilter.com": 0.15, "socialmediatoday.com": 0.15,
-        "buffer.com/resources": 0.15, "later.com/blog": 0.12,
-        "thinkmedia.com": 0.10, "patreon.com/blog": 0.12,
+        "youtube.com/creators": 0.18,
+        "creatoreconomy.so": 0.18,
+        "tubefilter.com": 0.15,
+        "socialmediatoday.com": 0.15,
+        "buffer.com/resources": 0.15,
+        "later.com/blog": 0.12,
+        "thinkmedia.com": 0.10,
+        "patreon.com/blog": 0.12,
     },
     "crypto": {
-        "coindesk.com": 0.20, "cointelegraph.com": 0.15, "messari.io": 0.22,
-        "a16zcrypto.com": 0.20, "defillama.com": 0.22, "ethereum.org": 0.22,
-        "bitcoin.org": 0.20, "glassnode.com": 0.18,
+        "coindesk.com": 0.20,
+        "cointelegraph.com": 0.15,
+        "messari.io": 0.22,
+        "a16zcrypto.com": 0.20,
+        "defillama.com": 0.22,
+        "ethereum.org": 0.22,
+        "bitcoin.org": 0.20,
+        "glassnode.com": 0.18,
     },
     "design": {
-        "figma.com/blog": 0.18, "smashingmagazine.com": 0.20,
-        "nngroup.com": 0.25, "uxdesign.cc": 0.12, "behance.net": 0.10,
-        "dribbble.com": 0.10, "abduzeedo.com": 0.10,
+        "figma.com/blog": 0.18,
+        "smashingmagazine.com": 0.20,
+        "nngroup.com": 0.25,
+        "uxdesign.cc": 0.12,
+        "behance.net": 0.10,
+        "dribbble.com": 0.10,
+        "abduzeedo.com": 0.10,
     },
 }
 
@@ -122,21 +174,36 @@ _NICHE_DOMAIN_MAP: dict[str, dict[str, float]] = {
 def _resolve_niche_key(niche: str) -> str | None:
     """Map a free-form niche string onto one of _NICHE_DOMAIN_MAP's keys."""
     n = niche.lower()
-    if any(k in n for k in ("ai", "ml", "machine learning", "data scien", "llm", "genai")):
+    if any(
+        k in n for k in ("ai", "ml", "machine learning", "data scien", "llm", "genai")
+    ):
         return "ai/ml"
-    if any(k in n for k in ("software", "web dev", "programming", "coding", "developer", "devops")):
+    if any(
+        k in n
+        for k in ("software", "web dev", "programming", "coding", "developer", "devops")
+    ):
         return "software"
-    if any(k in n for k in ("fitness", "gym", "workout", "exercise", "strength", "bodybuilding")):
+    if any(
+        k in n
+        for k in ("fitness", "gym", "workout", "exercise", "strength", "bodybuilding")
+    ):
         return "fitness"
-    if any(k in n for k in ("finance", "invest", "stock", "trading", "economy", "wealth")):
+    if any(
+        k in n for k in ("finance", "invest", "stock", "trading", "economy", "wealth")
+    ):
         return "finance"
     if any(k in n for k in ("crypto", "web3", "blockchain", "bitcoin", "defi")):
         return "crypto"
     if any(k in n for k in ("market", "growth", "seo", "ads", "brand", "copywrit")):
         return "marketing"
-    if any(k in n for k in ("health", "wellness", "nutrition", "mental", "medical", "medicine")):
+    if any(
+        k in n
+        for k in ("health", "wellness", "nutrition", "mental", "medical", "medicine")
+    ):
         return "health"
-    if any(k in n for k in ("creator", "youtube", "podcast", "influencer", "content creat")):
+    if any(
+        k in n for k in ("creator", "youtube", "podcast", "influencer", "content creat")
+    ):
         return "creator"
     if any(k in n for k in ("design", "ux", "ui", "product design")):
         return "design"
@@ -147,21 +214,41 @@ def _resolve_niche_key(niche: str) -> str | None:
 # Two-letter ISO TLDs get a fixed boost; a handful of well-known publishers
 # get an extra edge because their country-of-record is not obvious from the TLD.
 _COUNTRY_TLD: dict[str, str] = {
-    "india": ".in",       "united kingdom": ".uk",   "uk": ".uk",
-    "germany": ".de",     "france": ".fr",           "spain": ".es",
-    "italy": ".it",        "netherlands": ".nl",     "japan": ".jp",
-    "south korea": ".kr",  "korea": ".kr",           "china": ".cn",
-    "brazil": ".br",       "mexico": ".mx",          "canada": ".ca",
-    "australia": ".au",    "new zealand": ".nz",     "singapore": ".sg",
-    "indonesia": ".id",    "united arab emirates": ".ae",
-    "uae": ".ae",          "saudi arabia": ".sa",    "russia": ".ru",
+    "india": ".in",
+    "united kingdom": ".uk",
+    "uk": ".uk",
+    "germany": ".de",
+    "france": ".fr",
+    "spain": ".es",
+    "italy": ".it",
+    "netherlands": ".nl",
+    "japan": ".jp",
+    "south korea": ".kr",
+    "korea": ".kr",
+    "china": ".cn",
+    "brazil": ".br",
+    "mexico": ".mx",
+    "canada": ".ca",
+    "australia": ".au",
+    "new zealand": ".nz",
+    "singapore": ".sg",
+    "indonesia": ".id",
+    "united arab emirates": ".ae",
+    "uae": ".ae",
+    "saudi arabia": ".sa",
+    "russia": ".ru",
     "south africa": ".za",
 }
 
 _COUNTRY_PUBLISHER_BONUS: dict[str, set[str]] = {
-    "india":          {"economictimes.indiatimes.com", "livemint.com",
-                       "thehindu.com", "moneycontrol.com", "indianexpress.com"},
-    "united states":  {"nytimes.com", "washingtonpost.com"},
+    "india": {
+        "economictimes.indiatimes.com",
+        "livemint.com",
+        "thehindu.com",
+        "moneycontrol.com",
+        "indianexpress.com",
+    },
+    "united states": {"nytimes.com", "washingtonpost.com"},
     "united kingdom": {"bbc.co.uk", "theguardian.com", "ft.com"},
 }
 
@@ -195,22 +282,25 @@ def _niche_bonus(domain: str, niche_key: str | None) -> float:
 
 # ── Internal data object ──────────────────────────────────────
 
+
 @dataclass
 class SearchResult:
     """Internal result flowing through the pipeline."""
+
     url: str
     title: str
     snippet: str
     domain: str
-    rank: int           # DDG's original position — primary relevance signal
+    rank: int  # DDG's original position — primary relevance signal
     query: str
     text_content: str = ""
-    text_length: int = 0     # word count, not char count
+    text_length: int = 0  # word count, not char count
     image_url: str | None = None
-    score: float = 0.0       # rank-based composite, computed at the end
+    score: float = 0.0  # rank-based composite, computed at the end
 
 
 # ── Pipeline ──────────────────────────────────────────────────
+
 
 class SearchPipeline:
     """
@@ -275,7 +365,7 @@ class SearchPipeline:
         """
         self._search_executor.shutdown(wait=False, cancel_futures=True)
 
-    async def __aenter__(self) -> "SearchPipeline":
+    async def __aenter__(self) -> SearchPipeline:
         return self
 
     async def __aexit__(self, *exc: Any) -> None:
@@ -301,8 +391,10 @@ class SearchPipeline:
                 self._run_inner(queries, persona or {}),
                 timeout=self.overall_budget,
             )
-        except asyncio.TimeoutError:
-            logger.warning("[search] overall budget %.1fs exceeded", self.overall_budget)
+        except TimeoutError:
+            logger.warning(
+                "[search] overall budget %.1fs exceeded", self.overall_budget
+            )
             return []
 
     async def _run_inner(
@@ -354,7 +446,8 @@ class SearchPipeline:
         results = diverse[: self.max_pages]
         logger.info(
             "[search] final: %d pages across %d domains",
-            len(results), len({r.domain for r in results}),
+            len(results),
+            len({r.domain for r in results}),
         )
         return results
 
@@ -416,7 +509,8 @@ class SearchPipeline:
                     if is_last_attempt:
                         logger.warning(
                             "[search] query=%r gave up after %d attempts (%s): %s",
-                            query, attempt + 1,
+                            query,
+                            attempt + 1,
                             "timeout" if is_timeout else "error",
                             str(exc)[:120] or type(exc).__name__,
                         )
@@ -424,11 +518,13 @@ class SearchPipeline:
 
                     # Exponential backoff with jitter; longer for rate limits
                     base = 3.0 if is_rate_limit else 1.0
-                    delay = base * (2 ** attempt) + random.uniform(0, 0.5)
+                    delay = base * (2**attempt) + random.uniform(0, 0.5)
                     logger.debug(
                         "[search] query=%r %s, retrying in %.1fs",
                         query,
-                        "rate-limited" if is_rate_limit else ("timed out" if is_timeout else "failed"),
+                        "rate-limited"
+                        if is_rate_limit
+                        else ("timed out" if is_timeout else "failed"),
                         delay,
                     )
                     await asyncio.sleep(delay)
@@ -442,14 +538,16 @@ class SearchPipeline:
             title = (item.get("title") or "").strip()
             if not url or not title:
                 continue
-            results.append(SearchResult(
-                url=url,
-                title=title,
-                snippet=(item.get("body") or "").strip(),
-                domain=urlparse(url).netloc.replace("www.", ""),
-                rank=rank,
-                query=query,
-            ))
+            results.append(
+                SearchResult(
+                    url=url,
+                    title=title,
+                    snippet=(item.get("body") or "").strip(),
+                    domain=urlparse(url).netloc.replace("www.", ""),
+                    rank=rank,
+                    query=query,
+                )
+            )
         return results
 
     # ── Content extraction ────────────────────────────────────
@@ -459,7 +557,10 @@ class SearchPipeline:
         async with httpx.AsyncClient(
             headers=self._headers,
             timeout=httpx.Timeout(
-                connect=5.0, read=self.fetch_timeout, write=10.0, pool=5.0,
+                connect=5.0,
+                read=self.fetch_timeout,
+                write=10.0,
+                pool=5.0,
             ),
             follow_redirects=True,
             http2=False,  # some sites behave badly with h2
@@ -468,7 +569,9 @@ class SearchPipeline:
             await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _extract_one(
-        self, client: httpx.AsyncClient, result: SearchResult,
+        self,
+        client: httpx.AsyncClient,
+        result: SearchResult,
     ) -> None:
         async with self._fetch_sem:
             try:
@@ -480,7 +583,9 @@ class SearchPipeline:
                     return
                 html = resp.text
             except httpx.HTTPStatusError as exc:
-                logger.debug("[extract] %s: http %s", result.domain, exc.response.status_code)
+                logger.debug(
+                    "[extract] %s: http %s", result.domain, exc.response.status_code
+                )
                 self._apply_snippet_fallback(result)
                 return
             except Exception as exc:
@@ -507,6 +612,7 @@ class SearchPipeline:
 
 
 # ── Helpers ────────────────────────────────────────────────────
+
 
 def _dedupe_queries(queries: list[str]) -> list[str]:
     """Remove near-duplicate queries (case + whitespace normalized)."""
@@ -543,6 +649,7 @@ def _compute_score(
     - Region:    target-country TLD or named publisher
     """
     import math
+
     base = 1.0 / (r.rank + 1)
     depth = min(math.log(max(r.text_length, 1)) / 10, 0.5)
 
@@ -551,10 +658,17 @@ def _compute_score(
         authority = 0.30
     elif domain.endswith(".org"):
         authority = 0.15
-    elif any(h in domain for h in (
-        "github.com", "arxiv.org", "stackoverflow.com",
-        "docs.python.org", "mozilla.org", "wikipedia.org",
-    )):
+    elif any(
+        h in domain
+        for h in (
+            "github.com",
+            "arxiv.org",
+            "stackoverflow.com",
+            "docs.python.org",
+            "mozilla.org",
+            "wikipedia.org",
+        )
+    ):
         authority = 0.20
     else:
         authority = 0.0
@@ -580,6 +694,7 @@ def _smart_truncate(text: str, max_chars: int) -> str:
 
 
 # ── HTML parsing ──────────────────────────────────────────────
+
 
 def _parse_html(html: str, url: str) -> tuple[str, str, str | None]:
     """Extract (title, body_text, og_image) from raw HTML."""

@@ -1,17 +1,14 @@
 import asyncio
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from alembic import context
 from app.config import settings
+from app.models.creation_history import CreationHistory  # noqa
 
 # Import Base and ALL (DB) models so Alembic can detect them
 from app.models.user import Base
-from app.models import insights_snapshot, user, persona, trending_article, social_connection, top_content
-from app.models.persona import UserPersonalization  
-from app.models.creation_history import CreationHistory #noqa
-from app.earn.models import EarnOpportunity, EarnProfile
 
 config = context.config
 if config.config_file_name is not None:

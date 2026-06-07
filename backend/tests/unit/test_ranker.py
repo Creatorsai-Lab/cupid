@@ -17,10 +17,11 @@ ranker only needs `.title`, `.description`, `.published_at`, and
 "duck typing").
 ═══════════════════════════════════════════════════════════════════════════
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from app.trends.ranker import rank_articles
 
@@ -36,6 +37,7 @@ class FakeArticle:
         - Tests stay focused on ranker logic
     Same shape, different storage.
     """
+
     title: str
     description: str
     published_at: datetime
@@ -45,18 +47,20 @@ class FakeArticle:
     final_score: float = 0.0
 
 
-def make_article(title: str, hours_ago: float = 1, velocity: float = 0.5,
-                 description: str = "") -> FakeArticle:
+def make_article(
+    title: str, hours_ago: float = 1, velocity: float = 0.5, description: str = ""
+) -> FakeArticle:
     """Helper — keeps tests readable."""
     return FakeArticle(
         title=title,
         description=description,
-        published_at=datetime.now(timezone.utc) - timedelta(hours=hours_ago),
+        published_at=datetime.now(UTC) - timedelta(hours=hours_ago),
         velocity_score=velocity,
     )
 
 
 # ─── Output shape ──────────────────────────────────────────────
+
 
 class TestRankerOutput:
     """Top-K, score attachment, and stability properties."""
@@ -89,6 +93,7 @@ class TestRankerOutput:
 
 # ─── Ranking semantics ─────────────────────────────────────────
 
+
 class TestRankerOrdering:
     """The actual personalization logic — does it rank smartly?"""
 
@@ -97,11 +102,13 @@ class TestRankerOrdering:
         # Persona vocabulary contains: ai, ml, machine, learning, developers
         relevant = make_article(
             "Machine learning breakthroughs for developers",
-            hours_ago=2, velocity=0.5,
+            hours_ago=2,
+            velocity=0.5,
         )
         irrelevant = make_article(
             "Pasta recipe ideas for weekend dinner",
-            hours_ago=2, velocity=0.5,
+            hours_ago=2,
+            velocity=0.5,
         )
         result = rank_articles([irrelevant, relevant], sample_persona, top_k=2)
         assert result[0] is relevant

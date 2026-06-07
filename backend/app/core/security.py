@@ -10,7 +10,7 @@ is unmaintained and has compatibility issues with bcrypt 4.1+.
 This is the approach used by FastAPI's own documentation now.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 from jose import JWTError, jwt
@@ -23,7 +23,7 @@ from app.config import settings
 def hash_password(plain_password: str) -> str:
     """
     Hash a plain-text password using bcrypt.
-    
+
     How it works:
     1. bcrypt.gensalt() creates a random salt (prevents identical
        passwords from producing identical hashes)
@@ -38,7 +38,7 @@ def hash_password(plain_password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Check if a plain-text password matches a stored hash.
-    
+
     bcrypt.checkpw handles salt extraction automatically —
     the salt is embedded in the first 29 characters of the hash.
     """
@@ -56,7 +56,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 def create_access_token(user_id: str) -> str:
     """Create a JWT containing the user's ID."""
-    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(UTC) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {
         "sub": user_id,
         "exp": expire,

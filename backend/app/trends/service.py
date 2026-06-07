@@ -18,26 +18,27 @@ Why 10 min and not, say, 5 min?
     30 min in the DB, so a 10-min user cache rarely shows stale data.
     Bumping to 60s would help freshness but multiply DB load 10x.
 """
+
 from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.trends.ranker import rank_articles
-from app.schemas.trends import TrendingArticle, TrendsResponse
 # Import the Database Model (for SQLAlchemy) and alias it
 from app.models.trending_article import TrendingArticle as DBArticles
+from app.schemas.trends import TrendingArticle, TrendsResponse
+from app.trends.ranker import rank_articles
 
 logger = logging.getLogger(__name__)
 
-CACHE_TTL_SECONDS = 600          # 10 min — see module docstring
-RECENT_WINDOW_HOURS = 36         # only consider articles from last 36h
-POOL_SIZE = 60                   # how many articles to rank from
+CACHE_TTL_SECONDS = 600  # 10 min — see module docstring
+RECENT_WINDOW_HOURS = 36  # only consider articles from last 36h
+POOL_SIZE = 60  # how many articles to rank from
 
 
 # User niches are free-text from the personalization form. We map them
@@ -45,21 +46,21 @@ POOL_SIZE = 60                   # how many articles to rank from
 # purpose — better to over-fetch than to miss articles.
 
 _NICHE_TO_CATEGORIES: dict[str, list[str]] = {
-    "ai/ml":       ["ai", "technology", "science"],
-    "ai":          ["ai", "technology"],
-    "software":    ["technology", "ai"],
-    "tech":        ["technology", "ai"],
-    "marketing":   ["marketing", "business"],
-    "startups":    ["startups", "business", "technology"],
-    "finance":     ["business", "crypto"],
-    "crypto":      ["crypto", "business"],
-    "health":      ["health", "fitness"],
-    "fitness":     ["fitness", "health"],
-    "design":      ["design", "technology"],
-    "creator":     ["entertainment", "marketing"],
+    "ai/ml": ["ai", "technology", "science"],
+    "ai": ["ai", "technology"],
+    "software": ["technology", "ai"],
+    "tech": ["technology", "ai"],
+    "marketing": ["marketing", "business"],
+    "startups": ["startups", "business", "technology"],
+    "finance": ["business", "crypto"],
+    "crypto": ["crypto", "business"],
+    "health": ["health", "fitness"],
+    "fitness": ["fitness", "health"],
+    "design": ["design", "technology"],
+    "creator": ["entertainment", "marketing"],
     "productivity": ["productivity", "technology"],
-    "science":     ["science", "health"],
-    "sports":      ["sports"],
+    "science": ["science", "health"],
+    "sports": ["sports"],
     "entertainment": ["entertainment"],
 }
 
@@ -67,7 +68,7 @@ _NICHE_TO_CATEGORIES: dict[str, list[str]] = {
 def _resolve_categories(niche: str | None) -> list[str]:
     """Map free-text niche → list of DB categories to query."""
     if not niche:
-        return ["technology", "business", "world"]    # safe defaults
+        return ["technology", "business", "world"]  # safe defaults
 
     n = niche.lower().strip()
 
@@ -87,6 +88,7 @@ def _resolve_categories(niche: str | None) -> list[str]:
 # ──────────────────────────────────────────────────────────────────
 #  Redis cache helpers
 # ──────────────────────────────────────────────────────────────────
+
 
 def _cache_key(user_id: str) -> str:
     return f"trends:user:{user_id}"
@@ -123,6 +125,7 @@ async def _write_cache(redis: Redis, user_id: str, response: TrendsResponse) -> 
 #  Main public API
 # ──────────────────────────────────────────────────────────────────
 
+
 async def get_trends_for_user(
     user_id: str,
     persona: dict,
@@ -157,7 +160,7 @@ async def get_trends_for_user(
     categories = _resolve_categories(niche)
 
     # 3) Pull recent articles from those categories
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=RECENT_WINDOW_HOURS)
+    cutoff = datetime.now(UTC) - timedelta(hours=RECENT_WINDOW_HOURS)
     stmt = (
         select(DBArticles)
         .where(DBArticles.category.in_(categories))
@@ -175,7 +178,7 @@ async def get_trends_for_user(
             niche=niche or "general",
             total_pool=0,
             cached=False,
-            generated_at=datetime.now(timezone.utc),
+            generated_at=datetime.now(UTC),
         )
 
     # 4) Personalize the ranking for this specific user
@@ -204,7 +207,7 @@ async def get_trends_for_user(
         niche=niche or "general",
         total_pool=len(pool),
         cached=False,
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
     )
 
     # 6) Best-effort cache write (don't await on the critical path)

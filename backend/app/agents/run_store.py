@@ -13,6 +13,7 @@ snapshot on each update (single writer, so no read-modify-write race). The
 poll
 endpoint only reads. Runs expire after RUN_TTL_SECONDS.
 """
+
 from __future__ import annotations
 
 import json
@@ -21,7 +22,8 @@ from typing import Any
 from app.core.redis import redis_client
 
 KEY_PREFIX = "agent_run:"
-RUN_TTL_SECONDS = 60 * 60  
+RUN_TTL_SECONDS = 60 * 60
+
 
 def _key(run_id: str) -> str:
     return f"{KEY_PREFIX}{run_id}"

@@ -12,12 +12,13 @@ Schedule via Celery Beat. Add to your celery_app config:
         },
     }
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
 
-from app.celery_app import celery_app           # adjust to your Celery instance
+from app.celery_app import celery_app  # adjust to your Celery instance
 from app.trends.ingest import ingest_all_categories
 
 logger = logging.getLogger(__name__)

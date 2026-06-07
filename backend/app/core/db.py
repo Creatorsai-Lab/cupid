@@ -10,7 +10,9 @@ Key concepts:
 """
 
 from collections.abc import AsyncGenerator
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 from app.config import settings
 
 # The engine manages a pool of database connections.
@@ -21,7 +23,7 @@ engine = create_async_engine(
     echo=False,
     pool_size=5,  # keep 5 connections open at all times
     max_overflow=10,  # allow up to 10 more under load
-    pool_pre_ping=True,   # test connections before using (handles DB restarts)
+    pool_pre_ping=True,  # test connections before using (handles DB restarts)
 )
 
 # Session factory — creates new sessions from the engine.
@@ -35,17 +37,18 @@ async_session = async_sessionmaker(
     autocommit=False,
 )
 
+
 # Dependency for FastAPI: yields one session per request.
 # The `async for` ensures session.close() is called automatically.
 async def get_db() -> AsyncGenerator[AsyncSession]:
     """
     FastAPI dependency that provides a database session per request.
-    
+
     Usage in a router:
         @router.post("/something")
         async def handler(db: AsyncSession = Depends(get_db)):
             ...
-    
+
     The `yield` makes this a generator — FastAPI calls __anext__ to get
     the session, then __anext__ again after the response to close it.
     """

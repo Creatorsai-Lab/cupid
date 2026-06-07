@@ -29,6 +29,7 @@ Each variant in the array looks like:
      "content": "...", "char_count": 847}
 ═══════════════════════════════════════════════════════════════════════════
 """
+
 from __future__ import annotations
 
 import uuid
@@ -70,7 +71,9 @@ class CreationHistory(Base):
 
     # The 3 generated variants, stored as a JSON array
     variants: Mapped[list[dict[str, Any]]] = mapped_column(
-        JSONB, default=list, nullable=False,
+        JSONB,
+        default=list,
+        nullable=False,
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -79,7 +82,7 @@ class CreationHistory(Base):
         nullable=False,
     )
 
-    user: Mapped["User"] = relationship(back_populates="creation_history")
+    user: Mapped[User] = relationship(back_populates="creation_history")
 
     __table_args__ = (
         # Common query: "this user's history, newest first"

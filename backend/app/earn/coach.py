@@ -28,13 +28,13 @@ the key is missing or the call fails, it falls back to a deterministic
 heuristic narrator so the page ALWAYS renders. The LLM is an enhancement, not
 a dependency.
 """
+
 from __future__ import annotations
 
 import json
 import logging
-import os
 
-from app.earn.config import TIER_BLURB, Tier
+from app.earn.config import TIER_BLURB
 from app.earn.readiness import ReadinessReport, StreamState
 from app.earn.schemas import CreativeIdea
 
@@ -47,6 +47,7 @@ _MAX_TOKENS = 700
 # ─────────────────────────────────────────────────────────────────────────
 #  Public API
 # ─────────────────────────────────────────────────────────────────────────
+
 
 async def write_coaching(report: ReadinessReport, niche: str | None) -> str:
     """Section 2 narrative. Falls back to a heuristic summary on any failure."""
@@ -79,6 +80,7 @@ async def write_creative_ideas(
 #  Prompt construction
 # ─────────────────────────────────────────────────────────────────────────
 
+
 def _findings_for_prompt(report: ReadinessReport, niche: str | None) -> dict:
     """Flatten the report into the minimal facts the model needs — nothing more."""
     return {
@@ -87,8 +89,12 @@ def _findings_for_prompt(report: ReadinessReport, niche: str | None) -> dict:
         "confidence": report.assessment.confidence,
         "engagement_note": report.assessment.flex_reason,
         "total_followers": report.assessment.signals.total_followers,
-        "ready_now": [s.label for s in report.ranked_gaps if s.state == StreamState.GREEN_LIGHT],
-        "almost_ready": [s.label for s in report.ranked_gaps if s.state == StreamState.ALMOST_THERE],
+        "ready_now": [
+            s.label for s in report.ranked_gaps if s.state == StreamState.GREEN_LIGHT
+        ],
+        "almost_ready": [
+            s.label for s in report.ranked_gaps if s.state == StreamState.ALMOST_THERE
+        ],
         "already_doing": [s.label for s in report.optimizing],
         "grow_toward": [s.label for s in report.foundation],
     }
@@ -138,12 +144,14 @@ HARD RULES:
 #  Groq call (self-contained, optional)
 # ─────────────────────────────────────────────────────────────────────────
 
+
 async def _try_groq(prompt: str, *, want_json: bool) -> str | None:
     """
     Best-effort Groq completion. Returns None on any problem (missing key,
     import failure, network error) so callers fall back to heuristics.
     """
     from app.config import settings
+
     api_key = settings.groq_api_key
     if not api_key:
         logger.info("[earn.coach] GROQ_API_KEY not set — using heuristic narrator")
@@ -161,13 +169,21 @@ async def _try_groq(prompt: str, *, want_json: bool) -> str | None:
         )
         return resp.choices[0].message.content
     except Exception as exc:  # noqa: BLE001
-        logger.warning("[earn.coach] Groq call failed (%s) — falling back", str(exc)[:160])
+        logger.warning(
+            "[earn.coach] Groq call failed (%s) — falling back", str(exc)[:160]
+        )
         return None
 
 
 def _parse_ideas(raw: str) -> list[CreativeIdea]:
     """Parse the model's JSON array, tolerating stray markdown fences."""
-    cleaned = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    cleaned = (
+        raw.strip()
+        .removeprefix("```json")
+        .removeprefix("```")
+        .removesuffix("```")
+        .strip()
+    )
     try:
         data = json.loads(cleaned)
         out: list[CreativeIdea] = []
@@ -189,10 +205,13 @@ def _parse_ideas(raw: str) -> list[CreativeIdea]:
 #  Heuristic fallbacks — guarantee the page always has content
 # ─────────────────────────────────────────────────────────────────────────
 
+
 def _heuristic_coaching(report: ReadinessReport) -> str:
     blurb = TIER_BLURB.get(report.tier, "")
     ready = [s.label for s in report.ranked_gaps if s.state == StreamState.GREEN_LIGHT]
-    almost = [s.label for s in report.ranked_gaps if s.state == StreamState.ALMOST_THERE]
+    almost = [
+        s.label for s in report.ranked_gaps if s.state == StreamState.ALMOST_THERE
+    ]
 
     if ready:
         move = f"Your strongest next move is {ready[0].lower()} — you're cleared for it right now."
@@ -217,19 +236,19 @@ def _heuristic_ideas(report: ReadinessReport, niche: str | None) -> list[Creativ
         CreativeIdea(
             title="Feature products you already use",
             idea=f"Naturally mention tools or products central to {n} in your content, "
-                 f"with affiliate links — recommendations you'd make anyway become income.",
+            f"with affiliate links — recommendations you'd make anyway become income.",
             related_stream="affiliate",
         ),
         CreativeIdea(
             title="Tag brands you admire",
             idea=f"Spotlight a brand relevant to {n} and tag them — genuine, visible enthusiasm "
-                 f"is how many creator-brand conversations start.",
+            f"is how many creator-brand conversations start.",
             related_stream="brand_deals",
         ),
         CreativeIdea(
             title="Package your know-how",
             idea=f"Turn your most-asked {n} question into a short paid guide or template — "
-                 f"make it once, offer it to every new follower who asks.",
+            f"make it once, offer it to every new follower who asks.",
             related_stream="digital_products",
         ),
     ]

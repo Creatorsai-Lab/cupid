@@ -5,12 +5,26 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   type LucideIcon,
-  ArrowRight, Sparkles, Brain, PenTool, UserCheck, Flame,
-  Fingerprint, Layers, Lightbulb, ChevronDown,
+  ArrowRight,
+  Sparkles,
+  Brain,
+  PenTool,
+  UserCheck,
+  Flame,
+  Fingerprint,
+  Layers,
+  Lightbulb,
+  ChevronDown,
+  CircleDollarSign
 } from "lucide-react";
 import {
-  XCard, LinkedInCard, InstagramCard, FacebookCard,
-  YouTubeCard, YouTubeShortsCard, PollCard,
+  XCard,
+  LinkedInCard,
+  InstagramCard,
+  FacebookCard,
+  YouTubeCard,
+  YouTubeShortsCard,
+  PollCard,
 } from "@/components/SocialMediaCards";
 import Footer from "@/components/Footer";
 
@@ -24,7 +38,7 @@ function HeroBackground() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
       {/* Fine technical grid, faded out toward the edges */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--color-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-border)_1px,transparent_1px)] [background-size:46px_46px] [mask-image:radial-gradient(ellipse_55%_55%_at_50%_40%,black,transparent_80%)] opacity-50" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--color-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-border)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_55%_55%_at_50%_40%,black,transparent_80%)] [background-size:46px_46px] opacity-50" />
 
       {/* Soft breathing glows — scale/opacity only, no drifting (stays calm) */}
       <motion.div
@@ -33,7 +47,7 @@ function HeroBackground() {
         transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute bottom-[-6rem] right-[-4rem] h-[22rem] w-[22rem] rounded-full bg-[radial-gradient(circle,rgba(212,160,76,0.14),transparent_70%)] blur-3xl"
+        className="absolute right-[-4rem] bottom-[-6rem] h-[22rem] w-[22rem] rounded-full bg-[radial-gradient(circle,rgba(212,160,76,0.14),transparent_70%)] blur-3xl"
         animate={{ scale: [1.05, 0.95, 1.05], opacity: [0.5, 0.8, 0.5] }}
         transition={{ duration: 13, repeat: Infinity, ease: "easeInOut" }}
       />
@@ -58,7 +72,7 @@ function Hero() {
           {/* Micro-shimmer: a soft pulsing ring on the border */}
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-[var(--color-primary)]/25 animate-pulse"
+            className="pointer-events-none absolute inset-0 animate-pulse rounded-full ring-1 ring-[var(--color-primary)]/25"
           />
           <Sparkles className="relative h-3.5 w-3.5 text-[var(--color-primary)]" />
           <span className="relative">A swarm of AI agents for creators</span>
@@ -68,7 +82,7 @@ function Hero() {
           {/* Breathing ambient aura behind the core typography */}
           <motion.span
             aria-hidden
-            className="pointer-events-none absolute left-1/2 top-1/2 w-[500px] h-[300px] max-w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#FFEBE5] opacity-40 blur-[90px] filter"
+            className="pointer-events-none absolute top-1/2 left-1/2 h-[300px] w-[500px] max-w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#FFEBE5] opacity-40 blur-[90px] filter"
             animate={{ scale: [1, 1.12, 1] }}
             transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
           />
@@ -76,7 +90,7 @@ function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className={`${SANS} relative mx-auto max-w-4xl text-balance text-[clamp(2.6rem,7vw,5rem)] font-semibold leading-[0.98] tracking-[-0.03em] text-[var(--color-text)]`}
+            className={`${SANS} relative mx-auto max-w-4xl text-[clamp(2.6rem,7vw,5rem)] leading-[0.98] font-semibold tracking-[-0.03em] text-balance text-[var(--color-text)]`}
           >
             Content that sounds
             <br className="hidden sm:block" />{" "}
@@ -91,11 +105,10 @@ function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto mt-6 max-w-xl text-pretty text-[15px] leading-relaxed text-[var(--color-muted)] md:text-base"
+          className="mx-auto mt-6 max-w-xl text-[15px] leading-relaxed text-pretty text-[var(--color-muted)] md:text-base"
         >
-          Cupid learns your voice, tracks what&apos;s trending in your niche, and
-          ships platform-native posts on your schedule — so you create more and
-          grind less.
+          Cupid learns your voice, tracks what&apos;s trending in your niche, and ships
+          platform-native posts on your schedule — so you create more and grind less.
         </motion.p>
 
         <motion.div
@@ -128,11 +141,36 @@ function Hero() {
 type Agent = { label: string; builds: string; icon: LucideIcon; tint: string };
 
 const AGENTS: Agent[] = [
-  { label: "Content Creator", builds: "Drafts platform-native posts, end to end.", icon: PenTool, tint: "#C75D3A" },
-  { label: "Influencer Agent", builds: "Tunes tone & persona to your audience.", icon: UserCheck, tint: "#af6d58" },
-  { label: "Script Writer", builds: "Hooks, captions, and video scripts.", icon: Layers, tint: "#D4A04C" },
-  { label: "Trend Scout", builds: "Surfaces what's rising in your niche.", icon: Flame, tint: "#B5403A" },
-  { label: "Persona Engine", builds: "Remembers your voice, privately.", icon: Fingerprint, tint: "#5A7A3E" },
+  {
+    label: "Content Creator",
+    builds: "Drafts platform-native posts, end to end.",
+    icon: PenTool,
+    tint: "#C75D3A",
+  },
+  {
+    label: "Influencer Agent",
+    builds: "Tunes tone & persona to your audience.",
+    icon: UserCheck,
+    tint: "#af6d58",
+  },
+  {
+    label: "Personalization Agent",
+    builds: "Adhere your style and tone",
+    icon: Layers,
+    tint: "#3160c4",
+  },
+  {
+    label: "Trends Researcher",
+    builds: "Surfaces what's rising in your niche.",
+    icon: Flame,
+    tint: "#ce2921",
+  },
+  {
+    label: "Earning Opportunity",
+    builds: "Personal monitization coach, personalized earning plan",
+    icon: CircleDollarSign,
+    tint: "#e7a10b",
+  },
 ];
 
 function AgentSwarm() {
@@ -148,16 +186,20 @@ function AgentSwarm() {
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-24 lg:grid-cols-2 lg:gap-20 lg:py-32">
         {/* Copy */}
         <div className="order-2 lg:order-1">
-          <p className={`${SANS} mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-primary)]`}>
+          <p
+            className={`${SANS} mb-4 text-xs font-semibold tracking-[0.16em] text-[var(--color-primary)] uppercase`}
+          >
             The architecture
           </p>
-          <h2 className={`${SANS} max-w-md text-[clamp(1.9rem,3.4vw,2.6rem)] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--color-text)]`}>
+          <h2
+            className={`${SANS} max-w-md text-[clamp(1.9rem,3.4vw,2.6rem)] leading-[1.05] font-semibold tracking-[-0.02em] text-[var(--color-text)]`}
+          >
             A team of specialist agents, orbiting one core.
           </h2>
           <p className="mt-5 max-w-md text-[15px] leading-relaxed text-[var(--color-muted)]">
-            Each agent owns one craft and reports to the Core AI. Hover any node
-            to see exactly what it builds — they work in concert so every post is
-            researched, written, and shaped to sound like you.
+            Each agent owns one craft and reports to the Core AI. Hover any node to see exactly what
+            it builds — they work in concert so every post is researched, written, and shaped to
+            sound like you.
           </p>
           <ul className="mt-7 flex flex-wrap gap-2">
             {AGENTS.map((a, i) => (
@@ -165,10 +207,11 @@ function AgentSwarm() {
                 <button
                   onMouseEnter={() => setHovered(i)}
                   onMouseLeave={() => setHovered(null)}
-                  className={`${SANS} rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${hovered === i
+                  className={`${SANS} rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    hovered === i
                       ? "border-[var(--color-primary)] text-[var(--color-primary)]"
                       : "border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-border-hover)]"
-                    }`}
+                  }`}
                 >
                   {a.label}
                 </button>
@@ -181,15 +224,28 @@ function AgentSwarm() {
         <div className="order-1 mx-auto w-full max-w-md lg:order-2">
           <div className="relative aspect-square w-full">
             {/* Orbit rings */}
-            <div aria-hidden className="absolute inset-[8%] rounded-full border border-dashed border-[var(--color-border)]" />
-            <div aria-hidden className="absolute inset-[2%] rounded-full border border-[var(--color-border)]/50" />
+            <div
+              aria-hidden
+              className="absolute inset-[8%] rounded-full border border-dashed border-[var(--color-border)]"
+            />
+            <div
+              aria-hidden
+              className="absolute inset-[2%] rounded-full border border-[var(--color-border)]/50"
+            />
 
             {/* Connection lines */}
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
+            <svg
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              className="absolute inset-0 h-full w-full"
+            >
               {nodes.map((n, i) => (
                 <line
                   key={n.label}
-                  x1="50" y1="50" x2={n.x} y2={n.y}
+                  x1="50"
+                  y1="50"
+                  x2={n.x}
+                  y2={n.y}
                   stroke={hovered === i ? n.tint : "var(--color-border)"}
                   strokeWidth={hovered === i ? 0.8 : 0.5}
                   strokeDasharray="2 2"
@@ -203,7 +259,7 @@ function AgentSwarm() {
             <motion.div
               animate={{ scale: [1, 1.06, 1] }}
               transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute left-1/2 top-1/2 grid h-[22%] w-[22%] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] text-white shadow-[0_0_0_8px_rgba(199,93,58,0.12),0_18px_40px_-12px_rgba(199,93,58,0.5)]"
+              className="absolute top-1/2 left-1/2 grid h-[22%] w-[22%] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] text-white shadow-[0_0_0_8px_rgba(199,93,58,0.12),0_18px_40px_-12px_rgba(199,93,58,0.5)]"
             >
               <Brain className="h-1/2 w-1/2" strokeWidth={1.6} />
             </motion.div>
@@ -227,7 +283,7 @@ function AgentSwarm() {
                     transition={{ duration: 3.6 + i * 0.5, repeat: Infinity, ease: "easeInOut" }}
                     whileHover={{ scale: 1.14 }}
                     aria-label={`${n.label}: ${n.builds}`}
-                    className="grid h-12 w-12 place-items-center rounded-full border bg-white shadow-sm outline-none transition-shadow md:h-14 md:w-14"
+                    className="grid h-12 w-12 place-items-center rounded-full border bg-white shadow-sm transition-shadow outline-none md:h-14 md:w-14"
                     style={{
                       borderColor: active ? n.tint : "var(--color-border)",
                       boxShadow: active ? `0 10px 26px -10px ${n.tint}aa` : undefined,
@@ -245,10 +301,14 @@ function AgentSwarm() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 6, scale: 0.96 }}
                         transition={{ duration: 0.18 }}
-                        className="absolute left-1/2 top-full z-20 mt-2 w-44 -translate-x-1/2 rounded-xl border border-[var(--color-border)] bg-white/95 p-3 text-center shadow-lg backdrop-blur"
+                        className="absolute top-full left-1/2 z-20 mt-2 w-44 -translate-x-1/2 rounded-xl border border-[var(--color-border)] bg-white/95 p-3 text-center shadow-lg backdrop-blur"
                       >
-                        <p className={`${SANS} text-xs font-semibold text-[var(--color-text)]`}>{n.label}</p>
-                        <p className="mt-0.5 text-[11px] leading-snug text-[var(--color-muted)]">{n.builds}</p>
+                        <p className={`${SANS} text-xs font-semibold text-[var(--color-text)]`}>
+                          {n.label}
+                        </p>
+                        <p className="mt-0.5 text-[11px] leading-snug text-[var(--color-muted)]">
+                          {n.builds}
+                        </p>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -290,10 +350,14 @@ function Features() {
     <section id="features" className="border-t border-[var(--color-border)]">
       <div className="mx-auto max-w-6xl px-6 py-24 lg:py-32">
         <div className="mx-auto max-w-2xl text-center">
-          <p className={`${SANS} mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-primary)]`}>
+          <p
+            className={`${SANS} mb-4 text-xs font-semibold tracking-[0.16em] text-[var(--color-primary)] uppercase`}
+          >
             Built for creators
           </p>
-          <h2 className={`${SANS} text-[clamp(1.9rem,3.4vw,2.6rem)] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--color-text)]`}>
+          <h2
+            className={`${SANS} text-[clamp(1.9rem,3.4vw,2.6rem)] leading-[1.05] font-semibold tracking-[-0.02em] text-[var(--color-text)]`}
+          >
             Three engines doing the heavy lifting.
           </h2>
         </div>
@@ -310,7 +374,9 @@ function Features() {
               >
                 <f.icon className="h-6 w-6" strokeWidth={1.7} />
               </span>
-              <h3 className={`${SANS} mt-6 text-lg font-semibold tracking-[-0.01em] text-[var(--color-text)]`}>
+              <h3
+                className={`${SANS} mt-6 text-lg font-semibold tracking-[-0.01em] text-[var(--color-text)]`}
+              >
                 {f.title}
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">{f.body}</p>
@@ -364,9 +430,11 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         </button>
       </h3>
       {/* grid-rows trick: smooth height, zero layout shift */}
-      <div className={`grid transition-all duration-300 ease-out ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+      <div
+        className={`grid transition-all duration-300 ease-out ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
+      >
         <div className="overflow-hidden">
-          <p className="pb-6 pr-8 text-sm leading-relaxed text-[var(--color-muted)]">{a}</p>
+          <p className="pr-8 pb-6 text-sm leading-relaxed text-[var(--color-muted)]">{a}</p>
         </div>
       </div>
     </div>
@@ -378,10 +446,14 @@ function Faq() {
     <section id="faq" className="border-t border-[var(--color-border)]">
       <div className="mx-auto max-w-3xl px-6 py-24 lg:py-32">
         <div className="text-center">
-          <p className={`${SANS} mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-primary)]`}>
+          <p
+            className={`${SANS} mb-4 text-xs font-semibold tracking-[0.16em] text-[var(--color-primary)] uppercase`}
+          >
             Questions
           </p>
-          <h2 className={`${SANS} text-[clamp(1.9rem,3.4vw,2.6rem)] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--color-text)]`}>
+          <h2
+            className={`${SANS} text-[clamp(1.9rem,3.4vw,2.6rem)] leading-[1.05] font-semibold tracking-[-0.02em] text-[var(--color-text)]`}
+          >
             Everything you&apos;re wondering.
           </h2>
         </div>
@@ -400,15 +472,31 @@ function Faq() {
 function PostsPreview() {
   return (
     <section id="examples" className="border-t border-border bg-muted/20">
-      <div className="max-w-6xl mx-auto px-6 py-24">
-        <h2 className="text-[clamp(1.8rem,3vw,2.4rem)] tracking-tight mb-3 text-center">Posts that already sound like you</h2>
-        <p className="text-center mb-14">Intelligence personalized to each social media platform formats and tone</p>
+      <div className="mx-auto max-w-6xl px-6 py-24">
+        <h2 className="mb-3 text-center text-[clamp(1.8rem,3vw,2.4rem)] tracking-tight">
+          Posts that already sound like you
+        </h2>
+        <p className="mb-14 text-center">
+          Intelligence personalized to each social media platform formats and tone
+        </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <XCard name="Hubert" handle="hthieblot" content="Just move to SF, it will change your life.
-                  Go in debt if you have to." mediaUrl="/media/sf_scene.png" />
-          <FacebookCard name="Rakul Bansal" content="Just shipped persona fidelity scoring for Cupid." />
-          <LinkedInCard name="AIM" content="Google India has signed a five-year lease for approximately 617,000 square feet of office space at Atrium Place in Gurugram, with a total rental outlay of Rs 671 crore, according to transaction documents accessed by Propstack. The space, spread across floors two to 16 of Tower 1, is part of a joint venture between DLF and Hines, and the lease commenced on 1 October 2025." mediaUrl="/media/Google_deal.jpg" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <XCard
+            name="Hubert"
+            handle="hthieblot"
+            content="Just move to SF, it will change your life.
+                  Go in debt if you have to."
+            mediaUrl="/media/sf_scene.png"
+          />
+          <FacebookCard
+            name="Rakul Bansal"
+            content="Just shipped persona fidelity scoring for Cupid."
+          />
+          <LinkedInCard
+            name="AIM"
+            content="Google India has signed a five-year lease for approximately 617,000 square feet of office space at Atrium Place in Gurugram, with a total rental outlay of Rs 671 crore, according to transaction documents accessed by Propstack. The space, spread across floors two to 16 of Tower 1, is part of a joint venture between DLF and Hines, and the lease commenced on 1 October 2025."
+            mediaUrl="/media/Google_deal.jpg"
+          />
           <InstagramCard
             name="Rakul Bansal"
             content="Just shipped persona fidelity scoring for Cupid."
@@ -421,7 +509,11 @@ function PostsPreview() {
             content="Just shipped persona fidelity scoring for Cupid AI."
             mediaUrl="/media/food_comedy.mp4"
           />
-          <YouTubeCard name="Rakul Bansal" content="Just shipped persona fidelity scoring for Cupid." mediaUrl="/media/creative_designer.mp4" />
+          <YouTubeCard
+            name="Rakul Bansal"
+            content="Just shipped persona fidelity scoring for Cupid."
+            mediaUrl="/media/creative_designer.mp4"
+          />
           <PollCard
             name="Adya Prasad"
             handle="adyaprasad"

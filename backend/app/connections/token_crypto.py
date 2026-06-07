@@ -47,6 +47,7 @@ NEVER commit this key. NEVER change it after tokens are encrypted (you'd
 lose ability to decrypt them — users would all need to reconnect).
 ═══════════════════════════════════════════════════════════════════════════
 """
+
 from __future__ import annotations
 
 from functools import lru_cache

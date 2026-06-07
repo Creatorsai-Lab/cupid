@@ -33,11 +33,12 @@ To gate this scheduler from production, wrap the lifespan call:
     if settings.app_env != "production":
         start_insights_scheduler()
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 
@@ -50,10 +51,10 @@ logger = logging.getLogger(__name__)
 
 # ─── Tunable parameters ────────────────────────────────────────
 
-INTERVAL_HOURS = 6                  # how often the loop wakes
-FRESHNESS_THRESHOLD_HOURS = 5       # sync if last_synced > this many hours ago
-STARTUP_DELAY_SECONDS = 10          # wait for FastAPI to settle before first run
-PER_CONNECTION_DELAY_SECONDS = 2    # be polite to YouTube between calls
+INTERVAL_HOURS = 6  # how often the loop wakes
+FRESHNESS_THRESHOLD_HOURS = 5  # sync if last_synced > this many hours ago
+STARTUP_DELAY_SECONDS = 10  # wait for FastAPI to settle before first run
+PER_CONNECTION_DELAY_SECONDS = 2  # be polite to YouTube between calls
 
 
 # ─── Internal state ────────────────────────────────────────────
@@ -62,6 +63,7 @@ _scheduler_task: asyncio.Task | None = None
 
 
 # ─── Sync runner ───────────────────────────────────────────────
+
 
 async def _sync_all() -> dict[str, int]:
     """
@@ -73,17 +75,14 @@ async def _sync_all() -> dict[str, int]:
 
     async with async_session_factory() as session:
         # Pull all youtube connections; we'll filter in Python by freshness
-        stmt = (
-            select(SocialConnection)
-            .where(SocialConnection.platform == "youtube")
-        )
+        stmt = select(SocialConnection).where(SocialConnection.platform == "youtube")
         connections = (await session.execute(stmt)).scalars().all()
 
     if not connections:
         logger.info("[insights.scheduler] no youtube connections to sync")
         return summary
 
-    threshold = datetime.now(timezone.utc) - timedelta(
+    threshold = datetime.now(UTC) - timedelta(
         hours=FRESHNESS_THRESHOLD_HOURS,
     )
 
@@ -93,10 +92,7 @@ async def _sync_all() -> dict[str, int]:
             await asyncio.sleep(PER_CONNECTION_DELAY_SECONDS)
 
         # Skip connections that synced recently
-        if (
-            connection.last_synced_at
-            and connection.last_synced_at > threshold
-        ):
+        if connection.last_synced_at and connection.last_synced_at > threshold:
             logger.debug(
                 "[insights.scheduler] %s: synced %s ago, skipping",
                 connection.handle or connection.platform_user_id,
@@ -116,17 +112,21 @@ async def _sync_all() -> dict[str, int]:
             summary["failed"] += 1
             logger.warning(
                 "[insights.scheduler] %s sync failed: %s",
-                connection.id, str(exc)[:120],
+                connection.id,
+                str(exc)[:120],
             )
 
     logger.info(
         "[insights.scheduler] cycle complete: ok=%d failed=%d skipped=%d",
-        summary["ok"], summary["failed"], summary["skipped"],
+        summary["ok"],
+        summary["failed"],
+        summary["skipped"],
     )
     return summary
 
 
 # ─── Background loop ───────────────────────────────────────────
+
 
 async def _scheduler_loop() -> None:
     """
@@ -144,11 +144,12 @@ async def _scheduler_loop() -> None:
             # are already caught inside _sync_all; this catches anything
             # the inner code missed.
             logger.exception(
-                "[insights.scheduler] cycle crashed (continuing): %s", exc,
+                "[insights.scheduler] cycle crashed (continuing): %s",
+                exc,
             )
 
         sleep_seconds = INTERVAL_HOURS * 3600
-        next_run = datetime.now(timezone.utc) + timedelta(seconds=sleep_seconds)
+        next_run = datetime.now(UTC) + timedelta(seconds=sleep_seconds)
         logger.info(
             "[insights.scheduler] next cycle at %s",
             next_run.strftime("%Y-%m-%d %H:%M UTC"),
@@ -157,6 +158,7 @@ async def _scheduler_loop() -> None:
 
 
 # ─── Public lifespan helpers ───────────────────────────────────
+
 
 def start_scheduler() -> None:
     """Spawn the scheduler. Idempotent. Call from FastAPI lifespan startup."""
@@ -186,7 +188,8 @@ async def stop_scheduler() -> None:
 
 # ─── Helpers ───────────────────────────────────────────────────
 
+
 def _humanize_age(dt: datetime) -> str:
     """Format a past datetime as '3.2h' for log readability."""
-    age_hours = (datetime.now(timezone.utc) - dt).total_seconds() / 3600
+    age_hours = (datetime.now(UTC) - dt).total_seconds() / 3600
     return f"{age_hours:.1f}h"

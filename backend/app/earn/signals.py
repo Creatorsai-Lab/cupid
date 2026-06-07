@@ -34,6 +34,7 @@ The SQL is written against the most likely shape of your insights data, but
 you know the exact table/column names. Search for "ADJUST" and point it at
 your real columns. Until you do, it will safely return empty signals.
 """
+
 from __future__ import annotations
 
 import logging
@@ -58,7 +59,8 @@ async def gather_signals(session: AsyncSession, user_id: str) -> AudienceSignals
         logger.warning(
             "[earn.signals] could not gather signals for user=%s (%s) — "
             "returning empty; check the query against your insights schema",
-            user_id, str(exc)[:160],
+            user_id,
+            str(exc)[:160],
         )
         return AudienceSignals.empty()
 

@@ -1,0 +1,52 @@
+# Pre-commit hooks — run automatically on every `git commit`, against the
+# STAGED files only. Fast feedback before code ever leaves your machine.
+#
+# One-time setup (from the repo root):
+#     pip install pre-commit
+#     pre-commit install
+#
+# Run on everything manually:
+#     pre-commit run --all-files
+#
+# We use the `pre-commit` framework (not husky) on purpose: it installs each
+# tool in its own isolated environment — Ruff for Python, Prettier for the
+# frontend — so contributors don't need ruff/prettier on their PATH, and there's
+# no JS-vs-Python hook-manager conflict in this polyglot monorepo.
+minimum_pre_commit_version: "3.5.0"
+
+repos:
+  # ── General hygiene (all files) ──────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-json
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+      - id: check-added-large-files
+        args: ["--maxkb=10000"]
+
+  # ── Backend: Ruff (lint + format) ────────────────────────────
+  # Ruff replaces flake8 + isort + black in a single fast tool. Config lives
+  # in backend/pyproject.toml ([tool.ruff]).
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.7
+    hooks:
+      - id: ruff
+        name: ruff lint (backend)
+        args: ["--fix"]
+        files: ^backend/
+      - id: ruff-format
+        name: ruff format (backend)
+        files: ^backend/
+
+  # ── Frontend ─────────────────────────────────────────────────
+  # Prettier/ESLint are intentionally NOT run here. Node formatters with local
+  # plugins (prettier-plugin-tailwindcss) don't resolve cleanly inside
+  # pre-commit's isolated env, especially on Windows. Instead the frontend is
+  # enforced two ways that DO resolve correctly from frontend/node_modules:
+  #   • Editor "format on save" (reads frontend/.prettierrc.json)
+  #   • CI: `npm run format:check` + `npm run lint` (see .github/workflows/ci.yml)

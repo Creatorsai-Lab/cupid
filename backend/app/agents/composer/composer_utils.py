@@ -8,6 +8,7 @@ Two stateless concerns:
 (Evidence distillation was removed — the composer grounds variants directly on
 the ranked source text instead of an extra LLM fact-extraction call.)
 """
+
 from __future__ import annotations
 
 import logging
@@ -27,14 +28,63 @@ logger = logging.getLogger(__name__)
 
 _WORD_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9\-\+\.#]*")
 
-_STOPWORDS: frozenset[str] = frozenset({
-    "a", "an", "the", "and", "or", "but", "is", "are", "was", "were",
-    "be", "been", "being", "have", "has", "had", "do", "does", "did",
-    "will", "would", "should", "could", "may", "might", "can", "i",
-    "you", "we", "they", "it", "of", "in", "on", "at", "for", "with",
-    "by", "from", "about", "as", "to", "this", "that", "these", "those",
-    "what", "which", "who", "when", "where", "why", "how",
-})
+_STOPWORDS: frozenset[str] = frozenset(
+    {
+        "a",
+        "an",
+        "the",
+        "and",
+        "or",
+        "but",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "have",
+        "has",
+        "had",
+        "do",
+        "does",
+        "did",
+        "will",
+        "would",
+        "should",
+        "could",
+        "may",
+        "might",
+        "can",
+        "i",
+        "you",
+        "we",
+        "they",
+        "it",
+        "of",
+        "in",
+        "on",
+        "at",
+        "for",
+        "with",
+        "by",
+        "from",
+        "about",
+        "as",
+        "to",
+        "this",
+        "that",
+        "these",
+        "those",
+        "what",
+        "which",
+        "who",
+        "when",
+        "where",
+        "why",
+        "how",
+    }
+)
 
 _AUTHORITY_BONUS: dict[str, float] = {
     ".gov": 0.25,
@@ -51,7 +101,8 @@ _AUTHORITY_BONUS: dict[str, float] = {
 def _tokenize(text: str) -> list[str]:
     """Lowercase, strip stopwords and short tokens."""
     return [
-        tok for tok in (m.group().lower() for m in _WORD_RE.finditer(text))
+        tok
+        for tok in (m.group().lower() for m in _WORD_RE.finditer(text))
         if tok not in _STOPWORDS and len(tok) > 2
     ]
 
@@ -126,7 +177,7 @@ def rank_sources(
         return []
 
     persona = personalization or {}
-    
+
     # Build query from prompt + persona
     query_parts = [user_prompt]
     for key in ("content_niche", "target_audience", "usp"):
@@ -134,7 +185,7 @@ def rank_sources(
         if val:
             query_parts.append(str(val))
     query_str = " ".join(query_parts)
-    
+
     # Extract persona vocabulary
     persona_fields = [
         persona.get("content_niche", ""),
@@ -144,7 +195,7 @@ def rank_sources(
         persona.get("bio", ""),
     ]
     persona_terms = set(_tokenize(" ".join(str(f) for f in persona_fields if f)))
-    
+
     query_terms = _tokenize(query_str)
 
     # Tokenize all documents
@@ -182,7 +233,9 @@ def rank_sources(
 
     logger.info(
         "[rank_sources] picked top %d of %d — scores: %s",
-        len(top), len(pages), [round(s, 3) for s, _ in scored[:top_k]],
+        len(top),
+        len(pages),
+        [round(s, 3) for s, _ in scored[:top_k]],
     )
     return top
 
@@ -190,6 +243,7 @@ def rank_sources(
 # ═══════════════════════════════════════════════════════════════════════════════
 # QUALITY SCORING — multi-axis evaluation
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class QualityScore:
@@ -212,10 +266,25 @@ _MIN_COMPOSITE = 0.45
 
 _NUMBER_RE = re.compile(r"\b\d[\d.,%]*\b")
 
-_WEAK_OPENERS = frozenset({
-    "in", "as", "today", "nowadays", "in today's", "let's", "so,", "well,",
-    "first", "firstly", "have", "did", "are", "here's", "heres",
-})
+_WEAK_OPENERS = frozenset(
+    {
+        "in",
+        "as",
+        "today",
+        "nowadays",
+        "in today's",
+        "let's",
+        "so,",
+        "well,",
+        "first",
+        "firstly",
+        "have",
+        "did",
+        "are",
+        "here's",
+        "heres",
+    }
+)
 
 
 def _tokenize_for_scoring(text: str) -> set[str]:

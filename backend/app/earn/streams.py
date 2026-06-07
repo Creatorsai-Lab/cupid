@@ -32,43 +32,50 @@ WHAT EACH STREAM CARRIES
   • the Q&A question    → so the question set is DERIVED from the taxonomy,
                           never maintained as a separate list that can drift
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
-
+from enum import StrEnum
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Enums — small, closed vocabularies so typos become errors, not bugs
 # ─────────────────────────────────────────────────────────────────────────
 
-class StreamCategory(str, Enum):
+
+class StreamCategory(StrEnum):
     """
     The attribution model the research recommends: classify each stream by
     HOW it relates to the content, because that shapes the advice.
     """
-    CONTENT_INFLUENCED = "content_influenced"  # affiliate, sponsorship — content drives a 3rd-party sale
-    DIRECT = "direct"                           # audience pays the creator directly (the durable tier)
-    PLATFORM_NATIVE = "platform_native"         # the platform itself pays (ad rev, gifts)
+
+    CONTENT_INFLUENCED = (
+        "content_influenced"  # affiliate, sponsorship — content drives a 3rd-party sale
+    )
+    DIRECT = "direct"  # audience pays the creator directly (the durable tier)
+    PLATFORM_NATIVE = "platform_native"  # the platform itself pays (ad rev, gifts)
 
 
-class Durability(str, Enum):
+class Durability(StrEnum):
     """How recurring the income is. Surfaced as a label; not a ranking weight."""
-    HIGH = "high"      # recurring, compounding (memberships, communities)
+
+    HIGH = "high"  # recurring, compounding (memberships, communities)
     MEDIUM = "medium"  # semi-recurring (digital products, ambassadorships)
-    LOW = "low"        # episodic, one-off (single sponsorships)
+    LOW = "low"  # episodic, one-off (single sponsorships)
 
 
-class Effort(str, Enum):
+class Effort(StrEnum):
     """Startup cost to get the first dollar. Low-effort streams = quick wins."""
-    LOW = "low"        # can start today with what they have
+
+    LOW = "low"  # can start today with what they have
     MEDIUM = "medium"  # needs setup (a product, a community space)
-    HIGH = "high"      # needs real infrastructure / authority
+    HIGH = "high"  # needs real infrastructure / authority
 
 
 # ─────────────────────────────────────────────────────────────────────────
 #  The stream record
 # ─────────────────────────────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class RevenueStream:
@@ -79,8 +86,9 @@ class RevenueStream:
     can be accidentally mutated at runtime is a source of heisenbugs. Freezing
     it means any attempt to change a stream after definition raises loudly.
     """
-    id: str                       # stable key, used everywhere (DB, Q&A answers, matching)
-    label: str                    # human-facing name
+
+    id: str  # stable key, used everywhere (DB, Q&A answers, matching)
+    label: str  # human-facing name
     category: StreamCategory
     durability: Durability
     effort: Effort
@@ -92,10 +100,10 @@ class RevenueStream:
     min_followers: int
     ideal_followers: int
 
-    time_to_first_revenue: str    # plain-language, from the timeline research
-    tradeoff_label: str           # the honest one-liner shown on every card
-    short_pitch: str              # one sentence: what this stream IS
-    question: str                 # the Q&A question (derived set — see questions())
+    time_to_first_revenue: str  # plain-language, from the timeline research
+    tradeoff_label: str  # the honest one-liner shown on every card
+    short_pitch: str  # one sentence: what this stream IS
+    question: str  # the Q&A question (derived set — see questions())
 
     # Niches where this stream over- or under-performs. None = universal.
     # These are matched loosely against the creator's normalized niche.
@@ -109,7 +117,6 @@ class RevenueStream:
 # ─────────────────────────────────────────────────────────────────────────
 
 _STREAMS: tuple[RevenueStream, ...] = (
-
     # ── Foundation tier: available to almost anyone, start today ──────────
     RevenueStream(
         id="affiliate",
@@ -117,7 +124,7 @@ _STREAMS: tuple[RevenueStream, ...] = (
         category=StreamCategory.CONTENT_INFLUENCED,
         durability=Durability.MEDIUM,
         effort=Effort.LOW,
-        min_followers=0,            # genuinely no floor — works at any size
+        min_followers=0,  # genuinely no floor — works at any size
         ideal_followers=2_000,
         time_to_first_revenue="Days to weeks",
         tradeoff_label="Fast to start · income scales with trust, not just reach",
@@ -139,7 +146,6 @@ _STREAMS: tuple[RevenueStream, ...] = (
         question="Tips or donations — a way for fans to support you directly. Where are you with this?",
         niche_fit=None,
     ),
-
     # ── Activation tier: the first 'real' income, ~1K+ ───────────────────
     RevenueStream(
         id="digital_products",
@@ -183,7 +189,6 @@ _STREAMS: tuple[RevenueStream, ...] = (
         niche_fit=None,
         question="A paid challenge or cohort program — a short, paid, guided experience. Where are you with this?",
     ),
-
     # ── Brand tier: needs an engaged, sizeable audience ──────────────────
     RevenueStream(
         id="brand_deals",
@@ -191,7 +196,7 @@ _STREAMS: tuple[RevenueStream, ...] = (
         category=StreamCategory.CONTENT_INFLUENCED,
         durability=Durability.LOW,
         effort=Effort.MEDIUM,
-        min_followers=5_000,        # realistic floor for paid sponsorships
+        min_followers=5_000,  # realistic floor for paid sponsorships
         ideal_followers=25_000,
         time_to_first_revenue="Varies — depends on outreach & fit",
         tradeoff_label="Biggest single paydays · episodic and getting more competitive",
@@ -213,7 +218,6 @@ _STREAMS: tuple[RevenueStream, ...] = (
         niche_fit=None,
         question="Brand ambassadorships — ongoing paid relationships with a brand. Where are you with this?",
     ),
-
     # ── Authority tier: monetize expertise, any audience size if niche is sharp
     RevenueStream(
         id="coaching",
@@ -221,7 +225,7 @@ _STREAMS: tuple[RevenueStream, ...] = (
         category=StreamCategory.DIRECT,
         durability=Durability.MEDIUM,
         effort=Effort.HIGH,
-        min_followers=2_000,        # not about reach — about demonstrated authority
+        min_followers=2_000,  # not about reach — about demonstrated authority
         ideal_followers=10_000,
         time_to_first_revenue="Weeks, if authority is established",
         tradeoff_label="Highest income per customer · trades your time directly for money",
@@ -229,7 +233,6 @@ _STREAMS: tuple[RevenueStream, ...] = (
         niche_fit=None,
         question="Coaching or consulting — selling your expertise directly. Where are you with this?",
     ),
-
     # ── Platform-native: the platform pays you ───────────────────────────
     RevenueStream(
         id="ad_revenue",
@@ -237,7 +240,7 @@ _STREAMS: tuple[RevenueStream, ...] = (
         category=StreamCategory.PLATFORM_NATIVE,
         durability=Durability.MEDIUM,
         effort=Effort.LOW,
-        min_followers=1_000,        # e.g. YouTube Partner Program-style thresholds
+        min_followers=1_000,  # e.g. YouTube Partner Program-style thresholds
         ideal_followers=50_000,
         time_to_first_revenue="Once monetization threshold is met",
         tradeoff_label="Passive once enabled · low per-view, needs real volume",
@@ -282,9 +285,9 @@ def stream_ids() -> tuple[str, ...]:
 
 # The three answers every question offers. Stable keys (stored in the DB),
 # human labels (shown in the UI). Keys are what the engine reasons over.
-INTEREST_DOING = "doing"   # already doing it → show optimization, never "start this"
-INTEREST_WANT = "want"     # wants to → eligible+want = green light
-INTEREST_NO = "no"         # not interested → suppress entirely
+INTEREST_DOING = "doing"  # already doing it → show optimization, never "start this"
+INTEREST_WANT = "want"  # wants to → eligible+want = green light
+INTEREST_NO = "no"  # not interested → suppress entirely
 
 INTEREST_OPTIONS: tuple[tuple[str, str], ...] = (
     (INTEREST_WANT, "I want to do this"),
@@ -292,12 +295,15 @@ INTEREST_OPTIONS: tuple[tuple[str, str], ...] = (
     (INTEREST_NO, "Not interested"),
 )
 
-VALID_INTERESTS: frozenset[str] = frozenset({INTEREST_DOING, INTEREST_WANT, INTEREST_NO})
+VALID_INTERESTS: frozenset[str] = frozenset(
+    {INTEREST_DOING, INTEREST_WANT, INTEREST_NO}
+)
 
 
 @dataclass(frozen=True)
 class EarnQuestion:
     """One Q&A item, ready to render in the mandatory gate."""
+
     stream_id: str
     question: str
     options: tuple[tuple[str, str], ...]  # (value, label) pairs

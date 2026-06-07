@@ -12,11 +12,9 @@ import {
 
 import { trendsApi, type TrendsResponse } from "@/lib/api";
 import { NewsCard } from "@/components/TrendsCard";
-import ProtectedRoute from "@/components/ProtectedRoute";   
-
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 type Tab = "news" | "posts";
-
 
 export default function TrendsPage() {
   const [tab, setTab] = useState<Tab>("news");
@@ -78,74 +76,68 @@ export default function TrendsPage() {
     loadTrends(false);
   }, []);
 
-
   return (
     <ProtectedRoute>
-      <main className="max-w-5xl mx-auto transition-all duration-500 p-3">
-        <div className="flex flex-col gap-1 my-8">
-            <h1 className="tracking-tight text-[clamp(1.8rem, 4vw, 2.2rem)]">Personalized and Recommendation Trends</h1>
-            <p>Trendy and hot topics in your niche</p>
+      <main className="mx-auto max-w-5xl p-3 transition-all duration-500">
+        <div className="my-8 flex flex-col gap-1">
+          <h1 className="text-[clamp(1.8rem, 4vw, 2.2rem)] tracking-tight">
+            Personalized and Recommendation Trends
+          </h1>
+          <p>Trendy and hot topics in your niche</p>
         </div>
-          {/* Tab bar + actions */}
-          <div className="flex items-center justify-between mb-6 bg-[var(--inline-bg)] rounded-lg">
-            <div className="flex gap-1">
-              <TabButton
-                active={tab === "news"}
-                onClick={() => setTab("news")}
-                icon={Newspaper}
-                label="News"
-                count={data?.articles.length}
-              />
-              <TabButton
-                active={tab === "posts"}
-                onClick={() => setTab("posts")}
-                icon={MessageSquare}
-                label="Posts"
-              />
-            </div>
-
-            {/* Refresh button  only shown on News tab */}
-            {tab === "news" && data && !error && (
-              <button
-                onClick={() => loadTrends(true)}
-                disabled={refreshing}
-                className="flex items-center gap-1.5 px-3 py-1.5 mb-2 text-xs rounded-md transition-colors hover:bg-[#fff6ed] disabled:opacity-50"
-                style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
-                title="Bypass cache and recompute"
-              >
-                <RefreshCw size={12} className={refreshing ? "animate-spin" : ""}/>
-                {refreshing ? "Refreshing" : "Refresh"}
-              </button>
-            )}
+        {/* Tab bar + actions */}
+        <div className="mb-6 flex items-center justify-between rounded-lg bg-[var(--inline-bg)]">
+          <div className="flex gap-1">
+            <TabButton
+              active={tab === "news"}
+              onClick={() => setTab("news")}
+              icon={Newspaper}
+              label="News"
+              count={data?.articles.length}
+            />
+            <TabButton
+              active={tab === "posts"}
+              onClick={() => setTab("posts")}
+              icon={MessageSquare}
+              label="Posts"
+            />
           </div>
 
-          {/* Refresh note — e.g. "No additional articles yet" */}
-          {tab === "news" && refreshNote && (
-            <div
-              className="mb-4 text-xs text-center py-2 rounded-md bg-[#fff6ed]"
+          {/* Refresh button  only shown on News tab */}
+          {tab === "news" && data && !error && (
+            <button
+              onClick={() => loadTrends(true)}
+              disabled={refreshing}
+              className="mb-2 flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors hover:bg-[#fff6ed] disabled:opacity-50"
               style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
+              title="Bypass cache and recompute"
             >
-              {refreshNote}
-            </div>
+              <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+              {refreshing ? "Refreshing" : "Refresh"}
+            </button>
           )}
+        </div>
 
-          {/* Tab content */}
-          {tab === "news" && (
-            <NewsTab
-              data={data}
-              loading={loading}
-              error={error}
-              onRetry={() => loadTrends(false)}
-            />
-          )}
+        {/* Refresh note — e.g. "No additional articles yet" */}
+        {tab === "news" && refreshNote && (
+          <div
+            className="mb-4 rounded-md bg-[#fff6ed] py-2 text-center text-xs"
+            style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
+          >
+            {refreshNote}
+          </div>
+        )}
 
-          {tab === "posts" && <PostsTab />}
+        {/* Tab content */}
+        {tab === "news" && (
+          <NewsTab data={data} loading={loading} error={error} onRetry={() => loadTrends(false)} />
+        )}
 
+        {tab === "posts" && <PostsTab />}
       </main>
     </ProtectedRoute>
   );
 }
-
 
 //  Sub-components
 
@@ -165,7 +157,7 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors -mb-px border-b-2 ${
+      className={`-mb-px flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
         active
           ? "text-[var(--color-primary)]"
           : "border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)]"
@@ -176,7 +168,7 @@ function TabButton({
       {label}
       {count !== undefined && count > 0 && (
         <span
-          className="text-xs px-1.5 py-0.5 rounded-full"
+          className="rounded-full px-1.5 py-0.5 text-xs"
           style={{
             backgroundColor: active ? "#fff6ed" : "var(--color-border)",
             color: active ? "var(--color-primary)" : "var(--color-muted)",
@@ -188,7 +180,6 @@ function TabButton({
     </button>
   );
 }
-
 
 function NewsTab({
   data,
@@ -210,22 +201,22 @@ function NewsTab({
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <AlertCircle size={28} className="text-red-400 mb-3" />
+        <AlertCircle size={28} className="mb-3 text-red-400" />
         <p
-          className="text-sm mb-1 font-medium"
+          className="mb-1 text-sm font-medium"
           style={{ color: "var(--color-text)", fontFamily: "var(--font-body)" }}
         >
           Could not load trends
         </p>
         <p
-          className="text-xs mb-4 max-w-sm"
+          className="mb-4 max-w-sm text-xs"
           style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
         >
           {error}
         </p>
         <button
           onClick={onRetry}
-          className="flex items-center gap-2 px-4 py-2 text-sm rounded-md text-white"
+          className="flex items-center gap-2 rounded-md px-4 py-2 text-sm text-white"
           style={{ backgroundColor: "var(--color-primary)", fontFamily: "var(--font-body)" }}
         >
           <RefreshCw size={12} />
@@ -239,15 +230,15 @@ function NewsTab({
   if (!data || data.articles.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <Newspaper size={28} className="opacity-30 mb-3" style={{ color: "var(--color-muted)" }} />
+        <Newspaper size={28} className="mb-3 opacity-30" style={{ color: "var(--color-muted)" }} />
         <p
-          className="text-sm mb-1 font-medium"
+          className="mb-1 text-sm font-medium"
           style={{ color: "var(--color-text)", fontFamily: "var(--font-body)" }}
         >
           No trending articles yet
         </p>
         <p
-          className="text-xs max-w-sm"
+          className="max-w-sm text-xs"
           style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
         >
           Articles will appear here once ingestion runs. Check back in a few minutes.
@@ -258,7 +249,7 @@ function NewsTab({
 
   // Success state
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       {data.articles.map((article) => (
         <NewsCard key={article.id} article={article} />
       ))}
@@ -266,47 +257,48 @@ function NewsTab({
   );
 }
 
-
 function PostsTab() {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <MessageSquare size={28} className="opacity-30 mb-3" style={{ color: "var(--color-muted)" }} />
+      <MessageSquare
+        size={28}
+        className="mb-3 opacity-30"
+        style={{ color: "var(--color-muted)" }}
+      />
       <p
-        className="text-sm mb-1 font-medium"
+        className="mb-1 text-sm font-medium"
         style={{ color: "var(--color-text)", fontFamily: "var(--font-body)" }}
       >
         Trending posts coming soon
       </p>
       <p
-        className="text-xs max-w-sm"
+        className="max-w-sm text-xs"
         style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
       >
-        We will surface viral posts and conversations from social media here in
-        a future update.
+        We will surface viral posts and conversations from social media here in a future update.
       </p>
     </div>
   );
 }
 
-
 function NewsLoadingSkeleton() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
         <div
           key={i}
-          className="flex gap-4 p-3 rounded-xl border border-[var(--color-border)] bg-white"
+          className="flex gap-4 rounded-xl border border-[var(--color-border)] bg-white p-3"
         >
-          <div className="flex-shrink-0 w-24 h-24 rounded-lg bg-[#fff6ed] animate-pulse" />
-          <div className="flex-1 flex flex-col justify-between min-w-0">
+          <div className="h-24 w-24 flex-shrink-0 animate-pulse rounded-lg bg-[#fff6ed]" />
+          <div className="flex min-w-0 flex-1 flex-col justify-between">
             <div className="space-y-2">
-              <div className="h-3 rounded bg-[#fff6ed] animate-pulse w-full" />
-              <div className="h-3 rounded bg-[#fff6ed] animate-pulse w-4/5" />
-              <div className="h-3 rounded bg-[#fff6ed] animate-pulse w-2/3" />
+              <div className="h-3 w-full animate-pulse rounded bg-[#fff6ed]" />
+              <div className="h-3 w-4/5 animate-pulse rounded bg-[#fff6ed]" />
+              <div className="h-3 w-2/3 animate-pulse rounded bg-[#fff6ed]" />
             </div>
-            <div className="flex gap-2 mt-2">
-              <div className="h-2 rounded bg-[#fff6ed] animate-pulse w-16" />
-              <div className="h-2 rounded bg-[#fff6ed] animate-pulse w-12" />
+            <div className="mt-2 flex gap-2">
+              <div className="h-2 w-16 animate-pulse rounded bg-[#fff6ed]" />
+              <div className="h-2 w-12 animate-pulse rounded bg-[#fff6ed]" />
             </div>
           </div>
         </div>

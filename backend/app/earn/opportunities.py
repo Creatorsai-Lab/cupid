@@ -18,6 +18,7 @@ An opportunity is shown when ALL hold:
 
 Curated entries rank above discovered ones (higher trust), then newest first.
 """
+
 from __future__ import annotations
 
 import logging
@@ -116,7 +117,9 @@ async def match_opportunities(
         result = await session.execute(stmt)
         candidates = list(result.scalars().all())
     except Exception as exc:  # noqa: BLE001
-        logger.warning("[earn.opportunities] query failed (%s) — empty section", str(exc)[:160])
+        logger.warning(
+            "[earn.opportunities] query failed (%s) — empty section", str(exc)[:160]
+        )
         return []
 
     # Filter by tier reachability and niche.

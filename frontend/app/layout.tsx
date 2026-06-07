@@ -27,13 +27,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${instrumentSerif.variable}`} data-scroll-behavior="smooth">
+    <html
+      lang="en"
+      className={`${dmSans.variable} ${instrumentSerif.variable}`}
+      data-scroll-behavior="smooth"
+    >
       <body>
         <Header />
         {children}

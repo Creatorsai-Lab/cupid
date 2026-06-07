@@ -244,6 +244,90 @@ cupid/
 
 ---
 
+## Code Quality & Tooling
+
+Cupid enforces consistent style and catches mistakes automatically at three
+layers: **as you save** (EditorConfig), **before you commit** (pre-commit
+hooks), and **before you merge** (GitHub Actions CI).
+
+| Layer | Backend (Python) | Frontend (TypeScript/React) |
+|---|---|---|
+| Linter | **Ruff** (`E,F,I,N,W,UP`) | **ESLint** (Next config) |
+| Formatter | **Ruff format** | **Prettier** (+ Tailwind class sorting) |
+| Types | — | **TypeScript** (`tsc --noEmit`) |
+| Editor baseline | `.editorconfig` | `.editorconfig` |
+| Pre-commit | `pre-commit` framework | `pre-commit` framework |
+| CI gate | GitHub Actions | GitHub Actions |
+
+### One-time setup
+
+```powershell
+# 1. Frontend: install Prettier + ESLint deps
+cd frontend
+npm install
+
+# 2. Pre-commit hooks (from the repo root, in your Python env)
+cd ..
+pip install pre-commit
+pre-commit install        # wires the hooks into .git so they run on every commit
+```
+
+### Frontend commands (run inside `frontend/`)
+
+| Command | What it does | Expect |
+|---|---|---|
+| `npm run format` | Prettier rewrites all files to the canonical style (and sorts Tailwind classes). | Files get reformatted in place. The **first run touches many files** — commit that as one "format" commit. |
+| `npm run format:check` | Checks formatting **without** writing. Used by CI. | Exit 0 if clean; lists files + non-zero exit if not. |
+| `npm run lint` | ESLint finds bugs/anti-patterns. | Prints warnings/errors; non-zero exit on error. |
+| `npm run lint:fix` | ESLint auto-fixes what it safely can. | Fixable issues disappear; the rest are reported. |
+| `npm run typecheck` | `tsc --noEmit` — full TypeScript type check, no output files. | Exit 0 if types are sound; lists type errors otherwise. |
+
+### Backend commands (run inside `backend/`, venv active)
+
+| Command | What it does | Expect |
+|---|---|---|
+| `ruff check .` | Lints all Python (imports, unused vars, naming, pyupgrade…). | Lists violations; non-zero exit if any. |
+| `ruff check . --fix` | Lints **and** auto-fixes the safe ones. | Fixable issues vanish; rest reported. |
+| `ruff format .` | Formats all Python (Black-compatible). | Files reformatted in place. |
+| `ruff format --check .` | Format check only (no writes). Used by CI. | Exit 0 if clean, non-zero otherwise. |
+
+### Pre-commit (runs automatically on `git commit`)
+
+After `pre-commit install`, every commit runs the hooks **on your staged files only**:
+
+- Ruff lint + format on changed `backend/**` Python
+- Hygiene: trailing whitespace, final newline, merge-conflict markers, YAML/JSON validity, large-file guard
+
+Frontend formatting is **not** in pre-commit (Node formatters with local plugins
+don't resolve reliably inside pre-commit's isolated env on Windows). It's enforced
+by your editor's "format on save" and by CI (`npm run format:check`).
+
+If a hook reformats a file, the commit is **aborted** and the fixes are left
+staged-but-unstaged — review them, `git add`, and commit again. To run every
+hook against the whole repo manually:
+
+```powershell
+pre-commit run --all-files
+```
+
+To bypass hooks in an emergency (avoid this): `git commit --no-verify`.
+
+### Continuous Integration
+
+`.github/workflows/ci.yml` runs on every pull request and push to `main`:
+
+- **Backend job** — `ruff check` + `ruff format --check`
+- **Frontend job** — `prettier --check` → `eslint` → `tsc --noEmit` → `next build`
+
+A failing check blocks the merge. Run the same commands locally before pushing
+to get a green check on the first try.
+
+> First-time note: running `npm run format` and `ruff format .` once across the
+> existing codebase will produce a large but mechanical diff. Land it as a single
+> dedicated "apply formatter" commit so future diffs stay clean and reviewable.
+
+---
+
 ## Running Tests
 
 ```powershell

@@ -20,6 +20,7 @@ THE GATE, ENFORCED SERVER-SIDE
     cannot render without the gate being completed — even if the client tried
     to skip it.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -27,9 +28,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # Shared infrastructure (DB session + auth) — referenced, not modified.
 from app.core.db import get_db
-from app.models.user import User
-from app.routers.auth import get_current_user
-
 from app.earn import service
 from app.earn.schemas import (
     EarnQuestionOut,
@@ -39,7 +37,10 @@ from app.earn.schemas import (
     QuestionsResponse,
     ReadinessResponse,
 )
-from app.earn.streams import is_valid_answer_map, questions as _questions
+from app.earn.streams import is_valid_answer_map
+from app.earn.streams import questions as _questions
+from app.models.user import User
+from app.routers.auth import get_current_user
 
 router = APIRouter(prefix="/api/v1/earn", tags=["earn"])
 
@@ -47,6 +48,7 @@ router = APIRouter(prefix="/api/v1/earn", tags=["earn"])
 # ─────────────────────────────────────────────────────────────────────────
 #  Q&A questions — public-ish (auth still required, but no profile needed)
 # ─────────────────────────────────────────────────────────────────────────
+
 
 @router.get("/questions", response_model=QuestionsResponse)
 async def get_questions(
@@ -57,7 +59,7 @@ async def get_questions(
         EarnQuestionOut(
             stream_id=q.stream_id,
             question=q.question,
-            options=[QuestionOption(value=v, label=l) for v, l in q.options],
+            options=[QuestionOption(value=v, label=lbl) for v, lbl in q.options],
         )
         for q in _questions()
     ]
@@ -67,6 +69,7 @@ async def get_questions(
 # ─────────────────────────────────────────────────────────────────────────
 #  Profile (the gate state)
 # ─────────────────────────────────────────────────────────────────────────
+
 
 @router.get("/profile", response_model=ProfileResponse)
 async def read_profile(
@@ -91,7 +94,7 @@ async def submit_profile(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Answers must cover every revenue stream with a valid option "
-                   "(want / doing / no).",
+            "(want / doing / no).",
         )
     return await service.save_profile(db, str(current_user.id), payload.answers)
 
@@ -99,6 +102,7 @@ async def submit_profile(
 # ─────────────────────────────────────────────────────────────────────────
 #  Readiness (the page) — gated on a completed profile
 # ─────────────────────────────────────────────────────────────────────────
+
 
 @router.get("/readiness", response_model=ReadinessResponse)
 async def get_readiness(
@@ -135,6 +139,7 @@ async def _resolve_niche(db: AsyncSession, user: User) -> str | None:
     """
     try:
         from sqlalchemy import select
+
         from app.models.persona import UserPersonalization
 
         result = await db.execute(

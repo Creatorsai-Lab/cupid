@@ -30,6 +30,7 @@ genuinely great coaching line, and it falls straight out of the flex logic.
 Throwing that reasoning away and re-deriving it later would be wasteful and
 error-prone. Compute once, carry the explanation.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -45,10 +46,10 @@ from app.earn.config import (
     Tier,
 )
 
-
 # ─────────────────────────────────────────────────────────────────────────
 #  Inputs and outputs
 # ─────────────────────────────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class AudienceSignals:
@@ -60,14 +61,15 @@ class AudienceSignals:
     public-facing scale of the creator's presence, summed across whatever
     platforms they've connected.
     """
-    total_followers: int          # summed across all connected platforms
-    monthly_views: int            # summed; 0 if unknown
-    total_posts: int              # summed; 0 if unknown
-    connected_platforms: int      # how many platforms contributed (for confidence)
-    has_data: bool                # False if we couldn't read any real signal
+
+    total_followers: int  # summed across all connected platforms
+    monthly_views: int  # summed; 0 if unknown
+    total_posts: int  # summed; 0 if unknown
+    connected_platforms: int  # how many platforms contributed (for confidence)
+    has_data: bool  # False if we couldn't read any real signal
 
     @staticmethod
-    def empty() -> "AudienceSignals":
+    def empty() -> AudienceSignals:
         """A creator with nothing connected / no data yet."""
         return AudienceSignals(
             total_followers=0,
@@ -81,18 +83,22 @@ class AudienceSignals:
 @dataclass(frozen=True)
 class TierAssessment:
     """The verdict, with its reasoning fully exposed for the coach to use."""
-    tier: Tier                    # final tier, after any flex
-    base_tier: Tier               # tier from raw followers, before flex
-    flex: int                     # -1, 0, or +1 — how engagement adjusted it
-    flex_reason: str | None       # human-readable explanation, or None if no flex
-    engagement_ratio: float | None  # monthly_views / followers, or None if not computable
-    confidence: str               # "high" | "low" — how much we trust this read
-    signals: AudienceSignals      # carried through so callers don't re-fetch
+
+    tier: Tier  # final tier, after any flex
+    base_tier: Tier  # tier from raw followers, before flex
+    flex: int  # -1, 0, or +1 — how engagement adjusted it
+    flex_reason: str | None  # human-readable explanation, or None if no flex
+    engagement_ratio: (
+        float | None
+    )  # monthly_views / followers, or None if not computable
+    confidence: str  # "high" | "low" — how much we trust this read
+    signals: AudienceSignals  # carried through so callers don't re-fetch
 
 
 # ─────────────────────────────────────────────────────────────────────────
 #  The core computation
 # ─────────────────────────────────────────────────────────────────────────
+
 
 def _base_tier_from_followers(followers: int) -> Tier:
     """

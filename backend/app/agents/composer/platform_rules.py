@@ -4,15 +4,13 @@ Platform Rules — hard constraints per target platform.
 Single source of truth for length limits, hashtag conventions, and
 format guidance used by both prompt construction and quality scoring.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Literal
 
-
-Platform = Literal[
-    "Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube", "Web"
-]
+Platform = Literal["Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube", "Web"]
 
 length = {
     "Short": 280,
@@ -25,14 +23,15 @@ length = {
 @dataclass(frozen=True)
 class PlatformRule:
     """Hard + soft constraints for composing content on this platform."""
+
     name: str
     max_chars: int
-    target_chars: int        # sweet spot for engagement
-    min_chars: int           # too short looks lazy
+    target_chars: int  # sweet spot for engagement
+    min_chars: int  # too short looks lazy
     use_hashtags: bool
     max_hashtags: int
-    format_hint: str         # one-line guidance injected into prompt
-    structure: str           # "single_block" | "threaded" | "paragraphs"
+    format_hint: str  # one-line guidance injected into prompt
+    structure: str  # "single_block" | "threaded" | "paragraphs"
 
 
 PLATFORM_RULES: dict[str, PlatformRule] = {

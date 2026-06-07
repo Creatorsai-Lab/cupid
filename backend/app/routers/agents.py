@@ -9,24 +9,24 @@ Pipeline order:
     1. Personalization Agent — generates 5 search queries via Gemini
     2. Research Agent       — runs web search + extraction on those queries
 """
+
 from __future__ import annotations
 
 import asyncio
-import logging
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Literal, cast
+from datetime import UTC, datetime
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.run_store import load_run, save_run
 from app.core.db import get_db
+from app.core.logging_config import get_agent_logger
+from app.models.persona import UserPersonalization
 from app.models.user import User
 from app.routers.auth import get_current_user
-from app.models.persona import UserPersonalization
-from app.core.logging_config import get_agent_logger
-from app.agents.run_store import save_run, load_run
 
 logger = get_agent_logger("router")
 router = APIRouter(prefix="/api/v1/agents", tags=["agents"])
@@ -38,36 +38,46 @@ router = APIRouter(prefix="/api/v1/agents", tags=["agents"])
 # Strong references to background tasks so they aren't GC'd mid-flight
 _background_tasks: set[asyncio.Task] = set()
 
-_STREAM_KEYS: frozenset[str] = frozenset({
-      "current_agent",
-      "agents_completed",
-      "personalization_queries",
-      "research_data",
-      "composer_output",
-      "composer_evidence",
-      "composer_sources",
-      "error",
-  })
+_STREAM_KEYS: frozenset[str] = frozenset(
+    {
+        "current_agent",
+        "agents_completed",
+        "personalization_queries",
+        "research_data",
+        "composer_output",
+        "composer_evidence",
+        "composer_sources",
+        "error",
+    }
+)
 
 
 # ── Request / Response Schemas ────────────────────────────────
 
 # Tones that directly map to a composition angle; everything else uses hook_first.
 _TONE_TO_VOICE: dict[str, str] = {
-    "Hook First":  "hook_first",
+    "Hook First": "hook_first",
     "Data Driven": "data_driven",
-    "Story Led":   "story_led",
+    "Story Led": "story_led",
 }
 
 
 class GenerateRequest(BaseModel):
     prompt: str
     content_type: Literal["Text", "Image", "Article", "Video", "Ads", "Poll"] = "Text"
-    platform: Literal["Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube", "Web"] = "Web"
+    platform: Literal[
+        "Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube", "Web"
+    ] = "Web"
     length: Literal["Short", "Medium", "Long", "Full Article"] = "Medium"
     tone: Literal[
-        "Formal", "Informative", "Casual", "GenZ", "Factual",
-        "Hook First", "Data Driven", "Story Led",
+        "Formal",
+        "Informative",
+        "Casual",
+        "GenZ",
+        "Factual",
+        "Hook First",
+        "Data Driven",
+        "Story Led",
     ] = "Casual"
 
 
@@ -95,6 +105,7 @@ class RunStatusResponse(BaseModel):
 
 # ── Background Pipeline ───────────────────────────────────────
 
+
 async def run_agent_pipeline(
     run_id: str,
     user_id: str,
@@ -111,18 +122,21 @@ async def run_agent_pipeline(
     from app.agents.graph import get_orchestrator
 
     user_voice = _TONE_TO_VOICE.get(request.tone, "hook_first")
-    
+
     logger.info("=" * 10, run_id)
     logger.info("🚀 PIPELINE START", run_id)
     logger.info("=" * 10, run_id)
     logger.info(f"  Run ID: {run_id}", run_id)
     logger.info(f"  User ID: {user_id}", run_id)
-    logger.info(f"  Prompt: {request.prompt[:100]}{'...' if len(request.prompt) > 100 else ''}", run_id)
+    logger.info(
+        f"  Prompt: {request.prompt[:100]}{'...' if len(request.prompt) > 100 else ''}",
+        run_id,
+    )
     logger.info(f"  Platform: {request.platform}", run_id)
     logger.info(f"  Tone: {request.tone} → Voice: {user_voice}", run_id)
     logger.info(f"  Length: {request.length}", run_id)
     logger.info("─" * 10, run_id)
-    
+
     try:
         record["status"] = "running"
         await save_run(run_id, record)
@@ -168,8 +182,8 @@ async def run_agent_pipeline(
             composer_output = record.get("composer_output") or []
             if composer_output:
                 try:
-                    from app.services import history_service
                     from app.core.db import async_session
+                    from app.services import history_service
 
                     async with async_session() as history_db:
                         entry = await history_service.save_creation(
@@ -206,6 +220,7 @@ async def run_agent_pipeline(
 
 
 # ── API Endpoints ─────────────────────────────────────────────
+
 
 @router.post("/generate", response_model=GenerateResponse)
 async def generate_content(
@@ -245,7 +260,7 @@ async def generate_content(
     record: dict[str, Any] = {
         "run_id": run_id,
         "user_id": str(current_user.id),
-        "created_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(UTC),
         "user_prompt": request.prompt,
         "content_type": request.content_type,
         "target_platform": request.platform,
@@ -298,7 +313,7 @@ async def get_run_status(
     return RunStatusResponse(
         run_id=run_id,
         status=state.get("status", "pending"),
-        created_at=state.get("created_at") or datetime.now(timezone.utc),
+        created_at=state.get("created_at") or datetime.now(UTC),
         current_agent=state.get("current_agent"),
         agents_completed=state.get("agents_completed", []),
         error=state.get("error"),
@@ -306,7 +321,7 @@ async def get_run_status(
         research_data=state.get("research_data"),
         trend_data=state.get("trend_data"),
         composer_output=state.get("composer_output"),
-        composer_evidence= state.get("composer_evidence", []),
-        composer_sources= state.get("composer_sources", []),
+        composer_evidence=state.get("composer_evidence", []),
+        composer_sources=state.get("composer_sources", []),
         history_id=state.get("history_id"),
     )

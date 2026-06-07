@@ -53,8 +53,10 @@ YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3"
 
 # ─── Type definitions ──────────────────────────────────────────
 
+
 class ChannelStats(TypedDict):
     """Aggregated channel-level numbers."""
+
     channel_id: str
     title: str
     subscriber_count: int
@@ -65,6 +67,7 @@ class ChannelStats(TypedDict):
 
 class VideoStats(TypedDict):
     """Per-video metrics."""
+
     video_id: str
     title: str
     published_at: datetime
@@ -77,6 +80,7 @@ class VideoStats(TypedDict):
 
 # ─── Exceptions ────────────────────────────────────────────────
 
+
 class YouTubeAPIError(Exception):
     """Raised when YouTube returns a non-recoverable error."""
 
@@ -87,6 +91,7 @@ class YouTubeAPIError(Exception):
 
 # ─── Channel stats ─────────────────────────────────────────────
 
+
 async def get_channel_stats(access_token: str) -> ChannelStats:
     """
     Fetch the authenticated user's channel stats.
@@ -95,8 +100,8 @@ async def get_channel_stats(access_token: str) -> ChannelStats:
     """
     url = f"{YOUTUBE_API_BASE}/channels"
     params = {
-        "mine":  "true",
-        "part":  "snippet,statistics",
+        "mine": "true",
+        "part": "snippet,statistics",
     }
     headers = {"Authorization": f"Bearer {access_token}"}
 
@@ -118,16 +123,17 @@ async def get_channel_stats(access_token: str) -> ChannelStats:
     stats = channel.get("statistics", {})
 
     return {
-        "channel_id":       channel["id"],
-        "title":            snippet.get("title", ""),
+        "channel_id": channel["id"],
+        "title": snippet.get("title", ""),
         "subscriber_count": int(stats.get("subscriberCount", 0)),
-        "total_views":      int(stats.get("viewCount", 0)),
-        "total_videos":     int(stats.get("videoCount", 0)),
-        "custom_url":       snippet.get("customUrl"),
+        "total_views": int(stats.get("viewCount", 0)),
+        "total_videos": int(stats.get("videoCount", 0)),
+        "custom_url": snippet.get("customUrl"),
     }
 
 
 # ─── Recent videos ─────────────────────────────────────────────
+
 
 async def get_recent_videos(
     access_token: str,
@@ -148,16 +154,18 @@ async def get_recent_videos(
     # Step 1: Search for video IDs
     search_url = f"{YOUTUBE_API_BASE}/search"
     search_params = {
-        "forMine":     "true",
-        "type":        "video",
-        "part":        "id",
-        "maxResults":  str(min(max_results, 50)),
-        "order":       "date",
+        "forMine": "true",
+        "type": "video",
+        "part": "id",
+        "maxResults": str(min(max_results, 50)),
+        "order": "date",
     }
 
     async with httpx.AsyncClient(timeout=15.0) as client:
         search_resp = await client.get(
-            search_url, params=search_params, headers=headers,
+            search_url,
+            params=search_params,
+            headers=headers,
         )
     _raise_for_status(search_resp, "search videos")
 
@@ -174,13 +182,15 @@ async def get_recent_videos(
     # Step 2: Get full stats for those videos
     videos_url = f"{YOUTUBE_API_BASE}/videos"
     videos_params = {
-        "id":   ",".join(video_ids),
+        "id": ",".join(video_ids),
         "part": "snippet,statistics,contentDetails",
     }
 
     async with httpx.AsyncClient(timeout=15.0) as client:
         videos_resp = await client.get(
-            videos_url, params=videos_params, headers=headers,
+            videos_url,
+            params=videos_params,
+            headers=headers,
         )
     _raise_for_status(videos_resp, "video stats")
 
@@ -205,18 +215,19 @@ def _parse_video(item: dict[str, Any]) -> VideoStats:
     )
 
     return {
-        "video_id":     item["id"],
-        "title":        snippet.get("title", ""),
+        "video_id": item["id"],
+        "title": snippet.get("title", ""),
         "published_at": _parse_iso(snippet.get("publishedAt", "")),
         "thumbnail_url": thumbnail_url,
-        "views":        int(stats.get("viewCount", 0)),
-        "likes":        int(stats.get("likeCount", 0)),
-        "comments":     int(stats.get("commentCount", 0)),
+        "views": int(stats.get("viewCount", 0)),
+        "likes": int(stats.get("likeCount", 0)),
+        "comments": int(stats.get("commentCount", 0)),
         "duration_seconds": _parse_iso8601_duration(content.get("duration")),
     }
 
 
 # ─── Helpers ───────────────────────────────────────────────────
+
 
 def _raise_for_status(response: httpx.Response, operation: str) -> None:
     """Convert YouTube API errors into our exception type."""
@@ -231,7 +242,9 @@ def _raise_for_status(response: httpx.Response, operation: str) -> None:
 
     logger.warning(
         "[youtube_client] %s failed: %d %s",
-        operation, response.status_code, message,
+        operation,
+        response.status_code,
+        message,
     )
     raise YouTubeAPIError(response.status_code, message)
 
@@ -255,6 +268,7 @@ def _parse_iso8601_duration(raw: str | None) -> int | None:
         return None
 
     import re
+
     pattern = re.compile(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?")
     match = pattern.match(raw)
     if not match:

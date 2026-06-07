@@ -26,6 +26,7 @@ We rely on them only for what unit tests can't catch — wiring between
 layers.
 ═══════════════════════════════════════════════════════════════════════════
 """
+
 from __future__ import annotations
 
 import pytest
@@ -68,7 +69,7 @@ class TestTrendsResponseShape:
     @pytest.mark.skip(reason="awaiting authenticated_client fixture")
     async def test_refresh_param_bypasses_cache(self, client: AsyncClient):
         """?refresh=true should return cached=False even on second call."""
-        await client.get("/api/v1/trends/news")             # warm cache
+        await client.get("/api/v1/trends/news")  # warm cache
         response = await client.get("/api/v1/trends/news?refresh=true")
 
         data = response.json()

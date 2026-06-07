@@ -3,7 +3,9 @@ Quick test to verify streaming updates work.
 
 Run: python test_streaming.py
 """
+
 import asyncio
+
 from app.agents.graph import get_orchestrator
 
 
@@ -13,22 +15,22 @@ async def test_streaming():
     print("🧪 TESTING STREAMING PIPELINE")
     print("=" * 70)
     print()
-    
+
     orchestrator = get_orchestrator()
-    
+
     prompt = "AI trends in healthcare 2026"
     personalization = {
         "content_niche": "Healthcare Technology",
         "target_audience": "Healthcare professionals",
     }
-    
+
     print(f"📝 Prompt: {prompt}")
     print(f"👤 Niche: {personalization['content_niche']}")
     print()
     print("─" * 70)
     print("📡 STREAMING UPDATES:")
     print("─" * 70)
-    
+
     update_count = 0
     async for state in orchestrator.run_streaming(
         user_id="test-user",
@@ -41,7 +43,7 @@ async def test_streaming():
         completed = state.get("agents_completed", [])
         queries = state.get("personalization_queries", [])
         error = state.get("error")
-        
+
         print(f"\n[Update {update_count}]")
         print(f"  Current agent: {current}")
         print(f"  Completed: {completed}")
@@ -51,7 +53,7 @@ async def test_streaming():
                 print(f"    {i}. {q}")
         if error:
             print(f"  ❌ Error: {error[:100]}")
-    
+
     print()
     print("─" * 70)
     print(f"✅ Received {update_count} streaming updates")

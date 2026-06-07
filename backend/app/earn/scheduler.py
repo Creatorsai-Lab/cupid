@@ -13,6 +13,7 @@ Self-contained and fail-soft: any error in a cycle is logged and the loop
 continues. The web feature never depends on this loop having succeeded —
 curated seeds guarantee a useful Section 3 regardless.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -29,8 +30,16 @@ _DISCOVERY_INTERVAL_SECONDS = 24 * 60 * 60
 # as you learn which niches your users actually have. (Could later be derived
 # from the distinct niches present across user personas.)
 _DISCOVERY_NICHES = [
-    "food", "fitness", "fashion", "tech", "gaming",
-    "beauty", "travel", "finance", "education", "comedy",
+    "food",
+    "fitness",
+    "fashion",
+    "tech",
+    "gaming",
+    "beauty",
+    "travel",
+    "finance",
+    "education",
+    "comedy",
 ]
 
 
@@ -58,7 +67,9 @@ async def run_earn_scheduler(session_factory) -> None:
                     added = await discovery.discover(session, _DISCOVERY_NICHES)
                 logger.info("[earn.scheduler] discovery cycle complete (+%d)", added)
             except Exception as exc:  # noqa: BLE001
-                logger.warning("[earn.scheduler] discovery cycle failed (%s)", str(exc)[:160])
+                logger.warning(
+                    "[earn.scheduler] discovery cycle failed (%s)", str(exc)[:160]
+                )
 
             await asyncio.sleep(_DISCOVERY_INTERVAL_SECONDS)
     finally:

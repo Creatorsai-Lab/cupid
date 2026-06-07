@@ -31,25 +31,26 @@ export function ImagePickerModal({
       onClick={onClose}
     >
       <div
-        className="rounded-2xl max-w-5xl w-full max-h-[90vh] min-h-[65vh] flex flex-col overflow-hidden border border-[var(--color-border)] shadow-xl backdrop-blur-sm"
+        className="flex max-h-[90vh] min-h-[65vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] shadow-xl backdrop-blur-sm"
         style={{ backgroundColor: "color-mix(in srgb, var(--color-background) 95%, transparent)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-2 border-b border-[var(--color-border)]">
+        <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-2">
           <h2 className="text-md">Pick an image</h2>
           <button
             onClick={onClose}
             title="Close"
-            className="text-[var(--color-primary)] hover:text-[var(--color-text)] cursor-pointer">
+            className="cursor-pointer text-[var(--color-primary)] hover:text-[var(--color-text)]"
+          >
             <X size={18} />
           </button>
         </div>
 
         {/* Image grid */}
-        <div className="p-5 overflow-y-auto">
+        <div className="overflow-y-auto p-5">
           {unique.length === 0 ? (
-            <p className="text-sm text-center py-10" style={{ color: "var(--color-muted)" }}>
+            <p className="py-10 text-center text-sm" style={{ color: "var(--color-muted)" }}>
               No source images found for this topic.
             </p>
           ) : (
@@ -58,14 +59,13 @@ export function ImagePickerModal({
                 <button
                   key={i}
                   onClick={() => setSel(url)}
-                  className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-colors cursor-pointer
-                    ${sel === url ? "border-[var(--color-primary)]" : "border-transparent hover:border-[var(--color-border)]"}`}
+                  className={`relative aspect-video cursor-pointer overflow-hidden rounded-lg border-2 transition-colors ${sel === url ? "border-[var(--color-primary)]" : "border-transparent hover:border-[var(--color-border)]"}`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={url}
                     alt=""
-                    className="w-full h-full object-cover"
+                    className="h-full w-full object-cover"
                     loading="lazy"
                     onError={(e) => {
                       const btn = e.currentTarget.closest("button");
@@ -73,8 +73,8 @@ export function ImagePickerModal({
                     }}
                   />
                   {sel === url && (
-                    <div className="absolute inset-0 bg-[var(--color-primary)]/20 flex items-center justify-center">
-                      <div className="bg-[var(--color-primary)] rounded-full p-1">
+                    <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-primary)]/20">
+                      <div className="rounded-full bg-[var(--color-primary)] p-1">
                         <Check size={14} className="text-white" />
                       </div>
                     </div>
@@ -88,26 +88,30 @@ export function ImagePickerModal({
         {/* Footer */}
         <div className="flex items-center justify-between px-5 py-4">
           <div className="inline-block" title="Require PRO">
-          <button disabled className="btn-primary opacity-40 cursor-not-allowed pointer-events-none">
-            <Sparkles size={13} />AI image
-          </button>
+            <button
+              disabled
+              className="btn-primary pointer-events-none cursor-not-allowed opacity-40"
+            >
+              <Sparkles size={13} />
+              AI image
+            </button>
           </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onClose}
-            className="text-xs px-3 py-2 rounded-md text-[var(--color-muted)] hover:bg-[#fff6ed] cursor-pointer"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => sel && onConfirm(sel)}
-            disabled={!sel}
-            className="btn-secondary flex items-center gap-1.5 disabled:opacity-40"
-          >
-            <ImagePlus size={14} />
-            Use image
-          </button>
-        </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="cursor-pointer rounded-md px-3 py-2 text-xs text-[var(--color-muted)] hover:bg-[#fff6ed]"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => sel && onConfirm(sel)}
+              disabled={!sel}
+              className="btn-secondary flex items-center gap-1.5 disabled:opacity-40"
+            >
+              <ImagePlus size={14} />
+              Use image
+            </button>
+          </div>
         </div>
       </div>
     </div>

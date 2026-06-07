@@ -48,10 +48,11 @@ who've connected before. This guarantees we get a refresh token on every
 flow (Google sometimes omits it on subsequent connects).
 ═══════════════════════════════════════════════════════════════════════════
 """
+
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import TypedDict
 from urllib.parse import urlencode
 
@@ -70,21 +71,24 @@ GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 GOOGLE_CHANNELS_URL = "https://www.googleapis.com/youtube/v3/channels"
 
 # Space-separated list of scopes we request
-SCOPES = " ".join([
-    "https://www.googleapis.com/auth/youtube.readonly",
-    "https://www.googleapis.com/auth/yt-analytics.readonly",
-    "https://www.googleapis.com/auth/userinfo.email",
-])
+SCOPES = " ".join(
+    [
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/yt-analytics.readonly",
+        "https://www.googleapis.com/auth/userinfo.email",
+    ]
+)
 
 
 # ─── Type definitions ──────────────────────────────────────────
 
+
 class TokenResponse(TypedDict):
     access_token: str
-    refresh_token: str | None     # might be missing on re-auth
-    expires_in: int               # seconds until expiry
-    scope: str                    # space-separated granted scopes
-    token_type: str               # always "Bearer" in practice
+    refresh_token: str | None  # might be missing on re-auth
+    expires_in: int  # seconds until expiry
+    scope: str  # space-separated granted scopes
+    token_type: str  # always "Bearer" in practice
 
 
 class ChannelInfo(TypedDict):
@@ -96,6 +100,7 @@ class ChannelInfo(TypedDict):
 
 # ─── Step 1: Build the auth URL ────────────────────────────────
 
+
 def build_authorization_url(state: str) -> str:
     """
     Generate the Google OAuth URL we redirect the user to.
@@ -104,13 +109,13 @@ def build_authorization_url(state: str) -> str:
     and (if they approve) be redirected back to our callback.
     """
     params = {
-        "client_id":     settings.google_client_id,
-        "redirect_uri":  settings.google_redirect_uri,
+        "client_id": settings.google_client_id,
+        "redirect_uri": settings.google_redirect_uri,
         "response_type": "code",
-        "scope":         SCOPES,
-        "access_type":   "offline",     # required for refresh_token
-        "prompt":        "consent",     # always show consent → guarantees refresh_token
-        "state":         state,         # CSRF protection
+        "scope": SCOPES,
+        "access_type": "offline",  # required for refresh_token
+        "prompt": "consent",  # always show consent → guarantees refresh_token
+        "state": state,  # CSRF protection
         "include_granted_scopes": "true",
     }
 
@@ -118,6 +123,7 @@ def build_authorization_url(state: str) -> str:
 
 
 # ─── Step 2: Exchange code for tokens ──────────────────────────
+
 
 async def exchange_code_for_tokens(code: str) -> TokenResponse:
     """
@@ -130,11 +136,11 @@ async def exchange_code_for_tokens(code: str) -> TokenResponse:
         - scope (what was actually granted — may be subset of requested)
     """
     payload = {
-        "code":          code,
-        "client_id":     settings.google_client_id,
+        "code": code,
+        "client_id": settings.google_client_id,
         "client_secret": settings.google_client_secret,
-        "redirect_uri":  settings.google_redirect_uri,
-        "grant_type":    "authorization_code",
+        "redirect_uri": settings.google_redirect_uri,
+        "grant_type": "authorization_code",
     }
 
     async with httpx.AsyncClient(timeout=15.0) as client:
@@ -143,7 +149,8 @@ async def exchange_code_for_tokens(code: str) -> TokenResponse:
     if response.status_code != 200:
         logger.error(
             "[oauth.youtube] token exchange failed: %d %s",
-            response.status_code, response.text[:300],
+            response.status_code,
+            response.text[:300],
         )
         raise RuntimeError(
             f"Google token exchange failed (HTTP {response.status_code})"
@@ -153,6 +160,7 @@ async def exchange_code_for_tokens(code: str) -> TokenResponse:
 
 
 # ─── Refresh expired access tokens ─────────────────────────────
+
 
 async def refresh_access_token(refresh_token: str) -> TokenResponse:
     """
@@ -166,9 +174,9 @@ async def refresh_access_token(refresh_token: str) -> TokenResponse:
     """
     payload = {
         "refresh_token": refresh_token,
-        "client_id":     settings.google_client_id,
+        "client_id": settings.google_client_id,
         "client_secret": settings.google_client_secret,
-        "grant_type":    "refresh_token",
+        "grant_type": "refresh_token",
     }
 
     async with httpx.AsyncClient(timeout=15.0) as client:
@@ -179,7 +187,8 @@ async def refresh_access_token(refresh_token: str) -> TokenResponse:
         # Caller should mark the connection as failed and prompt reconnect.
         logger.warning(
             "[oauth.youtube] refresh failed: %d %s",
-            response.status_code, response.text[:200],
+            response.status_code,
+            response.text[:200],
         )
         raise RuntimeError(
             f"Token refresh failed (HTTP {response.status_code}) — "
@@ -190,6 +199,7 @@ async def refresh_access_token(refresh_token: str) -> TokenResponse:
 
 
 # ─── Step 3: Get the connected channel info ────────────────────
+
 
 async def get_connected_channel_info(access_token: str) -> ChannelInfo:
     """
@@ -229,13 +239,14 @@ async def get_connected_channel_info(access_token: str) -> ChannelInfo:
 
     return {
         "channel_id": channel["id"],
-        "handle":     snippet.get("customUrl"),  # e.g. "@CupidTestChannel"
-        "title":      snippet.get("title", ""),
-        "email":      email,
+        "handle": snippet.get("customUrl"),  # e.g. "@CupidTestChannel"
+        "title": snippet.get("title", ""),
+        "email": email,
     }
 
 
 # ─── Helper: compute when a token expires ──────────────────────
+
 
 def compute_expires_at(expires_in: int) -> datetime:
     """
@@ -244,4 +255,4 @@ def compute_expires_at(expires_in: int) -> datetime:
     We subtract a 60-second safety buffer so we refresh slightly early
     rather than discovering expiry mid-API-call.
     """
-    return datetime.now(timezone.utc) + timedelta(seconds=expires_in - 60)
+    return datetime.now(UTC) + timedelta(seconds=expires_in - 60)

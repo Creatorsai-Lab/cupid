@@ -3,41 +3,56 @@ import Link from "next/link";
 export default function Footer() {
   return (
     // Changed to standard semantic footer tag for better SEO structure
-    <footer className="bg-[#1a1c38] px-6 md:px-10 py-10">
-      
+    <footer className="bg-[#1a1c38] px-6 py-10 md:px-10">
       {/* First Row: Full-width banner section */}
-      <div id="banner" className="text-[#50516e] text-[clamp(3.5rem,9vw,7rem)] font-black text-center tracking-tighter leading-none select-none mb-10">CUPID AGENTS</div>
-      <div className="max-w-[1200px] mx-auto grid grid-cols-1 sm:grid-cols-3 gap-8 text-sm text-gray-300 border-t border-white/10 pt-8">
+      <div
+        id="banner"
+        className="mb-10 text-center text-[clamp(3.5rem,9vw,7rem)] leading-none font-black tracking-tighter text-[#50516e] select-none"
+      >
+        CUPID AGENTS
+      </div>
+      <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-8 border-t border-white/10 pt-8 text-sm text-gray-300 sm:grid-cols-3">
         <div>
-          <ul className="space-y-2.5 list-none p-0 m-0">
+          <ul className="m-0 list-none space-y-2.5 p-0">
             <li>
-              <Link href="/about" className="hover:text-white transition-colors duration-200">About Us</Link>
+              <Link href="/about" className="transition-colors duration-200 hover:text-white">
+                About Us
+              </Link>
             </li>
             <li>
-              <Link href="/contact" className="hover:text-white transition-colors duration-200">Contact</Link>
-            </li> 
+              <Link href="/contact" className="transition-colors duration-200 hover:text-white">
+                Contact
+              </Link>
+            </li>
             <li>
-              <Link href="/careers" className="hover:text-white transition-colors duration-200">Careers</Link>
-            </li>                  
+              <Link href="/careers" className="transition-colors duration-200 hover:text-white">
+                Careers
+              </Link>
+            </li>
           </ul>
         </div>
         <div>
-          <ul className="space-y-2.5 list-none p-0 m-0">
+          <ul className="m-0 list-none space-y-2.5 p-0">
             <li>
-              <Link href="/privacy" className="hover:text-white transition-colors duration-200">Privacy Policy</Link>
+              <Link href="/privacy" className="transition-colors duration-200 hover:text-white">
+                Privacy Policy
+              </Link>
             </li>
             <li>
-              <Link href="/terms" className="hover:text-white transition-colors duration-200">T&C</Link>
-            </li> 
+              <Link href="/terms" className="transition-colors duration-200 hover:text-white">
+                T&C
+              </Link>
+            </li>
             <li>
-              <Link href="/cookies" className="hover:text-white transition-colors duration-200">Cookies</Link>
-            </li>                  
+              <Link href="/cookies" className="transition-colors duration-200 hover:text-white">
+                Cookies
+              </Link>
+            </li>
           </ul>
         </div>
-        <div className="sm:text-right text-gray-400 flex items-end sm:justify-end">
+        <div className="flex items-end text-gray-400 sm:justify-end sm:text-right">
           <p>&copy; {new Date().getFullYear()} Cupid. All rights reserved.</p>
         </div>
-
       </div>
     </footer>
   );

@@ -13,10 +13,11 @@ used for matching and creative ideas.
 
 Thin-router / fat-service, the same split you used for history and insights.
 """
+
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +26,12 @@ from app.earn import coach
 from app.earn.config import TIER_BLURB, Tier
 from app.earn.models import EarnProfile
 from app.earn.opportunities import match_opportunities
-from app.earn.readiness import ReadinessReport, StreamReadiness, StreamState, build_readiness
+from app.earn.readiness import (
+    ReadinessReport,
+    StreamReadiness,
+    StreamState,
+    build_readiness,
+)
 from app.earn.schemas import (
     CreativeSection,
     EligibilityVerdict,
@@ -52,6 +58,7 @@ _TIER_LABEL = {
 # ─────────────────────────────────────────────────────────────────────────
 #  Profile (the Q&A gate)
 # ─────────────────────────────────────────────────────────────────────────
+
 
 async def get_profile(session: AsyncSession, user_id: str) -> ProfileResponse:
     """Read the creator's Q&A profile. exists=False means show the gate."""
@@ -91,17 +98,47 @@ async def _load_profile(session: AsyncSession, user_id: str) -> EarnProfile | No
 # run discovery with. Loose and forgiving; unknown niches fall through to None
 # (→ universal matching only).
 _NICHE_MAP: dict[str, str] = {
-    "food": "food", "cooking": "food", "recipe": "food", "vlog": "food",
-    "fitness": "fitness", "gym": "fitness", "health": "fitness", "workout": "fitness",
-    "fashion": "fashion", "style": "fashion", "outfit": "fashion",
-    "tech": "tech", "technology": "tech", "gadget": "tech", "coding": "tech", "software": "tech",
-    "game": "gaming", "gaming": "gaming", "esports": "gaming",
-    "beauty": "beauty", "makeup": "beauty", "skincare": "beauty",
-    "travel": "travel", "tourism": "travel",
-    "finance": "finance", "money": "finance", "invest": "finance", "crypto": "finance",
-    "education": "education", "learning": "education", "study": "education", "tutorial": "education",
-    "comedy": "comedy", "humor": "comedy", "humour": "comedy", "funny": "comedy", "meme": "comedy",
-    "animation": "animation", "animator": "animation", "art": "animation", "design": "animation",
+    "food": "food",
+    "cooking": "food",
+    "recipe": "food",
+    "vlog": "food",
+    "fitness": "fitness",
+    "gym": "fitness",
+    "health": "fitness",
+    "workout": "fitness",
+    "fashion": "fashion",
+    "style": "fashion",
+    "outfit": "fashion",
+    "tech": "tech",
+    "technology": "tech",
+    "gadget": "tech",
+    "coding": "tech",
+    "software": "tech",
+    "game": "gaming",
+    "gaming": "gaming",
+    "esports": "gaming",
+    "beauty": "beauty",
+    "makeup": "beauty",
+    "skincare": "beauty",
+    "travel": "travel",
+    "tourism": "travel",
+    "finance": "finance",
+    "money": "finance",
+    "invest": "finance",
+    "crypto": "finance",
+    "education": "education",
+    "learning": "education",
+    "study": "education",
+    "tutorial": "education",
+    "comedy": "comedy",
+    "humor": "comedy",
+    "humour": "comedy",
+    "funny": "comedy",
+    "meme": "comedy",
+    "animation": "animation",
+    "animator": "animation",
+    "art": "animation",
+    "design": "animation",
 }
 
 
@@ -119,6 +156,7 @@ def normalize_niche(raw_niche: str | None) -> str | None:
 # ─────────────────────────────────────────────────────────────────────────
 #  The full readiness pipeline
 # ─────────────────────────────────────────────────────────────────────────
+
 
 async def build_readiness_response(
     session: AsyncSession,
@@ -148,11 +186,12 @@ async def build_readiness_response(
             intro="Creative, niche-specific ways to turn your content into income:",
             ideas=ideas,
         ),
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
     )
 
 
 # ── section builders ──────────────────────────────────────────────────────
+
 
 def _build_stats(assessment) -> StatsSnapshot:
     s = assessment.signals
@@ -189,7 +228,9 @@ def _card(sr: StreamReadiness) -> StreamCard:
 
 def _build_verdict(report: ReadinessReport, coach_summary: str) -> EligibilityVerdict:
     green = [_card(s) for s in report.ranked_gaps if s.state == StreamState.GREEN_LIGHT]
-    almost = [_card(s) for s in report.ranked_gaps if s.state == StreamState.ALMOST_THERE]
+    almost = [
+        _card(s) for s in report.ranked_gaps if s.state == StreamState.ALMOST_THERE
+    ]
     return EligibilityVerdict(
         coach_summary=coach_summary,
         green_lights=green,

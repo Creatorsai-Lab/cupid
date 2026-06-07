@@ -21,103 +21,115 @@ import { useAssistant } from "./useAssistant";
 import { AssistantBubble } from "./AssistantBubble";
 import type { AssistantMood } from "./assistant-knowledge";
 
-const SIZE = 96;            // cat box size in px
+const SIZE = 96; // cat box size in px
 const ASSET = (mood: AssistantMood) => `/assistant/${mood}.gif`;
 
 export default function Assistant() {
-    const assistant = useAssistant();
+  const assistant = useAssistant();
 
-    // Position: default bottom-right. Tracked as fixed left/top once dragged.
-    const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
-    const dragging = useRef(false);
-    const moved = useRef(false);
-    const offset = useRef({ x: 0, y: 0 });
+  // Position: default bottom-right. Tracked as fixed left/top once dragged.
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const dragging = useRef(false);
+  const moved = useRef(false);
+  const offset = useRef({ x: 0, y: 0 });
 
-    // ── Dragging (pointer events: works for mouse + touch) ────────────────
-    const onPointerDown = (e: React.PointerEvent) => {
-        dragging.current = true;
-        moved.current = false;
-        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        offset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  // ── Dragging (pointer events: works for mouse + touch) ────────────────
+  const onPointerDown = (e: React.PointerEvent) => {
+    dragging.current = true;
+    moved.current = false;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    offset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = useCallback((e: PointerEvent) => {
+    if (!dragging.current) return;
+    moved.current = true;
+    const x = Math.min(window.innerWidth - SIZE, Math.max(0, e.clientX - offset.current.x));
+    const y = Math.min(window.innerHeight - SIZE, Math.max(0, e.clientY - offset.current.y));
+    setPos({ x, y });
+  }, []);
+
+  const onPointerUp = useCallback(() => {
+    dragging.current = false;
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
     };
+  }, [onPointerMove, onPointerUp]);
 
-    const onPointerMove = useCallback((e: PointerEvent) => {
-        if (!dragging.current) return;
-        moved.current = true;
-        const x = Math.min(window.innerWidth - SIZE, Math.max(0, e.clientX - offset.current.x));
-        const y = Math.min(window.innerHeight - SIZE, Math.max(0, e.clientY - offset.current.y));
-        setPos({ x, y });
-    }, []);
+  // ── Click the cat: toggle input (unless we were dragging) ─────────────
+  const onClick = () => {
+    if (moved.current) return; // a drag, not a click
+    assistant.wake();
+    assistant.setInputOpen(!assistant.inputOpen);
+  };
 
-    const onPointerUp = useCallback(() => { dragging.current = false; }, []);
+  // ── Ask handler: match input → speak ──────────────────────────────────
+  const handleAsk = (text: string) => {
+    assistant.setInputOpen(false);
+    assistant.say("…", "thinking"); // brief beat
+    setTimeout(() => {
+      const reply = matchInput(text, assistant.getLastText());
+      assistant.say(reply.text, reply.mood, reply.navTo);
+    }, 350);
+  };
 
-    useEffect(() => {
-        window.addEventListener("pointermove", onPointerMove);
-        window.addEventListener("pointerup", onPointerUp);
-        return () => {
-            window.removeEventListener("pointermove", onPointerMove);
-            window.removeEventListener("pointerup", onPointerUp);
-        };
-    }, [onPointerMove, onPointerUp]);
+  if (assistant.dismissed) return null;
 
-    // ── Click the cat: toggle input (unless we were dragging) ─────────────
-    const onClick = () => {
-        if (moved.current) return;     // a drag, not a click
-        assistant.wake();
-        assistant.setInputOpen(!assistant.inputOpen);
-    };
+  const style: React.CSSProperties = pos
+    ? { position: "fixed", left: pos.x, top: pos.y }
+    : { position: "fixed", right: 40, bottom: 35 };
 
-    // ── Ask handler: match input → speak ──────────────────────────────────
-    const handleAsk = (text: string) => {
-        assistant.setInputOpen(false);
-        assistant.say("…", "thinking");                       // brief beat
-        setTimeout(() => {
-            const reply = matchInput(text, assistant.getLastText());
-            assistant.say(reply.text, reply.mood, reply.navTo);
-        }, 350);
-    };
+  return (
+    <div style={{ ...style, width: SIZE, zIndex: 60 }} className="select-none">
+      <AssistantBubble
+        bubble={assistant.bubble}
+        inputOpen={assistant.inputOpen}
+        onAsk={handleAsk}
+        onCloseInput={() => assistant.setInputOpen(false)}
+      />
 
-    if (assistant.dismissed) return null;
+      <div
+        className="group relative"
+        style={{
+          width: SIZE,
+          height: SIZE,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle at 50% 45%, rgba(146, 141, 137, 0.05) 0%, rgba(145, 142, 138, 0.01) 60%, rgba(255,255,255,0) 75%)",
+          filter: "drop-shadow(0 6px 14px rgba(80, 50, 30, 0.20))",
+        }}
+      >
+        {/* Close button — appears on hover */}
+        <button
+          onClick={assistant.dismiss}
+          className="absolute -top-1 -right-1 z-10 flex h-5 w-5 items-center justify-center rounded-full border bg-white opacity-0 shadow transition-opacity group-hover:opacity-100"
+          style={{ borderColor: "var(--color-border)", color: "var(--color-destructive)" }}
+          aria-label="Hide Cia"
+        >
+          <X size={11} />
+        </button>
 
-    const style: React.CSSProperties = pos
-        ? { position: "fixed", left: pos.x, top: pos.y }
-        : { position: "fixed", right: 40, bottom: 35 };
-
-    return (
-        <div style={{ ...style, width: SIZE, zIndex: 60 }} className="select-none">
-            <AssistantBubble
-                bubble={assistant.bubble}
-                inputOpen={assistant.inputOpen}
-                onAsk={handleAsk}
-                onCloseInput={() => assistant.setInputOpen(false)}
-            />
-
-            <div className="relative group" style={{ width: SIZE, height: SIZE,borderRadius: "50%",background: "radial-gradient(circle at 50% 45%, rgba(146, 141, 137, 0.05) 0%, rgba(145, 142, 138, 0.01) 60%, rgba(255,255,255,0) 75%)",
-        filter: "drop-shadow(0 6px 14px rgba(80, 50, 30, 0.20))",
- }}>
-                {/* Close button — appears on hover */}
-                <button
-                    onClick={assistant.dismiss}
-                    className="absolute -top-1 -right-1 z-10 w-5 h-5 rounded-full bg-white border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
-                    style={{ borderColor: "var(--color-border)", color: "var(--color-destructive)" }}
-                    aria-label="Hide Cia"
-                >
-                    <X size={11} />
-                </button>
-
-                {/* The cat */}
-                <img
-                    src={ASSET(assistant.mood)}
-                    alt="Cia"
-                    draggable={false}
-                    onPointerDown={onPointerDown}
-                    onClick={onClick}
-                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = ASSET("idle"); }}
-                    className="w-full h-full object-contain cursor-grab active:cursor-grabbing drop-shadow-md"
-                    style={{ touchAction: "none" }}
-                />
-            </div>
-        </div>
-    );
+        {/* The cat */}
+        <img
+          src={ASSET(assistant.mood)}
+          alt="Cia"
+          draggable={false}
+          onPointerDown={onPointerDown}
+          onClick={onClick}
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).src = ASSET("idle");
+          }}
+          className="h-full w-full cursor-grab object-contain drop-shadow-md active:cursor-grabbing"
+          style={{ touchAction: "none" }}
+        />
+      </div>
+    </div>
+  );
 }

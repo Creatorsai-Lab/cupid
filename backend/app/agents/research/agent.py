@@ -12,11 +12,12 @@ LangSmith: all nodes auto-traced; pipeline internals traced via @traceable.
 Note: Query generation lives in the Personalization Agent.
 The Research Agent reads ``personalization_queries`` from state.
 """
+
 from __future__ import annotations
 
-import logging
 import time
-from typing import Any, Callable, TypeVar, cast
+from collections.abc import Callable
+from typing import Any, TypeVar, cast
 
 from langgraph.graph import END, StateGraph
 
@@ -26,6 +27,7 @@ from app.core.logging_config import get_agent_logger
 
 try:
     from langsmith import traceable as _traceable
+
     traceable = cast(Any, _traceable)
 except ImportError:
     F = TypeVar("F", bound=Callable[..., Any])
@@ -33,12 +35,15 @@ except ImportError:
     def traceable(*args: Any, **kwargs: Any):  # type: ignore[misc]
         def decorator(fn: F) -> F:
             return fn
+
         return decorator
+
 
 logger = get_agent_logger("research")
 
 
 # ── LangGraph node ────────────────────────────────────────────
+
 
 @traceable(name="research_agent")
 async def research_node(state: MemoryState) -> dict[str, Any]:
@@ -58,7 +63,9 @@ async def research_node(state: MemoryState) -> dict[str, Any]:
     logger.agent_start(
         run_id,
         queries_count=len(queries),
-        user_prompt=user_prompt[:100] + "..." if len(user_prompt) > 100 else user_prompt,
+        user_prompt=user_prompt[:100] + "..."
+        if len(user_prompt) > 100
+        else user_prompt,
         niche=persona.get("content_niche", "-"),
         region=persona.get("target_country", "-"),
     )
@@ -66,7 +73,9 @@ async def research_node(state: MemoryState) -> dict[str, Any]:
     # Fallback if personalization agent didn't run
     if not queries and user_prompt:
         queries = [user_prompt]
-        logger.warning("No personalization queries - using raw prompt as single query", run_id)
+        logger.warning(
+            "No personalization queries - using raw prompt as single query", run_id
+        )
 
     if not queries:
         logger.warning("No queries and no prompt - skipping research", run_id)
@@ -87,27 +96,27 @@ async def research_node(state: MemoryState) -> dict[str, Any]:
     # Run search pipeline
     logger.log_step(run_id, "Executing search pipeline")
     start_time = time.time()
-    
+
     try:
         results = await SearchPipeline().run(queries, persona=persona)
         latency_ms = int((time.time() - start_time) * 1000)
-        
+
         # Log results
         domains = sorted({r.domain for r in results})
         logger.log_metric(run_id, "pages_fetched", len(results))
         logger.log_metric(run_id, "unique_domains", len(domains))
         logger.log_metric(run_id, "latency_ms", latency_ms)
-        
+
         # Log fetched pages
         logger.info("─" * 10, run_id)
         logger.info("📄 FETCHED PAGES:", run_id)
         for i, r in enumerate(results, 1):
             logger.info(
                 f"  [{i:2d}] {r.domain:30s} | {r.text_length:6d} chars | {r.title[:50]}",
-                run_id
+                run_id,
             )
         logger.info("─" * 10, run_id)
-        
+
         # Log domain distribution
         logger.info("🌐 DOMAIN DISTRIBUTION:", run_id)
         for domain in domains[:10]:  # Top 10 domains
@@ -115,7 +124,7 @@ async def research_node(state: MemoryState) -> dict[str, Any]:
             logger.info(f"  {domain:30s} : {count} pages", run_id)
         if len(domains) > 10:
             logger.info(f"  ... and {len(domains) - 10} more domains", run_id)
-        
+
     except Exception as exc:
         latency_ms = int((time.time() - start_time) * 1000)
         logger.agent_error(run_id, exc)
@@ -155,8 +164,8 @@ async def research_node(state: MemoryState) -> dict[str, Any]:
             f"Searched {len(queries)} queries, extracted {len(results)} pages "
             f"across {len(domains)} domains ({', '.join(domains[:4])}"
             f"{'...' if len(domains) > 4 else ''})."
-            if results else
-            "Search returned no usable pages."
+            if results
+            else "Search returned no usable pages."
         ),
     }
 
@@ -187,6 +196,7 @@ def _empty_research_data(error: str | None = None) -> ResearchData:
 
 
 # ── Subgraph builder ──────────────────────────────────────────
+
 
 def build_research_graph() -> StateGraph:
     """Standalone subgraph. Call .compile() before mounting on the swarm."""

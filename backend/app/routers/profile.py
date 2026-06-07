@@ -31,7 +31,9 @@ async def get_profile(
     profile = await get_profile_by_user_id(db, user.id)
     if not profile:
         return PersonalizationApiResponse(data=None)
-    return PersonalizationApiResponse(data=PersonalizationResponse.model_validate(profile))
+    return PersonalizationApiResponse(
+        data=PersonalizationResponse.model_validate(profile)
+    )
 
 
 @router.put("", response_model=PersonalizationApiResponse)

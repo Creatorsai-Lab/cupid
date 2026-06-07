@@ -16,25 +16,27 @@ is the same discipline you'd use for any policy-vs-mechanism split.
 Nothing here does work. It only declares values. That makes it safe to read,
 safe to tune, and trivial to unit-test the logic that consumes it.
 """
+
 from __future__ import annotations
 
-from enum import Enum
-
+from enum import StrEnum
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Audience tiers
 # ─────────────────────────────────────────────────────────────────────────
 
-class Tier(str, Enum):
+
+class Tier(StrEnum):
     """
     The four creator-economy bands, by total followers summed across all
     connected platforms. Inheriting from str makes these JSON-serializable
     and DB-friendly with zero conversion code.
     """
-    NANO = "nano"      # foundation: start earning anything, build the habit
-    MICRO = "micro"    # activation: first real income unlocks
-    MID = "mid"        # serious: brand deals & recurring streams are real money
-    MACRO = "macro"    # premium: the full menu, including partnerships & licensing
+
+    NANO = "nano"  # foundation: start earning anything, build the habit
+    MICRO = "micro"  # activation: first real income unlocks
+    MID = "mid"  # serious: brand deals & recurring streams are real money
+    MACRO = "macro"  # premium: the full menu, including partnerships & licensing
 
 
 # Ordered low → high. Flexing up/down means stepping along this tuple, so the
@@ -58,9 +60,9 @@ TIER_FLOORS: dict[Tier, int] = {
 # Human-facing one-liners describing each tier — used by the coach narrative
 # and the Section 1 tier badge. Honest about where the creator stands.
 TIER_BLURB: dict[Tier, str] = {
-    Tier.NANO:  "You're building your foundation. The goal now is to start earning *something* and build momentum.",
+    Tier.NANO: "You're building your foundation. The goal now is to start earning *something* and build momentum.",
     Tier.MICRO: "You've hit activation. Your first real income streams are genuinely within reach.",
-    Tier.MID:   "You're at serious scale. Brand partnerships and recurring revenue are real money for you now.",
+    Tier.MID: "You're at serious scale. Brand partnerships and recurring revenue are real money for you now.",
     Tier.MACRO: "You're in premium territory. The full monetization menu is open, including high-value partnerships.",
 }
 

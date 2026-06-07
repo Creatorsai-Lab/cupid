@@ -30,10 +30,11 @@ token endpoint you POST to. Worth internalizing this pattern — it's
 universal.
 
 """
+
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -47,7 +48,7 @@ logger = logging.getLogger(__name__)
 EXPIRY_BUFFER_SECONDS = 60
 
 
-class TokenRefreshFailed(Exception):
+class TokenRefreshError(Exception):
     """User has revoked access or refresh_token is invalid. Reconnect needed."""
 
 
@@ -63,7 +64,7 @@ async def get_valid_access_token(
     return the new access token.
 
     Raises:
-        TokenRefreshFailed: refresh_token is no longer valid. The
+        TokenRefreshError: refresh_token is no longer valid. The
             calling code should mark the connection as failed and
             prompt the user to reconnect.
     """
@@ -73,7 +74,7 @@ async def get_valid_access_token(
     if not connection.refresh_token_encrypted:
         # No refresh token stored — happens if the original OAuth flow
         # didn't include access_type=offline. Can't refresh, must reconnect.
-        raise TokenRefreshFailed(
+        raise TokenRefreshError(
             "No refresh_token stored. User must reconnect their account."
         )
 
@@ -87,19 +88,15 @@ async def get_valid_access_token(
         new_tokens = await youtube_oauth.refresh_access_token(refresh_token)
     except RuntimeError as exc:
         # Google returned 400 → refresh_token revoked or invalid
-        raise TokenRefreshFailed(str(exc)) from exc
+        raise TokenRefreshError(str(exc)) from exc
 
     # Persist new tokens
     connection.access_token_encrypted = encrypt_token(new_tokens["access_token"])
-    connection.expires_at = youtube_oauth.compute_expires_at(
-        new_tokens["expires_in"]
-    )
+    connection.expires_at = youtube_oauth.compute_expires_at(new_tokens["expires_in"])
     # Google sometimes returns a new refresh_token, sometimes doesn't.
     # If it does, update; otherwise keep the existing one.
     if new_tokens.get("refresh_token"):
-        connection.refresh_token_encrypted = encrypt_token(
-            new_tokens["refresh_token"]
-        )
+        connection.refresh_token_encrypted = encrypt_token(new_tokens["refresh_token"])
 
     await session.commit()
     logger.info(
@@ -114,6 +111,6 @@ def _needs_refresh(connection: SocialConnection) -> bool:
     """True if the stored access token is expired or close to expiring."""
     if not connection.expires_at:
         return True
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
     threshold = now_utc + timedelta(seconds=EXPIRY_BUFFER_SECONDS)
     return connection.expires_at <= threshold

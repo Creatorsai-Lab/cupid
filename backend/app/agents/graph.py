@@ -7,22 +7,24 @@ Current flow:
 The supervisor agent validates input before passing to the pipeline.
 The graph is stateless - all state lives in MemoryState and PostgreSQL.
 """
+
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any
 import uuid
+from datetime import UTC, datetime
+from typing import Any
 
-from langgraph.graph import StateGraph, END
+from langgraph.graph import END, StateGraph
 
+from app.agents.composer import composer_node
+from app.agents.personalization import personalization_node
+from app.agents.research import research_node
 from app.agents.state import MemoryState
 from app.agents.supervisor import supervisor_node
-from app.agents.research import research_node
-from app.agents.personalization import personalization_node
-from app.agents.composer import composer_node
 from app.core.logging_config import get_agent_logger
 
 logger = get_agent_logger("orchestrator")
+
 
 class AgentsOrchestrator:
     """
@@ -55,7 +57,7 @@ class AgentsOrchestrator:
 
         # Define flow with conditional routing
         workflow.set_entry_point("supervisor")
-        
+
         # Supervisor can either approve (continue) or reject (end)
         workflow.add_conditional_edges(
             "supervisor",
@@ -63,9 +65,9 @@ class AgentsOrchestrator:
             {
                 "approved": "personalization",
                 "rejected": END,
-            }
+            },
         )
-        
+
         workflow.add_edge("personalization", "research")
         workflow.add_edge("research", "composer")
         workflow.add_edge("composer", END)
@@ -100,10 +102,10 @@ class AgentsOrchestrator:
             Final MemoryState after all agents complete
         """
         run_id_final = run_id or str(uuid.uuid4())
-        
+
         logger.info("🎯 Orchestrator initializing pipeline", run_id_final)
         logger.info(f"  Graph nodes: {list(self.graph.nodes.keys())}", run_id_final)
-        
+
         # Map tone to user_voice for composer
         tone_to_voice = {
             "Hook First": "hook_first",
@@ -111,12 +113,12 @@ class AgentsOrchestrator:
             "Story Led": "story_led",
         }
         user_voice = tone_to_voice.get(tone, "hook_first")
-        
+
         # Initialize state
         initial_state: dict[str, Any] = {
             "run_id": run_id_final,
             "user_id": user_id,
-            "created_at": datetime.now(timezone.utc),
+            "created_at": datetime.now(UTC),
             "user_prompt": user_prompt,
             "content_type": content_type,
             "target_platform": target_platform,
@@ -131,19 +133,22 @@ class AgentsOrchestrator:
         }
 
         logger.info("🚀 Executing LangGraph pipeline", run_id_final)
-        
+
         # Execute graph
         final_state = await self.compiled_graph.ainvoke(initial_state)
-        
+
         # Check if supervisor rejected or if there's an error
         if final_state.get("error"):
             final_state["status"] = "failed"
-            logger.warning(f"❌ Pipeline rejected: {final_state.get('error', '')[:100]}", run_id_final)
+            logger.warning(
+                f"❌ Pipeline rejected: {final_state.get('error', '')[:100]}",
+                run_id_final,
+            )
         else:
             # Mark as completed only if no errors
             final_state["status"] = "completed"
             logger.info("✅ LangGraph pipeline complete", run_id_final)
-        
+
         return final_state  # type: ignore
 
     async def run_streaming(
@@ -159,20 +164,20 @@ class AgentsOrchestrator:
     ):
         """
         Execute the agent pipeline with streaming state updates.
-        
+
         Yields intermediate state after each agent completes, allowing
         real-time progress updates to the frontend.
-        
+
         Args:
             Same as run()
-            
+
         Yields:
             MemoryState after each agent node completes
         """
         run_id_final = run_id or str(uuid.uuid4())
-        
+
         logger.info("🎯 Orchestrator initializing streaming pipeline", run_id_final)
-        
+
         # Map tone to user_voice for composer
         tone_to_voice = {
             "Hook First": "hook_first",
@@ -180,12 +185,12 @@ class AgentsOrchestrator:
             "Story Led": "story_led",
         }
         user_voice = tone_to_voice.get(tone, "hook_first")
-        
+
         # Initialize state
         initial_state: dict[str, Any] = {
             "run_id": run_id_final,
             "user_id": user_id,
-            "created_at": datetime.now(timezone.utc),
+            "created_at": datetime.now(UTC),
             "user_prompt": user_prompt,
             "content_type": content_type,
             "target_platform": target_platform,
@@ -200,7 +205,7 @@ class AgentsOrchestrator:
         }
 
         logger.info("🚀 Executing streaming LangGraph pipeline", run_id_final)
-        
+
         # Stream state updates from graph
         async for state_update in self.compiled_graph.astream(initial_state):
             # LangGraph astream yields dict with node name as key

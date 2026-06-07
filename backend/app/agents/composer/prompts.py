@@ -8,12 +8,12 @@ prompts that shape reasoning from the start.
 
 
 """
+
 from __future__ import annotations
 
 from typing import Any
 
 from app.agents.composer.platform_rules import PlatformRule
-
 
 _SHARED_CONSTRAINTS = """\
 HARD REQUIREMENTS:
@@ -102,9 +102,9 @@ SCENE STARTERS TO CONSIDER:
 
 
 ANGLE_PROMPTS: dict[str, str] = {
-    "hook_first":  HOOK_FIRST_PROMPT,
+    "hook_first": HOOK_FIRST_PROMPT,
     "data_driven": DATA_DRIVEN_PROMPT,
-    "story_led":   STORY_LED_PROMPT,
+    "story_led": STORY_LED_PROMPT,
 }
 
 
@@ -140,14 +140,14 @@ def build_user_message(
 def _format_persona(p: dict[str, Any]) -> str:
     lines = []
     mapping = [
-        ("Name",        p.get("name")),
-        ("Niche",       p.get("content_niche")),
-        ("Goal",        p.get("content_goal")),
-        ("Intent",      p.get("content_intent")),
-        ("Audience",    p.get("target_audience")),
-        ("Age group",   p.get("target_age_group")),
-        ("Region",      p.get("target_country")),
-        ("USP",         p.get("usp")),
+        ("Name", p.get("name")),
+        ("Niche", p.get("content_niche")),
+        ("Goal", p.get("content_goal")),
+        ("Intent", p.get("content_intent")),
+        ("Audience", p.get("target_audience")),
+        ("Age group", p.get("target_age_group")),
+        ("Region", p.get("target_country")),
+        ("USP", p.get("usp")),
         ("Bio (voice anchor — mimic word choices here)", p.get("bio")),
     ]
     for label, value in mapping:
@@ -159,9 +159,9 @@ def _format_persona(p: dict[str, Any]) -> str:
 # Length band → target character guidance layered on top of platform rules.
 # The platform's target_chars is the anchor; these dials nudge shorter / longer.
 _LENGTH_DIAL: dict[str, tuple[float, float]] = {
-    "Short":  (0.55, 0.80),   # 55-80% of platform target
-    "Medium": (0.85, 1.15),   # near target
-    "Long":   (1.20, 1.60),   # 120-160% of target, still ≤ max
+    "Short": (0.55, 0.80),  # 55-80% of platform target
+    "Medium": (0.85, 1.15),  # near target
+    "Long": (1.20, 1.60),  # 120-160% of target, still ≤ max
 }
 
 
@@ -182,8 +182,7 @@ def _format_facts(facts: list[dict[str, Any]]) -> str:
     if not facts:
         return "- (no distilled facts available — rely on topic)"
     return "\n".join(
-        f"- [{f['type']}, source {f['source']}] {f['fact']}"
-        for f in facts
+        f"- [{f['type']}, source {f['source']}] {f['fact']}" for f in facts
     )
 
 
