@@ -5,9 +5,15 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { ComposerResults } from "@/components/ComposerResults";
 import { useAuthStore } from "@/lib/store";
 import {
+  agentsApi,
+  profileApi,
+  type ResearchData,
+  type PageContent,
+  type SearchResult,
+} from "@/lib/api";
+import {
   Send,
   Loader2,
-  ExternalLink,
   Compass,
   Mic,
   Upload,
@@ -16,15 +22,8 @@ import {
   UserRoundPen,
   Heart,
 } from "lucide-react";
-import {
-  agentsApi,
-  profileApi,
-  type ResearchData,
-  type PageContent,
-  type SearchResult,
-} from "@/lib/api";
 
-const CONTENT_TYPES = ["Text", "Image", "Article", "Video", "Ads", "Poll"] as const;
+const CONTENT_TYPES = ["Text", "Image", "Article", "Video", "Ads", "Quiz"] as const;
 const PLATFORMS = ["Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube", "Web"] as const;
 const LENGTHS = ["Short", "Medium", "Long", "Full Article"] as const;
 const TONES = [

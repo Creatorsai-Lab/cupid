@@ -64,21 +64,22 @@ _TONE_TO_VOICE: dict[str, str] = {
 
 class GenerateRequest(BaseModel):
     prompt: str
-    content_type: Literal["Text", "Image", "Article", "Video", "Ads", "Poll"] = "Text"
+    content_type: Literal["Text", "Image", "Article", "Video", "Ads", "Quiz"] = "Text"
     platform: Literal[
         "Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube", "Web"
-    ] = "Web"
+    ] = "Twitter"
     length: Literal["Short", "Medium", "Long", "Full Article"] = "Medium"
     tone: Literal[
+        "Casual",
         "Formal",
         "Informative",
-        "Casual",
         "GenZ",
         "Factual",
         "Hook First",
         "Data Driven",
         "Story Led",
-    ] = "Casual"
+        "Lifestyle",
+    ] = "Formal"
 
 
 class GenerateResponse(BaseModel):

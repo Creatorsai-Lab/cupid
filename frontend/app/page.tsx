@@ -9,10 +9,11 @@ import {
   Sparkles,
   Brain,
   PenTool,
-  UserCheck,
+  ChessQueen,
   Flame,
   Fingerprint,
   Layers,
+  UserStar,
   Lightbulb,
   ChevronDown,
   CircleDollarSign
@@ -150,13 +151,13 @@ const AGENTS: Agent[] = [
   {
     label: "Influencer Agent",
     builds: "Tunes tone & persona to your audience.",
-    icon: UserCheck,
+    icon: ChessQueen,
     tint: "#af6d58",
   },
   {
     label: "Personalization Agent",
     builds: "Adhere your style and tone",
-    icon: Layers,
+    icon: UserStar,
     tint: "#3160c4",
   },
   {

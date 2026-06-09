@@ -1,6 +1,4 @@
-"""
-Connections schemas — Pydantic models for the connections API responses.
-"""
+"""Connections schemas: Pydantic models for the connections API responses."""
 
 from __future__ import annotations
 
@@ -12,7 +10,6 @@ from pydantic import BaseModel, Field
 
 class ConnectionResponse(BaseModel):
     """Public-facing representation of a SocialConnection.
-
     NEVER includes encrypted tokens — those stay server-side.
     """
 

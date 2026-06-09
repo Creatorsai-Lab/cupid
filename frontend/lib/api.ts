@@ -148,15 +148,7 @@ interface GenerateRequest {
   content_type?: "Text" | "Image" | "Article" | "Video" | "Ads";
   platform?: "Twitter" | "LinkedIn" | "Instagram" | "Facebook" | "YouTube" | "Web";
   length?: "Short" | "Medium" | "Long" | "Full Article";
-  tone?:
-    | "Formal"
-    | "Informative"
-    | "Casual"
-    | "GenZ"
-    | "Factual"
-    | "Hook First"
-    | "Data Driven"
-    | "Story Led";
+  tone?: "Formal"| "Informative" | "Casual"  | "GenZ" | "Factual" | "Hook First" | "Data Driven" | "Story Led" | "Lifestyle";
 }
 
 interface GenerateResponse {

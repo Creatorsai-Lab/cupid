@@ -1,6 +1,5 @@
 """
 Cupid Agent State - Shared state object for the LangGraph pipeline.
-
 All agents read from and write to this typed state dict.
 No agent holds internal state between runs.
 """
@@ -20,7 +19,6 @@ class PersonalizationInfo(TypedDict, total=False):
     content_niche: str | None
     content_goal: str | None
     content_intent: str | None
-
     target_age_group: str | None
     target_country: str | None
     target_audience: str | None
@@ -59,39 +57,16 @@ class ResearchData(TypedDict, total=False):
     research_summary: str
 
 
-# ── Composer types ──────────────────────────────────────────────
-
-
-class QualityBreakdown(TypedDict):
-    """Multi-axis quality score for a variant."""
-
-    composite: float
-    length_fit: float
-    grounding: float
-    persona_match: float
-    hook_strength: float
-    passes: bool
+# Memory fields for composer agent
 
 
 class ComposerVariant(TypedDict):
-    """One generated post variant, grounded in a single source."""
+    """One generated post draft (out of 3) based on the full research context."""
 
-    angle: Literal["hook_first", "data_driven", "story_led"]  # user-selected voice
-    source_rank: int  # 1 = top source, 2 = second, 3 = third
-    source_domain: str | None
+    draft_number: int
     platform: str
     content: str
-    hashtags: list[str]
     char_count: int
-    quality: QualityBreakdown
-
-
-class ComposerDistilledFact(TypedDict):
-    """One atomic fact extracted from source material."""
-
-    fact: str
-    source: int
-    type: Literal["stat", "quote", "entity", "claim", "relationship"]
 
 
 class ComposerSource(TypedDict):
@@ -104,13 +79,10 @@ class ComposerSource(TypedDict):
 
 
 class MemoryState(TypedDict, total=False):
-    """
-    Shared state for the Cupid agent pipeline.
-
+    """Shared state for the Cupid agent pipeline.
     This is the single source of truth that flows through all agents.
     Each agent reads what it needs and writes its output back to this state.
-
-    Flow:
+        Flow:
         User Input → Orchestrator
             ↓
         Personalization Agent (optional, enriches personalization)
@@ -126,33 +98,29 @@ class MemoryState(TypedDict, total=False):
     created_at: datetime
     # User input
     user_prompt: str
-    content_type: Literal["Text", "Image", "Article", "Video", "Ads", "Poll"]
+    content_type: Literal["Text", "Image", "Article", "Video", "Ads", "Quiz"]
     target_platform: Literal[
         "Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube", "Web"
     ]
     content_length: Literal["Short", "Medium", "Long", "Full Article"]
     tone: Literal[
+        "Casual",
         "Formal",
         "Informative",
-        "Casual",
         "GenZ",
         "Factual",
         "Hook First",
         "Data Driven",
         "Story Led",
+        "Lifestyle",
     ]
-    user_voice: Literal[
-        "hook_first", "data_driven", "story_led"
-    ]  # derived from tone in router
 
     # User profile context (from database)
     personalization: PersonalizationInfo
-
     # Agent outputs
     personalization_queries: list[str]
     research_data: ResearchData
     composer_output: list[ComposerVariant]
-    composer_evidence: list[ComposerDistilledFact]
     composer_sources: list[ComposerSource]
     # Execution tracking
     current_agent: str

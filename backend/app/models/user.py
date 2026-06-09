@@ -1,8 +1,5 @@
-"""
-User database model.
-This class maps to the 'users' table in PostgreSQL.
-Each attribute becomes a column.
-"""
+"""User database model. This class maps to the 'users' table in PostgreSQL.
+Each attribute becomes a column."""
 
 import uuid
 from datetime import UTC, datetime
@@ -19,11 +16,8 @@ if TYPE_CHECKING:
 
 class Base(DeclarativeBase):
     """
-    Base class for all ORM models.
-
+    Base class for all ORM models. Alembic uses this Base.
     Every model in Cupid should inherit from this Base.
-    Alembic uses this Base to detect what tables/columns exist
-    and generate migrations automatically.
     """
 
     pass
@@ -51,17 +45,15 @@ class User(Base):
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC),
     )
-
     social_connections: Mapped[list["SocialConnection"]] = relationship(
         back_populates="user",
-        cascade="all, delete-orphan",  # if a user account is deleted, all their social connections (and through them, snapshots and top_content) cascade-delete. No orphan rows, no manual cleanup.
+        cascade="all, delete-orphan",  # if user account is deleted, eventually all social connections too
     )
     creation_history: Mapped[list["CreationHistory"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
     )
 
-    # __repr__ is a special method that defines what gets printed when you
-    # print a User object. It's extremely useful for debugging.
+    # __repr__ for debug print User object.
     def __repr__(self) -> str:
         return f"<User {self.email}>"

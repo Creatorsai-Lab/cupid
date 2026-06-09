@@ -1,17 +1,7 @@
 """
-Composer Agent — LangGraph subgraph that generates 3 platform-ready post variants.
+Composer Agent — Generates 3 highly personalized content drafts in parallel.
 
-Pipeline:
-    1. SOURCE RANK    — BM25 + persona, pick top 3 of N fetched pages
-    2. PARALLEL GEN   — 3 LLM calls (hook-first / data-driven / story-led),
-                        each grounded directly on its ranked source text
-    3. QUALITY SCORE  — deterministic multi-axis scoring + hashtag extraction
-    4. EMIT           — return 3 scored variants to state
-
-Provider chain (reuses personalization pattern):
-    Groq (Llama 3.3 70B)  →  Hugging Face  →  bail out
-    No local fallback here — if all LLMs fail we emit an error, because
-    deterministic composition without an LLM would be a different product.
+Utilizes a prioritized provider chain: Groq (Llama 3.3 70B) -> Hugging Face.
 """
 
 from __future__ import annotations
@@ -19,40 +9,27 @@ from __future__ import annotations
 import asyncio
 import re
 import time
-from collections.abc import Callable
-from typing import Any, TypeVar, cast
+from typing import Any
 
 import httpx
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 
-from app.agents.composer.composer_utils import rank_sources, score_variant
-from app.agents.composer.platform_rules import rule_for
-from app.agents.composer.prompts import ANGLE_PROMPTS, build_user_message
+from app.agents.composer.compose import (
+    build_composer_system_prompt,
+    build_composer_user_prompt,
+)
 from app.agents.state import MemoryState
 from app.config import settings
 from app.core.logging_config import get_agent_logger
 
-try:
-    from langsmith import traceable as _traceable
-
-    traceable = cast(Any, _traceable)
-except ImportError:
-    F = TypeVar("F", bound=Callable[..., Any])
-
-    def traceable(*args: Any, **kwargs: Any):  # type: ignore[misc]
-        def decorator(fn: F) -> F:
-            return fn
-
-        return decorator
-
-
 logger = get_agent_logger("composer")
 
+# ─── Provider Factory ──────────────────────────────────────────
 
-# LLM providers
+
 def _get_groq_llm() -> Any | None:
-    """LLM Model: Groq: Llama 3.3 70B"""
+    """Primary Frontier Provider: Groq Llama 3.3 70B"""
     key = getattr(settings, "groq_api_key", "") or ""
     if not key:
         return None
@@ -62,20 +39,17 @@ def _get_groq_llm() -> Any | None:
         return ChatGroq(
             model="llama-3.3-70b-versatile",
             groq_api_key=key,
-            temperature=0.7,
-            max_tokens=1024,
-            timeout=20,
+            temperature=0.7,  # Balanced temperature for stylistic variance across drafts
+            max_tokens=2500,  # Highly expanded token runway for long articles
+            timeout=25,
         )
-    except ImportError:
-        logger.warning("[composer] langchain-groq not installed")
-        return None
     except Exception as exc:
-        logger.warning(f"[composer] Groq init failed: {str(exc)[:200]}")
+        logger.warning(f"[composer] Groq initialization failed: {exc}")
         return None
 
 
 class _HFLLM:
-    """Minimal HF wrapper matching the `.ainvoke([messages])` interface."""
+    """Fallback Provider Interface for HuggingFace Inference Routers"""
 
     def __init__(self, api_key: str, model: str = "meta-llama/Llama-3.2-3B-Instruct"):
         self.api_key = api_key
@@ -85,27 +59,25 @@ class _HFLLM:
         system = next((m.content for m in messages if isinstance(m, SystemMessage)), "")
         user = next((m.content for m in messages if isinstance(m, HumanMessage)), "")
         prompt = f"<|system|>\n{system}\n<|user|>\n{user}\n<|assistant|>\n"
+
+        headers = {"Authorization": f"Bearer {self.api_key}"}
         payload = {
             "inputs": prompt,
             "parameters": {
-                "max_new_tokens": 800,
+                "max_new_tokens": 1500,
                 "temperature": 0.7,
                 "return_full_text": False,
             },
         }
-        headers = {"Authorization": f"Bearer {self.api_key}"}
+
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(self.url, json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
 
-        text = ""
-        if isinstance(data, list) and data:
-            text = data[0].get("generated_text", "")
-        elif isinstance(data, dict):
-            if "error" in data:
-                raise RuntimeError(f"HF API error: {data['error']}")
-            text = data.get("generated_text", "")
+        text = (
+            data[0].get("generated_text", "") if isinstance(data, list) and data else ""
+        )
 
         class _Response:
             def __init__(self, content: str):
@@ -114,56 +86,25 @@ class _HFLLM:
         return _Response(text)
 
 
-def _get_hf_llm() -> Any | None:
-    key = getattr(settings, "huggingface_api_key", "") or ""
-    return _HFLLM(key) if key else None
-
-
 async def _pick_llm() -> tuple[Any, str]:
-    """Return (llm, name) of the first healthy provider."""
-    groq = _get_groq_llm()
-    if groq is not None:
+    if groq := _get_groq_llm():
         return groq, "groq-llama-3.3-70b"
-    hf = _get_hf_llm()
-    if hf is not None:
-        return hf, "huggingface-llama-3.2"
-    raise RuntimeError("No LLM providers configured for Composer")
+    hf_key = getattr(settings, "huggingface_api_key", "")
+    if hf_key:
+        return _HFLLM(hf_key), "huggingface-llama-3.2"
+    raise RuntimeError("No operational LLM providers configured for Composer Agent")
 
 
-# ─── Variant generation ─────────────────────────────────────────
-
-
-async def _generate_variant(
-    llm: Any,
-    angle: str,
-    user_message: str,
-) -> str | None:
-    """Run one angle prompt and return the post text, or None on failure."""
-    system_prompt = ANGLE_PROMPTS[angle]
-    try:
-        response = await llm.ainvoke(
-            [
-                SystemMessage(content=system_prompt),
-                HumanMessage(content=user_message),
-            ]
-        )
-        text = _clean_output(response.content)
-        return text if text else None
-    except Exception as exc:
-        logger.warning(f"[composer] angle={angle} failed: {str(exc)[:120]}")
-        return None
+# ─── Cleaning Logic ────────────────────────────────────────────
 
 
 def _clean_output(raw: str) -> str:
-    """Strip common LLM junk: code fences, preambles, stray quotes."""
+    """Strips out conversational markdown scaffolding and formatting blocks."""
     text = raw.strip()
-
-    # Remove code fences
     if text.startswith("```"):
         parts = text.split("```")
         if len(parts) >= 2:
             text = parts[1].lstrip()
-            # Drop language tag line if present
             if "\n" in text and text.split("\n", 1)[0].lower() in (
                 "markdown",
                 "text",
@@ -171,99 +112,84 @@ def _clean_output(raw: str) -> str:
             ):
                 text = text.split("\n", 1)[1]
 
-    # Strip leading "Post:", "Output:", etc.
     text = re.sub(
         r"^(here['']?s the post[:\-]?|post[:\-]|output[:\-]|response[:\-])\s*",
         "",
         text,
         flags=re.IGNORECASE,
-    ).strip()
+    )
 
-    # Remove wrapping quotes
     if len(text) > 2 and text[0] in ('"', "'") and text[-1] == text[0]:
         text = text[1:-1].strip()
-
-    return text
-
-
-def _extract_hashtags(content: str) -> tuple[str, list[str]]:
-    """Split hashtags out of content body so we can render them separately."""
-    hashtags = re.findall(r"#\w+", content)
-    body = re.sub(r"\s*#\w+", "", content).strip()
-    return body, hashtags
+    return text.strip()
 
 
-# ─── LangGraph node ─────────────────────────────────────────────
+# ─── Concurrent Worker Task ────────────────────────────────────
 
 
-@traceable(name="composer_agent")
+async def _generate_draft_task(
+    llm: Any, system_prompt: str, user_prompt: str, draft_number: int
+) -> dict[str, Any] | None:
+    """Runs a single targeted draft instantiation with variance adjustment parameters."""
+    # Instruct the model dynamically on how to branch its narrative structure
+    variance_prompts = {
+        1: "\n\nStyle Guide: Focus on a strong linear structural narrative with immediate value delivery.",
+        2: "\n\nStyle Guide: Focus on an inductive format—present strong concrete observations first, then abstract rules.",
+        3: "\n\nStyle Guide: Focus on a conversational, highly engaging rhythmic cadence with varied paragraph breaks.",
+    }
+
+    modified_system = system_prompt + variance_prompts.get(draft_number, "")
+
+    try:
+        response = await llm.ainvoke(
+            [
+                SystemMessage(content=modified_system),
+                HumanMessage(content=user_prompt),
+            ]
+        )
+        content = _clean_output(response.content)
+
+        if not content:
+            return None
+
+        return {
+            "draft_number": draft_number,
+            "platform": "Multi-Variant Draft",
+            "content": content,
+            "char_count": len(content),
+        }
+    except Exception as exc:
+        logger.warning(
+            f"[composer] Parallel task variant #{draft_number} execution failed: {exc}"
+        )
+        return None
+
+
+# ─── LangGraph Runtime Core Node ───────────────────────────────
+
+
 async def composer_node(state: MemoryState) -> dict[str, Any]:
-    """
-    Generate 3 posts, one per top-ranked source, using the user's selected voice.
-
-    Reads:  user_prompt, user_voice, personalization, research_data, target_platform
-    Writes: composer_output (list[3 variants]), composer_evidence, composer_sources
-    """
     run_id = state.get("run_id", "unknown")
     prompt = (state.get("user_prompt") or "").strip()
     persona = state.get("personalization") or {}
     research = state.get("research_data") or {}
-    platform = state.get("target_platform") or "Twitter"
+    platform = state.get("target_platform") or "Web"
     tone = state.get("tone") or "Casual"
     content_length = state.get("content_length") or "Medium"
-    user_voice = state.get("user_voice")
     completed = state.get("agents_completed", [])
 
     pages = research.get("fetched_pages", [])
-    rule = rule_for(platform)
 
-    # Log agent start
-    logger.agent_start(
-        run_id,
-        platform=rule.name,
-        tone=tone,
-        voice=user_voice,
-        length=content_length,
-        pages_available=len(pages),
-        niche=persona.get("content_niche", "-"),
-        audience=persona.get("target_audience", "-"),
-    )
-
+    # Gracefully capture complete execution if research stack completely bypassed data
     if not pages:
-        logger.warning("No research pages available - cannot compose", run_id)
-        logger.agent_complete(run_id, status="no_data", posts_generated=0)
-        return {
-            "composer_output": [],
-            "current_agent": "composer",
-            "agents_completed": [*completed, "composer"],
-            "error": "No research data available for composition.",
-        }
-
-    # Step 1: Rank sources
-    logger.log_step(
-        run_id, "Ranking sources", f"BM25 + persona boosting on {len(pages)} pages"
-    )
-    start_time = time.time()
-    top_sources = rank_sources(pages, prompt, persona, top_k=3)
-    rank_latency_ms = int((time.time() - start_time) * 1000)
-
-    logger.log_metric(run_id, "source_ranking_latency_ms", rank_latency_ms)
-    logger.info("─" * 10, run_id)
-    logger.info("⍟ TOP SOURCES SELECTED:", run_id)
-    for i, s in enumerate(top_sources, 1):
-        logger.info(
-            f"  [{i}] {s.get('domain', '-'):30s} | score={s.get('rank_score', 0):.3f} | {s.get('title', '-')[:50]}",
-            run_id,
+        logger.warning(
+            "Composer agent invoked without primary research data pages", run_id
         )
-    logger.info("─" * 20, run_id)
 
-    # Step 2: Get LLM
-    logger.log_step(run_id, "Initializing LLM provider")
     try:
         llm, llm_name = await _pick_llm()
-        logger.log_metric(run_id, "llm_provider", llm_name)
     except RuntimeError as exc:
-        logger.agent_error(run_id, exc)
+        logger.error(f"Composer system failure: {exc}", run_id)
         return {
             "composer_output": [],
             "current_agent": "composer",
@@ -271,139 +197,51 @@ async def composer_node(state: MemoryState) -> dict[str, Any]:
             "error": str(exc),
         }
 
-    # Step 3: Build per-source user messages — each variant is grounded directly
-    # on its own ranked source text (no separate evidence-distillation LLM call).
-    logger.log_step(
-        run_id,
-        "Building generation prompts",
-        f"Creating {len(top_sources)} source-specific prompts",
+    # Construct the advanced system and context matrices
+    system_prompt = build_composer_system_prompt(
+        platform, tone, content_length, persona
     )
-    source_entries: list[tuple[int, dict, list[dict], str]] = []
-    for i, source in enumerate(top_sources):
-        snippet = (source.get("text_content") or "").strip()[:1200]
-        source_facts = (
-            [{"type": "source", "source": i, "fact": snippet}] if snippet else []
-        )
-        user_msg = build_user_message(
-            topic=prompt,
-            facts=source_facts,
-            personalization=persona,
-            rule=rule,
-            tone=tone,
-            content_length=content_length,
-            raw_prompt=prompt,
-        )
-        source_entries.append((i, source, source_facts, user_msg))
+    user_prompt = build_composer_user_prompt(prompt, pages)
 
-    # Step 5: Generate variants in parallel
-    logger.log_step(
-        run_id,
-        "Generating posts",
-        f"{len(source_entries)} variants in parallel (voice={user_voice})",
-    )
+    # Concurrently execute all three drafts over your provider engine pipelines
     start_time = time.time()
-    gen_tasks = [
-        _generate_variant(llm, user_voice, msg) for _, _, _, msg in source_entries
+    tasks = [
+        _generate_draft_task(llm, system_prompt, user_prompt, i) for i in range(1, 4)
     ]
-    raw_variants = await asyncio.gather(*gen_tasks)
-    generation_latency_ms = int((time.time() - start_time) * 1000)
+    executed_drafts = await asyncio.gather(*tasks)
+    latency_ms = int((time.time() - start_time) * 1000)
 
-    logger.log_metric(run_id, "generation_latency_ms", generation_latency_ms)
+    # Filter out any failed task slices cleanly
+    final_outputs = [draft for draft in executed_drafts if draft is not None]
 
-    # Step 6: Score and package
-    logger.log_step(run_id, "Scoring variants", "Multi-axis quality evaluation")
-    variants_out: list[dict[str, Any]] = []
-
-    for (i, source, source_facts, _), raw in zip(source_entries, raw_variants):
-        if not raw:
-            logger.warning(f"Post {i + 1} generation returned empty", run_id)
-            continue
-
-        body, hashtags = _extract_hashtags(raw)
-        hashtags = hashtags[: rule.max_hashtags] if rule.use_hashtags else []
-        final_content = body + ((" " + " ".join(hashtags)) if hashtags else "")
-
-        score = score_variant(final_content, source_facts, persona, rule)
-
-        logger.info(
-            f"  Post {i + 1} | {source.get('domain', '-'):25s} | score={score.composite:.2f} | "
-            f"len={len(final_content):3d} | {'(✓)' if score.passes_threshold else '(✗)'}",
-            run_id,
-        )
-
-        variants_out.append(
-            {
-                "angle": user_voice,
-                "source_rank": i + 1,
-                "source_domain": source.get("domain"),
-                "platform": rule.name,
-                "content": final_content,
-                "hashtags": hashtags,
-                "char_count": len(final_content),
-                "quality": {
-                    "composite": score.composite,
-                    "length_fit": score.length_fit,
-                    "grounding": score.grounding,
-                    "persona_match": score.persona_match,
-                    "hook_strength": score.hook_strength,
-                    "passes": score.passes_threshold,
-                },
-            }
-        )
-
-    # Log final results
-    avg_score = sum(v["quality"]["composite"] for v in variants_out) / max(
-        len(variants_out), 1
-    )
-    passing_count = sum(1 for v in variants_out if v["quality"]["passes"])
-
-    logger.info("─" * 10, run_id)
-    logger.info("☲ QUALITY SUMMARY:", run_id)
-    logger.info(f"• Posts generated: {len(variants_out)}/{len(top_sources)}", run_id)
-    logger.info(f"• Average score: {avg_score:.2f}", run_id)
-    logger.info(f"• Passing threshold: {passing_count}/{len(variants_out)}", run_id)
-    logger.info("─" * 10, run_id)
-
-    # Log each variant preview
-    logger.info("🗏 GENERATED POSTS:", run_id)
-    for i, variant in enumerate(variants_out, 1):
-        content_preview = (
-            variant["content"][:150] + "..."
-            if len(variant["content"]) > 150
-            else variant["content"]
-        )
-        logger.info(f"  [{i}] {content_preview}", run_id)
-    logger.info("─" * 10, run_id)
-
-    logger.agent_complete(
+    logger.info(
+        f"☲ COMPOSER COMPLETE: Produced {len(final_outputs)} drafts via {llm_name} in {latency_ms}ms",
         run_id,
-        posts_generated=f"{len(variants_out)}/{len(top_sources)}",
-        avg_quality_score=f"{avg_score:.2f}",
-        passing_threshold=f"{passing_count}/{len(variants_out)}",
-        total_latency_ms=f"{rank_latency_ms + generation_latency_ms}ms",
     )
+
+    # Extract clean references for metadata state mapping
+    source_references = [
+        {
+            "title": p.get("title", "Untitled Source"),
+            "url": p.get("url"),
+            "domain": p.get("domain"),
+            "rank_score": p.get("rank_score", 1.0),
+        }
+        for p in pages[:4]
+    ]
 
     return {
-        "composer_output": variants_out,
-        "composer_sources": [
-            {
-                "title": s.get("title"),
-                "url": s.get("url"),
-                "domain": s.get("domain"),
-                "rank_score": s.get("rank_score"),
-            }
-            for s in top_sources
-        ],
+        "composer_output": final_outputs,
+        "composer_sources": source_references,
         "current_agent": "composer",
         "agents_completed": [*completed, "composer"],
+        "error": None
+        if final_outputs
+        else "All parallel composition streams failed to generate text.",
     }
 
 
-# ─── Subgraph builder ───────────────────────────────────────────
-
-
 def build_composer_graph() -> StateGraph:
-    """Standalone subgraph. Call .compile() before mounting on the swarm."""
     builder = StateGraph(MemoryState)
     builder.add_node("run", composer_node)
     builder.set_entry_point("run")

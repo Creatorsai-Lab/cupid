@@ -38,8 +38,6 @@ class UserResponse(BaseModel):
     is_active: bool
     created_at: datetime
     model_config = {"from_attributes": True}
-    #  from_attributes=True lets Pydantic read from SQLAlchemy model
-    #  attributes directly (user.name instead of user["name"])
 
 
 class AuthResponse(BaseModel):

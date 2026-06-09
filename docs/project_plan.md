@@ -45,7 +45,7 @@ Cupid is team of Mixture of Experts autonomous ai agents. It is a **personalized
 - Without an orchestrator deciding when to stop, swarm agents need explicit termination conditions , max iterations, quality thresholds, or timeout-based convergence. Design these conditions carefully; too-aggressive termination produces incomplete results, while too-conservative termination burns tokens and compute.
 - At the implementation level, orchestration will involves four components: **a registry** of available agents (4 as of now) and their capabilities, a **router** that maps incoming tasks to the best agent or sequence of agents, a **state store** for shared context and conversation history, user persona, and a **supervisor system or algorith or service** that monitors timeouts, retries, and escalations.
 - The hardest problem in multi-agent orchestration isn't routing , it's **state**. When a customer says "I need help with my recent order" to a triage agent, and the triage agent routes to a billing specialist, what context transfers? The full conversation history? Just the last message? A structured summary? Too little context and the worker agent asks the customer to repeat everything. Too much context and you waste tokens, increase latency, and risk the worker agent getting distracted by irrelevant information.<br>Production systems typically implement one of **_three_** state management strategies: Full context forwarding, _Structured context objects_, and Summarized context
-- **Lifecycle management** (starting, monitoring, retrying, and terminating agents). 
+- **Lifecycle management** (starting, monitoring, retrying, and terminating agents).
 - **Agent-first, not feature-first.** Every capability is owned by a named, scoped agent with a single responsibility.
 - **State-driven pipelines.** Agents share a typed state object — they do not call each other directly. This enforces loose coupling.
 - **Algorithms** Analytics, scheduling, moderation, and notifications in V1 use deterministic, explainable algorithms. AI where it adds irreplaceable value; logic where it is sufficient.
@@ -252,7 +252,7 @@ Three layers, no LLM:
 | Vector Store | `ChromaDB` | Local, zero-config, per-user namespace support |
 | LLM Runtime | `Groq`, `HuggingFace` | 100% local, zero cost, supports llama3/mistral/gemma |
 | Modern tool: Caveman | `caveman` | for token reduction and optimization (for future version)|
-| Modern tool: LLM Knowledge Base | Andrej karpathy `LLM Knowledge Base` |  News and information monitoring: Compile daily feeds into structured summaries, extract entities and trends, and build a queryable record of what’s happened in a given domain over time. (for future version) https://www.mindstudio.ai/blog/karpathy-llm-knowledge-base-architecture-compiler-analogy| 
+| Modern tool: LLM Knowledge Base | Andrej karpathy `LLM Knowledge Base` |  News and information monitoring: Compile daily feeds into structured summaries, extract entities and trends, and build a queryable record of what’s happened in a given domain over time. (for future version) https://www.mindstudio.ai/blog/karpathy-llm-knowledge-base-architecture-compiler-analogy|
 
 
 ### AI & Agents
@@ -390,124 +390,12 @@ GET    /api/v1/notifications          → list unread notifications
 PATCH  /api/v1/notifications/{id}/read
 ```
 
-
-
----
-
-## 11. Development Roadmap — Agile Phases
-
-### Phase 1 — Foundation
-- [x] Repo init, Docker Compose with FastAPI + PostgreSQL + Redis + Ollama
-- [x] Alembic migrations for all core tables
-- [x] JWT auth with register/login endpoints
-- [x] ChromaDB client with per-user namespace utility
-- [x] Next.js project init with shadcn/ui + Tailwind configured
-- [x] Login + Register UI pages
-- [x] `GET /health` endpoint, CI pipeline (GitHub Actions, free)
-
-**Milestone: System runs locally end-to-end. Auth works. DB migrates clean.**
-
-### Phase 1 — Persona Agent
-- [ ] Persona card display component in dashboard
-- [ ]Trend Intelligence Agent
-- [ ] RSS feed fetcher (Celery beat task, every 6h)
-- [ ] Reddit PRAW integration (domain-filtered hot posts)
-- [ ] HackerNews Algolia API integration
-- [ ] TF-IDF velocity scoring pipeline
-- [ ] AI supervision classification pass (Ollama)
-- [ ] Trends page UI with velocity scores + source labels
-- [ ] Trend cache database layer
-- [ ] Onboarding form UI (bio, skills, interests, geography, audience)
-- [ ] Writing sample upload (paste or file)
-- [ ] Persona Agent node: embedding pipeline + ChromaDB ingestion
-- [ ] Persona card synthesis using Ollama
-- [ ] `POST /persona/setup`, `GET /persona/card` endpoints
-
-**Milestone: Trends page shows live, scored, persona-relevant trending topics.**
-
-### Phase 2 — Research + Composer Agents
-- [ ] LangGraph StateGraph assembly (all 4 agent nodes)
-- [ ] Research Agent: DuckDuckGo search + ReAct loop + ideation synthesis
-- [ ] Composer Agent: platform-specific formatting + persona fidelity scoring
-- [ ] Recommendations page UI (ideation list with angle cards)
-- [ ] Post editor UI with platform toggle, character count, fidelity score indicator
-- [ ] `POST /agents/generate` + polling endpoint
-- [ ] Draft saving + post status management
-
-**Milestone: User can trigger the full agent pipeline and receive a platform-specific draft.**
-
-### Phase 3 — Non-Agent Intelligence Layer (Week 10–11)
-- [ ] Brand Safety filter (blocklist + Presidio + VADER) — pre-publish gate
-- [ ] Scheduling algorithm + time-slot scoring
-- [ ] Schedule page UI (calendar view, drag-to-schedule)
-- [ ] LinkedIn OAuth + posting API integration
-- [ ] Analytics aggregation worker (Celery beat)
-- [ ] Analytics page UI (Recharts: engagement rate, top posts, growth curve)
-- [ ] SSE notification system + in-app notification bell
-
-**Milestone: Full V1 feature set complete. Posts can be scheduled and published.**
-
-### Phase 4 — Hardening & Deployment (Week 12)
-- [ ] Rate limiting (slowapi, per-user per-endpoint)
-- [ ] Error boundary audit across all agent nodes
-- [ ] pytest coverage > 70% for all service + agent modules
-- [ ] Docker Compose production config (separate from dev)
-- [ ] Deploy: Railway (backend) + Vercel (frontend) + Supabase (prod DB)
-- [ ] README with setup instructions + demo GIF
-
-**Milestone: Cupid is live at a public URL.**
-
----
-
-## 12. Deployment Strategy
-
-### Local Development
-```bash
-docker-compose up          # PostgreSQL + Redis + ChromaDB + Ollama
-uvicorn app.main:app --reload --port 8000
-celery -A app.workers.celery_app worker --loglevel=info
-celery -A app.workers.celery_app beat   # scheduled tasks
-```
-
-### Environment Variables (`.env`)
-```env
-DATABASE_URL=postgresql://cupid:password@localhost:5432/cupid
-REDIS_URL=redis://localhost:6379/0
-OLLAMA_BASE_URL=http://localhost:11434
-CHROMA_PERSIST_DIR=./chroma_data
-JWT_SECRET_KEY=your-256-bit-secret
-JWT_ALGORITHM=HS256
-REDDIT_CLIENT_ID=
-REDDIT_CLIENT_SECRET=
-REDDIT_USER_AGENT=cupid/1.0
-LINKEDIN_CLIENT_ID=
-LINKEDIN_CLIENT_SECRET=
-```
-
-### Production (Free Tier)
-```
-Backend     → Railway.app         (free $5 credit / month, always-on)
-Frontend    → Vercel               (free, auto-deploy on push)
-Database    → Supabase             (500MB PostgreSQL free)
-Redis       → Upstash              (10k commands/day free)
-LLM         → Ollama on Railway    (run in same container as backend)
-ChromaDB    → Filesystem on Railway (persisted volume)
-```
-
-### Branch Strategy
-```
-main          → main branch for all development
-prouction     → production ready branch
-```
-
----
-
 ### Learning Needed
 1. RAG (Retrieval-Augmented Generation) — Persona Engine Core
 > Key technique: Hybrid search (BM25 sparse + dense embedding) gives better retrieval than pure semantic search for persona data.
 2. ReAct Pattern (Reasoning + Acting) — Research Agent:
 Research Agent needs to reason about what to search, execute the search, observe the result, and decide whether to search again. This is the ReAct loop. LangGraph implements this natively. Study the original ReAct paper (Yao et al., 2022) — it's directly applicable.
-3. LLM Persona Mimicry Techniques: Few-shot prompting with user's own posts, Style embedding extraction, Persona prompt template synthesis. 
+3. LLM Persona Mimicry Techniques: Few-shot prompting with user's own posts, Style embedding extraction, Persona prompt template synthesis.
 4.  Multi-Agent Orchestration with LangGraph and System design for multi-tenant AI
 5. Feedback Loop & Continuous Persona: Score the post (engagement_rate / baseline)
 Tag it (high-performer / low-performer)

@@ -36,36 +36,37 @@ logger = get_agent_logger("personalization")
 def _build_system_prompt(niche: str, tone: str, region: str) -> str:
     year = datetime.now().year
     return f"""\
-You are an expert search query strategist for social media content research. Your job is to decompose a raw content topic into exactly 5 highly-targeted search queries for a downstream retrieval agent.
+You are an expert search query strategist for social media content research. Your job is to decompose a raw content topic into exactly 6-7 highly-targeted search queries for a downstream web search retrieval agent.
 
 ### THE CORE INTENT RULE (CRITICAL)
 Do NOT include tonal slang, adjectives, or meta-commentary (e.g., "comedy", "funny", "viral", "genz", "hilarious", "joke", "hooks") inside the search queries. Search engines fail when queried with emotional or stylistic modifiers.
 Instead, translate the creator's tone into the *type of high-signal information* required:
+- Start with understanding what is main piece of content user want to create with its prompt
 - If Tone is "Data Driven", "Factual", or "Formal": Focus queries on benchmarks, statistics, documentation, and industry standards.
 - If Tone is "GenZ", "Casual", "Hook First", or "Story Led": Focus queries on real-world case studies, dramatic failures, unexpected counter-intuitive findings, and tangible anecdotes.
 
 ### CREATOR PROFILE
 - Niche/Vocabulary: {niche or "General Content Creation"}
 - Target Tone: {tone or "Informative"}
-- Target Region: {region or "Global"}
+- Target Region: {region or "Global"} unless user mention specific location
 - Current Year: {year}
 
-### THE 5 RETRIEVAL PERSPECTIVES
-Decompose the input topic into 5 completely non-overlapping search vectors:
-1. CORE MECHANICS: Fundamental definitions, how it works under the hood, or technical baselines.
-2. CURRENT TRENDS: Fresh updates, {year} industry shifts, or modern changes in this space.
-3. SPECIFIC TOOLING/ENTITIES: Frameworks, platforms, standard libraries, or specific ecosystems involved.
-4. RISKS & PITFALLS: Common mistakes, structural limitations, vulnerabilities, or alternative criticisms.
-5. REAL-WORLD CASE STUDIES: Concrete applications, tangible metrics, historical examples, or success/failure stories.
+### THE DIFFERENT RETRIEVAL PERSPECTIVES
+Decompose the input topic  fewnon-overlapping search vectors and few supporting search vector. Understand the perspective of user input prompt, for example
+1. CORE MECHANICS: Fundamental required, how it works under the hood, or technical baselines.
+2. Main content piece user want to show to his audience
+3. CURRENT TRENDS: Fresh updates, Add the current year {year} if necessary, unless a specific time period is mentioned in the user input, look hot topics, or modern changes in this space.
+4. You can also focus on related sub micro topic under user input topic
+5. Create 3 more personalized perspective on user prompt
 
 ### QUERY RULES:
 - 4 to 9 words per query. Use concrete, high-signal nouns over descriptive adjectives.
 - Keep queries pure for search engine entry: No question marks, no quotes, no numbering.
-- Queries must be completely distinct from one another to maximize coverage.
+- Concentrate on creating queries to ensure the web retrieval team gets web content perfectly matched to user topic intent.
 
 ### OUTPUT FORMAT (STRICT):
 Return ONLY a valid JSON array containing exactly 5 strings. No markdown code blocks, no explanation text before or after.
-Example: ["query one","query two","query three","query four","query five"]"""
+Example: ["query one","query two","query three","query four","query five", "query six", "query seven"]"""
 
 
 # ─── Provider interface ──────────────────────────────────────────
@@ -230,7 +231,7 @@ async def _run_chain(system: str, user: str) -> tuple[list[str], str]:
 
 
 async def personalization_node(state: MemoryState) -> dict[str, Any]:
-    run_id = state.get("run_id", "unknown")
+    # run_id = state.get("run_id", "unknown")
     prompt = (state.get("user_prompt") or "").strip()
     persona = state.get("personalization") or {}
     completed = state.get("agents_completed", [])
@@ -247,14 +248,14 @@ async def personalization_node(state: MemoryState) -> dict[str, Any]:
     region = persona.get("target_country", "")
 
     system_msg = _build_system_prompt(niche, tone, region)
-    user_msg = f"TOPIC: {prompt}"
+    user_msg = f"USER INPUT PROMPT: {prompt}"
 
     time.time()
     queries, provider_used = await _run_chain(system_msg, user_msg)
 
-    logger.info("📋 MOE SEARCH GENERATION (%s):", provider_used, run_id)
-    for i, q in enumerate(queries, 1):
-        logger.info(f"  [{i}] → {q}", run_id)
+    # logger.info("📋 MOE SEARCH GENERATION (%s):", provider_used, run_id)
+    # for i, q in enumerate(queries, 1):
+    #     logger.info(f"  [{i}] → {q}", run_id)
 
     return {
         "personalization_queries": queries,
