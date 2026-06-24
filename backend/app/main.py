@@ -17,6 +17,7 @@ from app.routers.history_router import router as history_router
 from app.routers.insights_router import router as insights_router
 from app.routers.profile import router as profile_router
 from app.routers.trends import router as trends_router
+from app.subscriptions.router import router as subscriptions_router
 from app.trends.scheduler import start_scheduler as start_trends_scheduler
 from app.trends.scheduler import stop_scheduler as stop_trends_scheduler
 
@@ -43,6 +44,17 @@ async def lifespan(app: FastAPI):
         logger.info("✓ Redis connection verified")
     except Exception as exc:
         logger.error("✗ Redis unreachable at startup: %s", exc)
+
+    # Promote env-allowlisted emails to is_admin (idempotent).
+    try:
+        from app.admin.security import bootstrap_admins
+
+        async with async_session() as session:
+            promoted = await bootstrap_admins(session)
+        if promoted:
+            logger.info("✓ Promoted %d user(s) to admin from ADMIN_EMAILS", promoted)
+    except Exception as exc:
+        logger.error("✗ Admin bootstrap failed: %s", exc)
 
     # schedulers - only runs in dev.
     # In production, Celery Beat handles this instead (see scheduler.py docstring).
@@ -91,6 +103,12 @@ def create_app() -> FastAPI:
     app.include_router(insights_router, prefix="/api/v1")
     app.include_router(history_router, prefix="/api/v1")
     app.include_router(earn_router)
+    app.include_router(subscriptions_router)
+
+    # Mount the SQLAdmin dashboard (only if its credentials are configured).
+    from app.admin.setup import setup_admin
+
+    setup_admin(app)
 
     @app.get("/health", tags=["system"])
     async def health():

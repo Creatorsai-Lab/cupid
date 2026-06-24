@@ -18,14 +18,16 @@ export interface QualityBreakdown {
 }
 
 export interface ComposerVariant {
-  angle: "hook_first" | "data_driven" | "story_led";
-  source_rank: number;
-  source_domain: string | null;
+  // Optional: the composer may emit a lean draft (content only) or a fully
+  // scored variant. The UI renders the quality badge only when present.
+  angle?: "hook_first" | "data_driven" | "story_led";
+  source_rank?: number;
+  source_domain?: string | null;
   platform: string;
   content: string;
-  hashtags: string[];
+  hashtags?: string[];
   char_count: number;
-  quality: QualityBreakdown;
+  quality?: QualityBreakdown;
 }
 
 export interface DistilledFact {
@@ -181,7 +183,7 @@ export function ComposerResults({
         await historyApi.updateVariants(
           historyId,
           updated.map((v) => ({
-            angle: v.angle,
+            angle: v.angle ?? "",
             platform: v.platform,
             content: v.content,
             char_count: v.char_count,
@@ -359,7 +361,10 @@ function SourceCard({
   mediaUrl?: string;
 }) {
   const [copied, setCopied] = useState(false);
-  const scorePct = Math.round(variant.quality.composite * 100);
+  // Quality is optional — lean drafts have no score, so render the badge only
+  // when the composer actually attached one.
+  const scorePct =
+    variant.quality != null ? Math.round(variant.quality.composite * 100) : null;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(variant.content);
@@ -396,7 +401,7 @@ function SourceCard({
           <span className="text-xs font-semibold text-[var(--color-primary)]">
             Variant {index + 1}
           </span>
-          <QualityBadge score={scorePct} />
+          {scorePct !== null && <QualityBadge score={scorePct} />}
         </div>
         <div className="flex items-center gap-2 pr-2">
           <button

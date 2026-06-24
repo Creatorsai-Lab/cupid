@@ -36,6 +36,10 @@ class User(Base):
     )
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Durable admin flag — the source of truth every admin gate reads. Set
+    # automatically at startup for emails in settings.admin_emails (see
+    # app/admin/security.bootstrap_admins). Survives the future auth switch.
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),

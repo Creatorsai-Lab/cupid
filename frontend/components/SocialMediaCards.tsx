@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useRef } from "react";
+
 /**
  * SocialMediaCards.tsx
  *
@@ -54,6 +56,56 @@ function isVideoSrc(url?: string): boolean {
   return !!url && /\.(mp4|webm|mov|ogg)$/i.test(url);
 }
 
+/**
+ * LazyVideo — never autoplays. Until the user clicks Play it only renders a
+ * lightweight poster: the browser fetches metadata + the single frame at ~0.5s
+ * (the `#t=0.5` media fragment), NOT the whole file. On click it swaps to the
+ * real <video> and plays WITH sound (a user gesture lifts the autoplay-with-
+ * audio block). Fills its (positioned) parent via `absolute inset-0`.
+ */
+function LazyVideo({ src }: { src: string }) {
+  const [playing, setPlaying] = useState(false);
+
+  if (playing) {
+    return (
+      <video
+        src={src}
+        className="absolute inset-0 h-full w-full bg-black object-cover cursor-pointer"
+        autoPlay
+        loop // Added: Makes the short loop automatically
+        playsInline
+        preload="auto"
+        onClick={() => setPlaying(false)} // Added: Clicking the video pauses it and brings back the play button
+        /* Notice `controls` has been completely removed from here */
+      />
+    );
+  }
+
+  return (
+    <div className="absolute inset-0">
+      {/* Poster frame only — preload="metadata" keeps this cheap */}
+      <video
+        src={`${src}#t=0.5`}
+        className="absolute inset-0 h-full w-full object-cover"
+        preload="metadata"
+        muted
+        playsInline
+        tabIndex={-1}
+        aria-hidden
+      />
+      <button
+        type="button"
+        onClick={() => setPlaying(true)}
+        aria-label="Play video"
+        className="absolute inset-0 grid place-items-center bg-black/10 transition-colors hover:bg-black/20"
+      >
+        <span className="grid h-14 w-14 place-items-center rounded-full bg-black/55 backdrop-blur-sm transition-transform hover:scale-105">
+          <Play size={24} className="translate-x-0.5 text-white" fill="white" />
+        </span>
+      </button>
+    </div>
+  );
+}
 // ─── Shared types ──────────────────────────────────────────────
 
 export interface CardProps {
@@ -64,6 +116,7 @@ export interface CardProps {
   avatarUrl?: string;
   /** Image or video thumbnail URL. Omit to show a platform-styled placeholder. */
   mediaUrl?: string;
+  subscribers?:string;
 }
 
 // ─── Avatar ────────────────────────────────────────────────────
@@ -137,7 +190,6 @@ function Avatar({
 function MediaBlock({
   mediaUrl,
   alt,
-  aspectRatio = "16/9",
   platformColor = "#667eea",
   platformLabel = "Image",
   isVideo = false,
@@ -154,16 +206,9 @@ function MediaBlock({
   if (mediaUrl) {
     const isVid = isVideoSrc(mediaUrl);
     return (
-      <div className={`relative w-full overflow-hidden ${className}`} style={{ aspectRatio }}>
+      <div className={`relative w-full overflow-hidden ${className}`}>
         {isVid ? (
-          <video
-            src={mediaUrl}
-            className="h-full w-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
+          <LazyVideo src={mediaUrl} />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={mediaUrl} alt={alt ?? "post media"} className="h-full w-full object-cover" />
@@ -184,7 +229,6 @@ function MediaBlock({
     <div
       className={`relative flex w-full flex-col items-center justify-center gap-2 ${className}`}
       style={{
-        aspectRatio,
         background: `linear-gradient(135deg, ${platformColor}18, ${platformColor}30)`,
         borderTop: `1px solid ${platformColor}20`,
         borderBottom: `1px solid ${platformColor}20`,
@@ -205,10 +249,8 @@ function MediaBlock({
 }
 
 // ─── 1. Facebook Card ──────────────────────────────────────────
-
 export function FacebookCard({
   name,
-  handle,
   content,
   time = "Just now",
   avatarUrl,
@@ -231,13 +273,10 @@ export function FacebookCard({
 
       <p className="px-3 pb-2.5 text-sm leading-relaxed whitespace-pre-line">{content}</p>
 
-      <MediaBlock
-        mediaUrl={mediaUrl}
-        alt="Facebook post"
-        aspectRatio="16/9"
-        platformColor="#1877f2"
-        platformLabel="Photo"
-      />
+      {/* Conditionally render MediaBlock only if mediaUrl exists */}
+      {mediaUrl && (
+        <MediaBlock mediaUrl={mediaUrl} />
+      )}
 
       <div className="flex items-center justify-between px-3 py-1.5">
         <div className="flex items-center gap-1">
@@ -261,7 +300,6 @@ export function FacebookCard({
     </div>
   );
 }
-
 // ─── 2. Instagram Reel Card ────────────────────────────────────
 
 export function InstagramReelCard({
@@ -282,14 +320,7 @@ export function InstagramReelCard({
       {/* Full-bleed background media */}
       {mediaUrl ? (
         isVideoSrc(mediaUrl) ? (
-          <video
-            src={mediaUrl}
-            className="absolute inset-0 h-full w-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
+          <LazyVideo src={mediaUrl} />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={mediaUrl} alt="Reel" className="absolute inset-0 h-full w-full object-cover" />
@@ -389,8 +420,13 @@ export function XCard({ name, handle, content, time = "2h", avatarUrl, mediaUrl 
 
   return (
     <div className="h-fit w-full max-w-[500px] overflow-hidden rounded-2xl border border-[#2f3336] bg-black font-sans text-white">
-      <div className="flex gap-3 p-4 pb-3">
-        <Avatar name={name} avatarUrl={avatarUrl} size={40} />
+      <div className="flex gap-2 p-3">
+        {/* Left Column: Avatar */}
+        <div className="shrink-0">
+          <Avatar name={name} avatarUrl={avatarUrl} size={40} />
+        </div>
+
+        {/* Right Column: Text, Media, and Actions */}
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between">
             <div>
@@ -408,36 +444,39 @@ export function XCard({ name, handle, content, time = "2h", avatarUrl, mediaUrl 
           <p className="mt-2 text-sm leading-relaxed whitespace-pre-line text-[#e7e9ea]">
             {content}
           </p>
-        </div>
-      </div>
 
-      <MediaBlock
-        mediaUrl={mediaUrl}
-        alt="X post media"
-        aspectRatio="16/9"
-        platformColor="#1d9bf0"
-        platformLabel="Media"
-        className="m-1 mb-3 rounded-2xl"
-      />
-      <div className="flex items-center justify-between px-4 py-2">
-        {[
-          { icon: MessageCircle, count: "" },
-          { icon: Repeat2, count: "" },
-          { icon: Heart, count: "" },
-          { icon: ChartNoAxesColumn, count: "" },
-          { icon: Bookmark, count: null },
-          { icon: Share2, count: null },
-        ].map(({ icon: Icon, count }, i) => (
-          <button
-            key={i}
-            className="group flex items-center gap-1 text-[#71767b] transition-colors hover:text-[#1d9bf0]"
-          >
-            <div className="rounded-full p-1.5 transition-colors group-hover:bg-[#1d9bf0]/10">
-              <Icon size={16} strokeWidth={1.75} />
-            </div>
-            {count && <span className="text-xs">{count}</span>}
-          </button>
-        ))}
+          {/* MediaBlock is now nested inside the right column */}
+          <MediaBlock
+            mediaUrl={mediaUrl}
+            alt="X post media"
+            aspectRatio="16/9"
+            platformColor="#1d9bf0"
+            platformLabel="Media"
+            className="mt-3 rounded-2xl border border-[#2f3336]"
+          />
+
+          {/* Action buttons are now nested inside the right column */}
+          <div className="mt-3 flex items-center justify-between pr-2">
+            {[
+              { icon: MessageCircle, count: "" },
+              { icon: Repeat2, count: "" },
+              { icon: Heart, count: "" },
+              { icon: ChartNoAxesColumn, count: "" },
+              { icon: Bookmark, count: null },
+              { icon: Share2, count: null },
+            ].map(({ icon: Icon, count }, i) => (
+              <button
+                key={i}
+                className="group flex items-center gap-1 text-[#71767b] transition-colors hover:text-[#1d9bf0]"
+              >
+                <div className="rounded-full p-1.5 transition-colors group-hover:bg-[#1d9bf0]/10">
+                  <Icon size={16} strokeWidth={1.75} />
+                </div>
+                {count && <span className="text-xs">{count}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -454,8 +493,8 @@ export function LinkedInCard({
   mediaUrl,
 }: CardProps) {
   const subtitle = handle ?? "Content Creator · Building in public";
-  const preview = content.length > 220 ? content.slice(0, 220) : content;
-  const hasMore = content.length > 220;
+  const preview = content.length > 200 ? content.slice(0, 200) : content;
+  const hasMore = content.length > 200;
 
   return (
     <div className="h-fit w-full max-w-[555px] overflow-hidden rounded-lg border border-[#e0e0e0] bg-white font-sans text-[#191919] shadow-sm">
@@ -487,7 +526,6 @@ export function LinkedInCard({
       <MediaBlock
         mediaUrl={mediaUrl}
         alt="LinkedIn post"
-        aspectRatio="16/9"
         platformColor="#0a66c2"
         platformLabel="Image"
       />
@@ -506,55 +544,101 @@ export function LinkedInCard({
   );
 }
 
-// ─── 5. YouTube wide Card ─────────────────────────────────
+// 1. The minimal Lazy Video Component for standard 16:9 landscape videos
+function LazyLandscapeVideo({ src }: { src: string }) {
+  const [playing, setPlaying] = useState(false);
 
+  if (playing) {
+    return (
+      <video
+        src={src}
+        className="absolute inset-0 h-full w-full cursor-pointer bg-black object-cover"
+        autoPlay
+        playsInline
+        preload="auto"
+        onClick={() => setPlaying(false)} // Pauses the video on click
+        /* Notice `controls` has been completely removed */
+      />
+    );
+  }
+
+  return (
+    <div className="absolute inset-0">
+      {/* Poster frame */}
+      <video
+        src={`${src}#t=0.5`}
+        className="absolute inset-0 h-full w-full object-cover"
+        preload="metadata"
+        muted
+        playsInline
+        tabIndex={-1}
+        aria-hidden
+      />
+      {/* Play Button Overlay */}
+      <button
+        type="button"
+        onClick={() => setPlaying(true)}
+        aria-label="Play video"
+        className="group absolute inset-0 grid place-items-center bg-black/10 transition-colors hover:bg-black/20"
+      >
+        {/* YouTube style pill/rectangle play button */}
+        <span className="grid h-12 w-16 place-items-center rounded-xl bg-black/70 backdrop-blur-sm transition-all group-hover:scale-105 group-hover:bg-[#ff0000]">
+          <Play size={24} className="text-white" fill="white" />
+        </span>
+      </button>
+    </div>
+  );
+}
+
+// ─── 5. YouTube wide Card ─────────────────────────────────
+// 2. The Updated YouTube Card
 export function YouTubeCard({
   name,
   content,
-  time = "2 hours ago",
   avatarUrl,
   mediaUrl,
 }: CardProps) {
   return (
-    <div className="h-fit w-full max-w-[540px] overflow-hidden rounded-xl border border-[#e5e5e5] bg-white font-sans text-[#0f0f0f]">
-      <MediaBlock
-        mediaUrl={mediaUrl}
-        alt="YouTube post"
-        aspectRatio="16/9"
-        platformColor="#ff0000"
-        platformLabel="Video"
-        isVideo
-        className="m-5 overflow-hidden rounded-xl p-5"
-      />
-      <div className="flex gap-3 p-4 pb-3">
-        <Avatar name={name} avatarUrl={avatarUrl} size={40} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold">{name}</span>
-            <span className="text-xs text-[#606060]">· {time}</span>
-          </div>
-        </div>
-      </div>
+    <div className="h-fit w-full max-w-[540px] overflow-hidden rounded-xl border border-[#e5e5e5] bg-white p-3 font-sans text-[#0f0f0f]">
 
-      <div className="flex items-center gap-2 px-4 pb-4">
-        <div className="flex overflow-hidden rounded-full border border-[#e5e5e5]">
-          <button className="flex items-center gap-1.5 border-r border-[#e5e5e5] px-4 py-1.5 text-xs font-medium transition-colors hover:bg-[#f2f2f2]">
-            <ThumbsUp size={14} strokeWidth={1.75} />
-            8.4K
-          </button>
-          <button className="px-3 py-1.5 transition-colors hover:bg-[#f2f2f2]">
-            <ThumbsUp size={14} strokeWidth={1.75} className="rotate-180" />
-          </button>
+      {/* Replaced MediaBlock with a relative 16:9 container for the LazyVideo */}
+      {mediaUrl && (
+        <div className="relative w-full aspect-video overflow-hidden rounded-xl bg-gray-100">
+          <LazyLandscapeVideo src={mediaUrl} />
         </div>
-        <button className="flex items-center gap-1.5 rounded-full border border-[#e5e5e5] px-4 py-1.5 text-xs font-medium transition-colors hover:bg-[#f2f2f2]">
-          <MessageCircle size={14} strokeWidth={1.75} />
-          342 replies
-        </button>
-        <button className="ml-auto rounded-full p-2 transition-colors hover:bg-[#f2f2f2]">
-          <Bell size={16} strokeWidth={1.75} className="text-[#606060]" />
-        </button>
+      )}
+
+      <p className="mt-3 text-base leading-relaxed whitespace-pre-line text-[#0f0f0f]">
+        {content}
+      </p>
+
+      <div className="mt-3">
+        <div className="flex items-center gap-3">
+          <Avatar name={name} avatarUrl={avatarUrl} size={36} />
+
+          {/* flex-1 pushes the buttons to the right */}
+          <div className="flex flex-1 flex-col">
+            <span className="text-sm font-bold">{name}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button className="rounded-full bg-[#0f0f0f] px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#272727]">
+              Subscribe
+            </button>
+
+            {/* Grouped Like/Dislike together */}
+            <div className="flex items-center">
+              <button className="flex items-center gap-1.5 rounded-l-full px-2 py-1.5 text-sm font-medium transition-colors hover:bg-[#e5e5e5]">
+                <ThumbsUp size={16} strokeWidth={1.5} />
+              </button>
+              <button className="rounded-r-full px-2 py-1.5 transition-colors hover:bg-[#e5e5e5]">
+                <ThumbsUp size={16} strokeWidth={1.5} className="rotate-180" />
+              </button>
+            </div>
+          </div>
+
+        </div>
       </div>
-      <p className="mt-2 text-sm leading-relaxed whitespace-pre-line text-[#0f0f0f]">{content}</p>
     </div>
   );
 }
@@ -572,14 +656,7 @@ export function YouTubeShortsCard({ name, handle, content, avatarUrl, mediaUrl }
       {/* Background media or placeholder */}
       {mediaUrl ? (
         isVideoSrc(mediaUrl) ? (
-          <video
-            src={mediaUrl}
-            className="absolute inset-0 h-full w-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
+          <LazyVideo src={mediaUrl} />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={mediaUrl} alt="Short" className="absolute inset-0 h-full w-full object-cover" />
@@ -595,7 +672,7 @@ export function YouTubeShortsCard({ name, handle, content, avatarUrl, mediaUrl }
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "linear-gradient(to top,rgba(0,0,0,.85) 0%,transparent 45%,rgba(0,0,0,.2) 100%)",
+            "linear-gradient(to top,rgba(0,0,0,.85) 0%,transparent 45%,rgba(192, 192, 192, 0) 100%)",
         }}
       />
 
@@ -621,13 +698,13 @@ export function YouTubeShortsCard({ name, handle, content, avatarUrl, mediaUrl }
       </div>
 
       {/* Right action column */}
-      <div className="absolute right-2.5 bottom-2 flex flex-col items-center gap-2">
+      <div className="absolute right-2.5 bottom-2 flex flex-col items-center gap-2 bg-transparent">
         {/* Like */}
-        <ActionIcon icon={ThumbsUp} count="47K" />
+        <ActionIcon icon={ThumbsUp} count="" />
         {/* Comment */}
-        <ActionIcon icon={ThumbsDown} count="Dislike" />
-        <ActionIcon icon={MessageSquareText} count="100" />
-        <ActionIcon icon={CornerUpRight} count="Share" />
+        <ActionIcon icon={ThumbsDown} count="" />
+        <ActionIcon icon={MessageSquareText} count="" />
+        <ActionIcon icon={CornerUpRight} count="" />
       </div>
 
       {/* Bottom info */}
@@ -651,8 +728,8 @@ export function YouTubeShortsCard({ name, handle, content, avatarUrl, mediaUrl }
 function ActionIcon({ icon: Icon, count }: { icon: React.ElementType; count: string }) {
   return (
     <div className="flex flex-col items-center">
-      <div className="p-2.5 backdrop-blur-sm">
-        <Icon size={15} strokeWidth={1.75} className="text-white" />
+      <div className="p-2.5 drop-shadow">
+        <Icon size={18} strokeWidth={1.75} className="text-white" />
       </div>
       <span className="text-[11px] font-bold drop-shadow">{count}</span>
     </div>
@@ -660,20 +737,19 @@ function ActionIcon({ icon: Icon, count }: { icon: React.ElementType; count: str
 }
 
 // 7. Poll Card
-export interface PollCardProps {
+export interface QuizCardProps {
   name: string;
   handle?: string;
   avatarUrl?: string;
   question: string;
   options: [string, string, string, string];
-  /** 0–100 vote percentages matching options order. Omit to show unvoted state. */
   votes?: [number, number, number, number];
   totalVotes?: number;
   timeLeft?: string;
   time?: string;
 }
 
-export function PollCard({
+export function QuizCard({
   name,
   handle,
   avatarUrl,
@@ -683,7 +759,7 @@ export function PollCard({
   totalVotes = 0,
   timeLeft = "24h left",
   time = "1h",
-}: PollCardProps) {
+}: QuizCardProps) {
   const user = handle ?? name.toLowerCase().replace(/\s/g, "");
   const voted = !!votes;
   const leading = voted ? votes.indexOf(Math.max(...votes)) : -1;

@@ -22,10 +22,9 @@ import {
   XCard,
   LinkedInCard,
   InstagramCard,
-  FacebookCard,
   YouTubeCard,
   YouTubeShortsCard,
-  PollCard,
+  QuizCard,
 } from "@/components/SocialMediaCards";
 import Footer from "@/components/Footer";
 
@@ -93,13 +92,10 @@ function Hero() {
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className={`${SANS} relative mx-auto max-w-4xl text-[clamp(2.6rem,7vw,5rem)] leading-[0.98] font-semibold tracking-[-0.03em] text-balance text-[var(--color-text)]`}
           >
-            Content that sounds
-            <br className="hidden sm:block" />{" "}
-            <span className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] bg-clip-text text-transparent">
-              unmistakably you
-            </span>
-            .
+            Cupid
+
           </motion.h1>
+          <p className="font-xl">A complete AI agents suite for content creation & influencers</p>
         </div>
 
         <motion.p
@@ -485,13 +481,8 @@ function PostsPreview() {
           <XCard
             name="Hubert"
             handle="hthieblot"
-            content="Just move to SF, it will change your life.
-                  Go in debt if you have to."
+            content={"Just move to SF, it will change your life.\nGo in debt if you have to."}
             mediaUrl="/media/sf_scene.png"
-          />
-          <FacebookCard
-            name="Rakul Bansal"
-            content="Just shipped persona fidelity scoring for Cupid."
           />
           <LinkedInCard
             name="AIM"
@@ -501,9 +492,8 @@ function PostsPreview() {
           <InstagramCard
             name="Rakul Bansal"
             content="Just shipped persona fidelity scoring for Cupid."
-            mediaUrl="/media/boy_profile.webp"
+            mediaUrl="/media/founder_journey.mp4"
           />
-          <YouTubeShortsCard name="Adya Prasad" content="Cute Couple Status." />
           <YouTubeShortsCard
             name="Adya Prasad"
             handle="adyaprasad"
@@ -515,21 +505,12 @@ function PostsPreview() {
             content="Just shipped persona fidelity scoring for Cupid."
             mediaUrl="/media/creative_designer.mp4"
           />
-          <PollCard
+          <QuizCard
             name="Adya Prasad"
             handle="adyaprasad"
             question="Which framework should I use for Cupid's agent layer?"
             options={["LangGraph", "CrewAI", "AutoGen", "Build from scratch"]}
-            timeLeft="18h left"
-          />
-          <PollCard
-            name="Adya Prasad"
-            handle="adyaprasad"
-            question="Which framework should I use for Cupid's agent layer?"
-            options={["LangGraph", "CrewAI", "AutoGen", "Build from scratch"]}
-            votes={[48, 27, 16, 9]}
-            totalVotes={1284}
-            timeLeft="18h left"
+            timeLeft=""
           />
         </div>
       </div>

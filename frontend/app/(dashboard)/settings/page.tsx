@@ -4,15 +4,14 @@ import { useState, useEffect } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { ConnectionsPanel } from "@/components/ConnectionsPanel";
 import { useAuthStore } from "@/lib/store";
-import { User, Sparkles, HelpCircle, Settings, Workflow } from "lucide-react";
-import { authApi, profileApi } from "@/lib/api";
+import { User, HelpCircle, Settings, Workflow } from "lucide-react";
+import { authApi, profileApi, entitlementApi, type Entitlement } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 const TABS = [
   { id: "personalization", label: "Personalization", icon: User },
   { id: "connect", label: "Connect", icon: Workflow },
   { id: "settings", label: "Settings", icon: Settings },
-  { id: "plan", label: "Plan", icon: Sparkles },
   { id: "help", label: "Help", icon: HelpCircle },
 ] as const;
 
@@ -73,7 +72,6 @@ export default function SettingsPage() {
         {activeTab === "personalization" && (
           <PersonalizationTab userName={user?.full_name} userEmail={user?.email} />
         )}
-        {activeTab === "plan" && <PlanTab />}
         {activeTab === "settings" && <SettingsTab />}
         {activeTab === "connect" && <ConnectTab />}
         {activeTab === "help" && <HelpTab />}
@@ -312,16 +310,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-4 rounded-xl border border-border bg-card p-5">
-      <div>
-        <h3
-          className="text-base font-normal text-foreground"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
-          {title}
-        </h3>
-        <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
-      </div>
+    <div className="rounded-2xl border w-full bg-white p-5">
+      <div><h3>{title}</h3><p>{hint}</p></div>
       {children}
     </div>
   );
@@ -400,9 +390,9 @@ function PersonalizationTab({ userName, userEmail }: { userName?: string; userEm
   if (loading) return <p className="text-sm text-muted-foreground">Loading profile...</p>;
 
   return (
-    <div className="max-w-2xl space-y-5">
+    <div className="space-y-5">
       {/* ── Identity ── */}
-      <Section title="Identity" hint="Your basic profile used across the app.">
+      <Section title="User Profile" hint="Your basic profile used across the app.">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Full name">
             <input
@@ -419,6 +409,14 @@ function PersonalizationTab({ userName, userEmail }: { userName?: string; userEm
               disabled
             />
           </Field>
+                    <Field label="Nickname" full>
+            <input
+              className={cx.textarea}
+              value={form.nickname}
+              onChange={set("nickname")}
+              placeholder="What loving name should we call you?"
+            />
+          </Field>
           <Field label="Bio" full>
             <textarea
               className={cx.textarea}
@@ -428,15 +426,7 @@ function PersonalizationTab({ userName, userEmail }: { userName?: string; userEm
               placeholder="One or two sentences about yourself. This is used directly in your persona prompt."
             />
           </Field>
-          <Field label="Nickname" full>
-            <textarea
-              className={cx.textarea}
-              rows={3}
-              value={form.nickname}
-              onChange={set("nickname")}
-              placeholder="What loving name should we call you?"
-            />
-          </Field>
+
         </div>
       </Section>
 
@@ -563,6 +553,14 @@ function PersonalizationTab({ userName, userEmail }: { userName?: string; userEm
 function SettingsTab() {
   const { clearUser } = useAuthStore();
   const router = useRouter();
+  const [ent, setEnt] = useState<Entitlement | null>(null);
+
+  useEffect(() => {
+    entitlementApi
+      .get()
+      .then(setEnt)
+      .catch(() => {});
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -576,6 +574,57 @@ function SettingsTab() {
 
   return (
     <div>
+      {/* Current plan */}
+      <div
+        style={{
+          backgroundColor: "white",
+          border: "1px solid var(--color-border)",
+          borderRadius: "12px",
+          padding: "1.5rem",
+          marginBottom: "1.5rem",
+        }}
+      >
+        <h3
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "1.1rem",
+            fontWeight: 400,
+            marginBottom: "0.75rem",
+            color: "var(--color-text)",
+          }}
+        >
+          Current Plan
+        </h3>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.4rem",
+            padding: "0.3rem 0.9rem",
+            borderRadius: "20px",
+            backgroundColor: "var(--color-primary)",
+            color: "#fff",
+            fontSize: "0.78rem",
+            fontWeight: 600,
+            fontFamily: "var(--font-body)",
+          }}
+        >
+          {ent ? ent.display_name : "…"}
+        </span>
+        {ent?.payment_warning && (
+          <p
+            style={{
+              marginTop: "0.75rem",
+              fontSize: "0.82rem",
+              color: "var(--color-destructive)",
+              fontFamily: "var(--font-body)",
+            }}
+          >
+            There is a problem with your payment — please update your billing.
+          </p>
+        )}
+      </div>
+
       <div
         style={{
           backgroundColor: "white",
@@ -735,60 +784,6 @@ function ConnectTab() {
           </button>
         </div>
       ))}
-    </div>
-  );
-}
-
-/* ━━━ Plan Tab ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-
-function PlanTab() {
-  return (
-    <div
-      style={{
-        backgroundColor: "white",
-        border: "1px solid var(--color-border)",
-        borderRadius: "12px",
-        padding: "2rem",
-      }}
-    >
-      <h3
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "1.1rem",
-          fontWeight: 400,
-          marginBottom: "0.5rem",
-        }}
-      >
-        Current Plan
-      </h3>
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "0.4rem",
-          padding: "0.3rem 0.8rem",
-          borderRadius: "20px",
-          backgroundColor: "var(--color-primary)",
-          color: "#fff",
-          fontSize: "0.78rem",
-          fontWeight: 600,
-          fontFamily: "var(--font-body)",
-          marginBottom: "1rem",
-        }}
-      >
-        Free Tier
-      </div>
-      <p
-        style={{
-          fontSize: "0.88rem",
-          color: "var(--color-muted)",
-          fontFamily: "var(--font-body)",
-          lineHeight: 1.7,
-        }}
-      >
-        You are on the free open-source plan. All core agent features are available with local LLM
-        inference. No usage limits on self-hosted deployments.
-      </p>
     </div>
   );
 }

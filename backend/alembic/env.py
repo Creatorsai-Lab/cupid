@@ -5,10 +5,21 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
 from app.config import settings
-from app.models.creation_history import CreationHistory  # noqa
+from app.earn.models import EarnOpportunity, EarnProfile  # noqa
 
-# Import Base and ALL (DB) models so Alembic can detect them
+# Import Base and ALL DB models so Alembic autogenerate sees every table.
+# A model MISSING here makes autogenerate think its table was deleted and emit a
+# destructive drop_table — exactly what happened to user_personalization and
+# trending_articles in c7efed3e1588. Keep this list exhaustive.
+from app.models.audit_log import AuditLog  # noqa
+from app.models.creation_history import CreationHistory  # noqa
+from app.models.insights_snapshot import InsightsSnapshot  # noqa
+from app.models.persona import UserPersonalization  # noqa
+from app.models.social_connection import SocialConnection  # noqa
+from app.models.top_content import TopContent  # noqa
+from app.models.trending_article import TrendingArticle  # noqa
 from app.models.user import Base
+from app.subscriptions.models import Subscription  # noqa
 
 config = context.config
 if config.config_file_name is not None:

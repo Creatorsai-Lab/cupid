@@ -496,6 +496,30 @@ export interface ReadinessResponse {
   creative: CreativeSection;
   generated_at: string;
 }
+export interface Entitlement {
+    tier: string;                       // "free" | "pro" | "premium"
+    display_name: string;               // "Hustler" | "Creator" | "Influencer"
+    tier_rank: number;                  // 0 | 1 | 2
+    status: string;
+    payment_warning: boolean;
+    show_locked_features: boolean;
+    cancel_at_period_end: boolean;
+    period_end: string | null;
+    grandfathered_until: string | null;
+    limits: {
+        posts_per_day: number;
+        video_posts: boolean;
+        earn_access: boolean;
+        trends_view: boolean;
+        trends_refresh: boolean;
+        trends_post_tab: boolean;
+        max_social_profiles: number | null;
+        multi_same_platform: boolean;
+        history_retention_days: number;
+        assistant_customization: boolean;
+        priority: string;
+    };
+}
 
 // ── Client ─────────────────────────────────────────────────────────────────
 // Adapt `api`/`apiFetch` to whatever your existing helper is named.
@@ -514,6 +538,10 @@ export const earnApi = {
 
   getReadiness: (): Promise<ReadinessResponse> =>
     requestRaw<ReadinessResponse>("/api/v1/earn/readiness"),
+};
+export const entitlementApi = {
+    get: (): Promise<Entitlement> =>
+        requestRaw<Entitlement>("/api/v1/entitlement"),
 };
 
 export type {

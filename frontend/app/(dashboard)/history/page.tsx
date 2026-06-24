@@ -139,7 +139,7 @@ function HistoryCard({
 }) {
   return (
     <div
-      className="group relative cursor-pointer rounded-xl border border-[var(--color-border)] bg-white p-3 transition-all duration-200 ease-in-out hover:border-[var(--color-primary)] hover:shadow-md"
+      className="group relative cursor-pointer rounded-xl border border-[var(--color-border)] bg-white p-4 transition-all duration-200 ease-in-out hover:border-[var(--color-primary)] hover:shadow-md"
       onClick={onOpen}
     >
       {/* Header: prompt + date + delete */}

@@ -1,6 +1,8 @@
 # defines what keys exist and loads them into Python
-from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Annotated
+
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -51,6 +53,32 @@ class Settings(BaseSettings):
     google_redirect_uri: str = (
         "http://localhost:8000/api/v1/connections/youtube/callback"
     )
+
+    # ── Admin ─────────────────────────────────────────────────────────────
+    # Emails promoted to is_admin=True automatically at startup (the env
+    # allowlist that "designates" admins without touching the DB by hand).
+    # In .env: ADMIN_EMAILS=you@gmail.com,partner@x.com
+    # NoDecode: stop pydantic-settings from JSON-decoding the env value, so the
+    # validator below can accept a plain comma-separated string (a@b.com,c@d.com).
+    admin_emails: Annotated[list[str], NoDecode] = Field(default_factory=list)
+
+    # SQLAdmin dashboard — its OWN credential wall, separate from app login.
+    # Mounted at admin_panel_path (keep it non-obvious; it is NOT real security
+    # on its own, just a thin extra layer over the credential gate).
+    admin_panel_path: str = "/ctrl-panel"
+    admin_panel_user: str = ""
+    admin_panel_password: str = ""
+    # Signs the dashboard's session cookie. Falls back to secret_key if unset.
+    admin_session_secret: str = ""
+
+    @field_validator("admin_emails", mode="before")
+    @classmethod
+    def _split_admin_emails(cls, v: object) -> object:
+        # Accept a comma-separated string from .env (ADMIN_EMAILS=a@b.com,c@d.com)
+        # as well as a real list. Normalises to lowercase, trims blanks.
+        if isinstance(v, str):
+            return [e.strip().lower() for e in v.split(",") if e.strip()]
+        return v
 
     @field_validator("secret_key")
     @classmethod
