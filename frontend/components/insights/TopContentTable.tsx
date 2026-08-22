@@ -18,7 +18,7 @@ export function TopContentTable({
   snapshotDate: string;
 }) {
   return (
-    <div className="rounded-xl border bg-white" style={{ borderColor: "var(--color-border)" }}>
+    <div className="rounded-4xl border bg-white" style={{ borderColor: "var(--color-border)" }}>
       <div
         className="flex items-center justify-between border-b p-5"
         style={{ borderColor: "var(--color-border)" }}

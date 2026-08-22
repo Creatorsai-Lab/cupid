@@ -34,7 +34,16 @@ class User(Base):
     email: Mapped[str] = mapped_column(
         String(255), unique=True, nullable=False, index=True
     )
-    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Nullable: social-login users have no password.
+    hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Identity provider this account authenticates with.
+    auth_provider: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="google"
+    )
+    provider_account_id: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, index=True
+    )
+    avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     # Durable admin flag — the source of truth every admin gate reads. Set
     # automatically at startup for emails in settings.admin_emails (see

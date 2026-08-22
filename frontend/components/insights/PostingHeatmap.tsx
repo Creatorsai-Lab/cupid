@@ -21,7 +21,7 @@ export function PostingHeatmap({ data }: { data: HeatmapResponse }) {
   const hourBlocks = ["12a", "3a", "6a", "9a", "12p", "3p", "6p", "9p"];
 
   return (
-    <div className="rounded-xl border bg-white p-5" style={{ borderColor: "var(--color-border)" }}>
+    <div className="rounded-4xl border bg-white p-5" style={{ borderColor: "var(--color-border)" }}>
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Calendar size={14} style={{ color: "var(--color-primary)" }} />

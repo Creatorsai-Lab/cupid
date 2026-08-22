@@ -29,7 +29,7 @@ export default function CareersPage() {
 
           <section className="space-y-2">
             <h2 className="text-lg font-medium">Open roles</h2>
-            <div className="rounded-xl border border-[var(--color-border)] p-5 text-[var(--color-muted)]">
+            <div className="rounded-4xl border border-[var(--color-border)] p-5 text-[var(--color-muted)]">
               No open positions right now — but we&apos;re always glad to meet sharp builders. If
               you love this space, tell us what you&apos;d want to work on.
             </div>

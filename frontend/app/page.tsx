@@ -115,17 +115,17 @@ function Hero() {
           className="mt-9 flex flex-wrap items-center justify-center gap-3"
         >
           <Link
-            href="/register"
+            href="/signin"
             className={`${SANS} group inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-medium text-white shadow-[0_10px_30px_-10px_rgba(199,93,58,0.6)] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_25px_rgba(239,68,68,0.15)]`}
           >
             Start for free
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
           <Link
-            href="#agents"
+            href="#showcase"
             className={`${SANS} inline-flex items-center rounded-full border border-[var(--color-border)] bg-white/50 px-6 py-3 text-sm font-medium text-[var(--color-text)] backdrop-blur transition-colors hover:border-[var(--color-border-hover)]`}
           >
-            See how it works
+            See results
           </Link>
         </motion.div>
       </div>
@@ -298,7 +298,7 @@ function AgentSwarm() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 6, scale: 0.96 }}
                         transition={{ duration: 0.18 }}
-                        className="absolute top-full left-1/2 z-20 mt-2 w-44 -translate-x-1/2 rounded-xl border border-[var(--color-border)] bg-white/95 p-3 text-center shadow-lg backdrop-blur"
+                        className="absolute top-full left-1/2 z-20 mt-2 w-44 -translate-x-1/2 rounded-4xl border border-[var(--color-border)] bg-white/95 p-3 text-center shadow-lg backdrop-blur"
                       >
                         <p className={`${SANS} text-xs font-semibold text-[var(--color-text)]`}>
                           {n.label}
@@ -468,7 +468,7 @@ function Faq() {
 
 function PostsPreview() {
   return (
-    <section id="examples" className="border-t border-border bg-muted/20">
+    <section id="showcase" className="border-t border-border bg-muted/20">
       <div className="mx-auto max-w-6xl px-6 py-24">
         <h2 className="mb-3 text-center text-[clamp(1.8rem,3vw,2.4rem)] tracking-tight">
           Posts that already sound like you

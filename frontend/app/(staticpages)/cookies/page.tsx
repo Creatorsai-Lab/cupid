@@ -29,7 +29,7 @@ export default function CookiesPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-medium">Cookies we use</h2>
             <ul className="list-none space-y-3 p-0">
-              <li className="rounded-xl border border-[var(--color-border)] p-4">
+              <li className="rounded-4xl border border-[var(--color-border)] p-4">
                 <p className="font-medium">Essential — authentication</p>
                 <p className="text-[var(--color-muted)]">
                   A secure, HTTP-only session cookie keeps you logged in. Without it the app
@@ -37,7 +37,7 @@ export default function CookiesPage() {
                   used for advertising.
                 </p>
               </li>
-              <li className="rounded-xl border border-[var(--color-border)] p-4">
+              <li className="rounded-4xl border border-[var(--color-border)] p-4">
                 <p className="font-medium">Preferences</p>
                 <p className="text-[var(--color-muted)]">
                   Lightweight local storage remembers things like your session so the interface

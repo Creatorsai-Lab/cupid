@@ -87,19 +87,9 @@ async function requestRaw<T>(endpoint: string, options: RequestInit = {}): Promi
 
 // ── Auth API ─────────────────────────────────────────────────
 
+// Sign-in is Google OAuth (a full-page redirect to the backend), so there's no
+// login/register fetch here — just session reads.
 export const authApi = {
-  register: (body: { full_name: string; email: string; password: string }) =>
-    request<UserData>("/api/v1/auth/register", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-
-  login: (body: { email: string; password: string }) =>
-    request<UserData>("/api/v1/auth/login", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-
   logout: () => request<null>("/api/v1/auth/logout", { method: "POST" }),
 
   me: () => request<UserData>("/api/v1/auth/me"),

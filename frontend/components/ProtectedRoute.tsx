@@ -14,7 +14,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   useEffect(() => {
     if (_hasHydrated && !isAuthenticated) {
-      router.replace("/login");
+      router.replace("/signin");
     }
   }, [_hasHydrated, isAuthenticated, router]);
 

@@ -128,7 +128,7 @@ function ChartShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border bg-white p-5" style={{ borderColor: "var(--color-border)" }}>
+    <div className="rounded-4xl border bg-white p-5" style={{ borderColor: "var(--color-border)" }}>
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <TrendingUp size={14} style={{ color: "var(--color-primary)" }} />

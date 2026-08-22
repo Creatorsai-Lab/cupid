@@ -2,6 +2,8 @@
 
 A multi-agent social media automation system that learns your voice, tracks what is trending in your domain, and composes publication-ready posts that sound authentically like you.
 
+> _by_ Adya Prasad
+
 ---
 
 ## What It Does

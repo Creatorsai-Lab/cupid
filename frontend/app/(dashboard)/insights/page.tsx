@@ -239,7 +239,7 @@ function ConnectionTab({
 function EmptyState() {
   return (
     <div
-      className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-8 py-16 text-center"
+      className="flex flex-col items-center justify-center rounded-4xl border-2 border-dashed px-8 py-16 text-center"
       style={{ borderColor: "var(--color-border)" }}
     >
       <div
@@ -308,7 +308,7 @@ function ListSkeleton() {
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-28 animate-pulse rounded-xl border bg-white p-5"
+            className="h-28 animate-pulse rounded-4xl border bg-white p-5"
             style={{ borderColor: "var(--color-border)" }}
           >
             <div className="mb-4 h-3 w-16 rounded bg-[#fff6ed]" />
@@ -319,11 +319,11 @@ function ListSkeleton() {
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div
-          className="h-72 animate-pulse rounded-xl border bg-white p-5"
+          className="h-72 animate-pulse rounded-4xl border bg-white p-5"
           style={{ borderColor: "var(--color-border)" }}
         />
         <div
-          className="h-72 animate-pulse rounded-xl border bg-white p-5"
+          className="h-72 animate-pulse rounded-4xl border bg-white p-5"
           style={{ borderColor: "var(--color-border)" }}
         />
       </div>

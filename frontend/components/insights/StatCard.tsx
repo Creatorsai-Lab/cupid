@@ -30,7 +30,7 @@ export function StatCard({
   const deltaColor = deltaPositive ? "#10b981" : deltaNegative ? "#dc2626" : "var(--color-muted)";
 
   return (
-    <div className="rounded-xl border bg-white p-5" style={{ borderColor: "var(--color-border)" }}>
+    <div className="rounded-4xl border bg-white p-5" style={{ borderColor: "var(--color-border)" }}>
       <div className="mb-3 flex items-center justify-between">
         <p
           className="text-xs font-medium tracking-wide uppercase"

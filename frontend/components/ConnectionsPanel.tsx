@@ -152,7 +152,7 @@ export function ConnectionsPanel() {
 
       {/* YouTube connection card */}
       <div
-        className="flex items-center gap-4 rounded-xl border bg-white p-4"
+        className="flex items-center gap-4 rounded-4xl border bg-white p-4"
         style={{ borderColor: "var(--color-border)" }}
       >
         <div
@@ -236,7 +236,7 @@ export function ConnectionsPanel() {
 
       {/* Soon-to-come placeholders */}
       <div
-        className="flex items-center gap-4 rounded-xl border bg-white p-4 opacity-60"
+        className="flex items-center gap-4 rounded-4xl border bg-white p-4 opacity-60"
         style={{ borderColor: "var(--color-border)" }}
       >
         <div

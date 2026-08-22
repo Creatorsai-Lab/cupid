@@ -181,7 +181,7 @@ function QAGate({ onComplete }: { onComplete: () => void }) {
         <button
           onClick={submit}
           disabled={!allAnswered || submitting}
-          className="flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-medium text-white shadow-lg transition-all disabled:opacity-40"
+          className="flex w-full items-center justify-center gap-2 rounded-4xl px-5 py-3.5 text-sm font-medium text-white shadow-lg transition-all disabled:opacity-40"
           style={{ backgroundColor: "var(--color-primary)", fontFamily: "var(--font-body)" }}
         >
           {submitting ? (
@@ -388,7 +388,7 @@ function CardGroup({
 
 function StreamRow({ card }: { card: StreamCard }) {
   return (
-    <div className="rounded-xl border bg-white p-4" style={{ borderColor: "var(--color-border)" }}>
+    <div className="rounded-4xl border bg-white p-4" style={{ borderColor: "var(--color-border)" }}>
       <div className="mb-1 flex items-start justify-between gap-3">
         <h4
           className="text-sm font-semibold"

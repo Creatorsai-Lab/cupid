@@ -108,3 +108,21 @@ async def consume_state(
         return None
 
     return user_id
+
+
+# ─────────────────────────────────────────────────────────────────────────
+#  LOGIN flow state — same CSRF protection, but there is NO logged-in user
+#  yet (the user is signing in), so we only store a single-use nonce.
+# ─────────────────────────────────────────────────────────────────────────
+
+LOGIN_KEY_PREFIX: Final[str] = "oauth:login:"
+
+
+async def store_login_state(redis: Redis, state: str) -> None:
+    """Persist a single-use login nonce with a short TTL."""
+    await redis.set(f"{LOGIN_KEY_PREFIX}{state}", "1", ex=STATE_TTL_SECONDS)
+
+
+async def consume_login_state(redis: Redis, state: str) -> bool:
+    """Validate + delete a login nonce. True if it was present (valid)."""
+    return bool(await redis.getdel(f"{LOGIN_KEY_PREFIX}{state}"))

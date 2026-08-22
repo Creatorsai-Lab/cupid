@@ -1,26 +1,20 @@
 """
-Authentication router — HTTP endpoints for register, login, logout, and current user.
+Authentication router — session/cookie helpers + current-user endpoints.
 
-Endpoints:
-    POST /api/v1/auth/register  → create account + set cookie
-    POST /api/v1/auth/login     → verify credentials + set cookie
-    POST /api/v1/auth/logout    → clear cookie
-    GET  /api/v1/auth/me        → return current user from cookie
+Sign-in is Google-only and lives in routers/oauth_google.py. This module owns
+the session cookie (set there, read here) and the two cookie-backed endpoints:
+
+    POST /api/v1/auth/logout  → clear cookie
+    GET  /api/v1/auth/me      → return current user from cookie
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.core.security import create_access_token, decode_access_token
+from app.core.security import decode_access_token
 from app.models.user import User
-from app.schemas.auth import (
-    AuthResponse,
-    LoginRequest,
-    UserCreate,
-    UserResponse,
-)
-from app.services.auth import authenticate_user, create_user, get_user_by_email
+from app.schemas.auth import AuthResponse, UserResponse
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -29,7 +23,7 @@ COOKIE_KEY = "cupid_access_token"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days in seconds
 
 
-def _set_auth_cookie(response: Response, token: str) -> None:
+def set_auth_cookie(response: Response, token: str) -> None:
     """
     Set the JWT as an HTTP-only cookie.
 
@@ -80,43 +74,6 @@ async def get_current_user(
 
 
 # ── Endpoints ─────────────────────────────────────────────────
-
-
-@router.post("/register", response_model=AuthResponse)
-async def register(
-    body: UserCreate,
-    response: Response,
-    db: AsyncSession = Depends(get_db),
-):
-    """Create a new user account."""
-    # Check if email already taken
-    existing = await get_user_by_email(db, body.email)
-    if existing:
-        raise HTTPException(status_code=409, detail="Email already registered")
-
-    user = await create_user(db, body.full_name, body.email, body.password)
-    token = create_access_token(str(user.id))
-    _set_auth_cookie(response, token)
-
-    return AuthResponse(data=UserResponse.model_validate(user))
-
-
-@router.post("/login", response_model=AuthResponse)
-async def login(
-    body: LoginRequest,
-    response: Response,
-    db: AsyncSession = Depends(get_db),
-):
-    """Authenticate and receive session cookie."""
-    user = await authenticate_user(db, body.email, body.password)
-    if not user:
-        # Generic message — don't reveal whether email exists
-        raise HTTPException(status_code=401, detail="Invalid email or password")
-
-    token = create_access_token(str(user.id))
-    _set_auth_cookie(response, token)
-
-    return AuthResponse(data=UserResponse.model_validate(user))
 
 
 @router.post("/logout")

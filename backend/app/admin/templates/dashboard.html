@@ -1,0 +1,113 @@
+{% extends "sqladmin/layout.html" %}
+
+{% block content %}
+<div class="col-12">
+
+  {# ── Monitoring strip ───────────────────────────────────────── #}
+  <div class="row row-cards mb-3">
+    <div class="col-auto">
+      <span class="badge bg-azure-lt">Env: {{ health.env }}</span>
+    </div>
+    <div class="col-auto">
+      <span class="badge {{ 'bg-green-lt' if health.db_ok else 'bg-red-lt' }}">
+        Database: {{ 'healthy' if health.db_ok else 'down' }}
+      </span>
+    </div>
+    <div class="col-auto">
+      <span class="badge {{ 'bg-green-lt' if health.redis_ok else 'bg-red-lt' }}">
+        Redis: {{ 'healthy' if health.redis_ok else 'unreachable' }}
+      </span>
+    </div>
+  </div>
+
+  {# ── Headline metric cards ──────────────────────────────────── #}
+  <div class="row row-cards">
+    {% set cards = [
+      ("Total users", metrics.total_users, "all-time"),
+      ("New users (7d)", metrics.new_7d, "last 7 days"),
+      ("New users (30d)", metrics.new_30d, "last 30 days"),
+      ("Admins", metrics.admins, "is_admin = true"),
+      ("Posts generated", metrics.content_total, "all-time"),
+      ("Posts (7d)", metrics.content_7d, "last 7 days"),
+      ("Connected accounts", metrics.connections, "social profiles"),
+    ] %}
+    {% for label, value, sub in cards %}
+    <div class="col-sm-6 col-lg-3">
+      <div class="card card-sm">
+        <div class="card-body">
+          <div class="subheader">{{ label }}</div>
+          <div class="h1 mb-0">{{ value }}</div>
+          <div class="text-secondary small">{{ sub }}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# ── Breakdowns ─────────────────────────────────────────────── #}
+  <div class="row row-cards mt-1">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">Subscription tiers</h3></div>
+        <div class="card-body">
+          {% if metrics.tiers %}
+            <table class="table table-sm">
+              <tbody>
+                {% for tier, count in metrics.tiers.items() %}
+                <tr><td>{{ tier }}</td><td class="text-end">{{ count }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}<p class="text-secondary">No subscriptions yet.</p>{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">Auth providers</h3></div>
+        <div class="card-body">
+          {% if metrics.providers %}
+            <table class="table table-sm">
+              <tbody>
+                {% for provider, count in metrics.providers.items() %}
+                <tr><td>{{ provider }}</td><td class="text-end">{{ count }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}<p class="text-secondary">No users yet.</p>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Recent admin activity (from audit_log) ─────────────────── #}
+  <div class="row row-cards mt-1">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">Recent admin activity</h3></div>
+        <div class="table-responsive">
+          <table class="table table-vcenter table-sm">
+            <thead>
+              <tr><th>When (UTC)</th><th>Actor</th><th>Action</th><th>Target</th><th>Detail</th></tr>
+            </thead>
+            <tbody>
+              {% for row in metrics.recent_audit %}
+              <tr>
+                <td class="text-secondary">{{ row.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                <td>{{ row.actor_email or "system" }}</td>
+                <td><span class="badge bg-blue-lt">{{ row.action }}</span></td>
+                <td class="text-secondary">{{ row.target_id[:8] }}…</td>
+                <td class="text-secondary small">{{ row.detail }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-secondary">No admin actions recorded yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

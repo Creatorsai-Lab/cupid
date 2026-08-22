@@ -449,7 +449,7 @@ function ResearchResults({ data }: { data: ResearchData }) {
       )}
 
       {open && pages.length > 0 && (
-        <div className="mx-5 overflow-hidden rounded-xl border border-[var(--color-border)]">
+        <div className="mx-5 overflow-hidden rounded-4xl border border-[var(--color-border)]">
           <div className="divide-y divide-[var(--color-border)]">
             {pages.map((p, i) => (
               <div key={i} className="border-b border-[var(--color-border)] last:border-b-0">

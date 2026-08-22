@@ -26,41 +26,20 @@ export default function SettingsPage() {
       <main className="mx-auto max-w-5xl p-3 transition-all duration-500">
         <div className="my-8 flex flex-col gap-1">
           <h1 className="text-[clamp(1.8rem, 4vw, 2.2rem)] tracking-tight">Settings</h1>
-          <p>
-            Manage your profile, preference, subscription plan, connected social accounts, and help.
-          </p>
+          <p>Manage your profile, preference, subscription plan, connected social accounts, and help.</p>
         </div>
 
         {/* Tabs */}
-        <div
-          style={{
-            display: "flex",
-            gap: "0.25rem",
-            borderBottom: "1px solid var(--color-border)",
-            marginBottom: "2rem",
-          }}
-        >
+        <div className="flex w-full bg-white p-1.5 rounded-4xl mb-8">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.4rem",
-                padding: "0.6rem 1rem",
-                fontSize: "0.85rem",
-                fontWeight: activeTab === id ? 600 : 400,
-                fontFamily: "var(--font-body)",
-                color: activeTab === id ? "var(--color-primary)" : "var(--color-muted)",
-                backgroundColor: "transparent",
-                border: "none",
-                borderBottom:
-                  activeTab === id ? "2px solid var(--color-primary)" : "2px solid transparent",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-                marginBottom: "-1px",
-              }}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-sans transition-all duration-200 rounded-lg ${
+                activeTab === id
+                  ? "bg-white text-[var(--color-primary)] font-semibold"
+                  : "text-gray-500 font-medium hover:text-gray-700 hover:bg-gray-200/50"
+              }`}
             >
               <Icon size={16} />
               {label}
@@ -287,7 +266,6 @@ const EMPTY: PersonalizationForm = {
   usp: "",
 };
 
-// Shared class stringS
 
 const cx = {
   input:
@@ -569,138 +547,92 @@ function SettingsTab() {
       // Even if API call fails, clear local state
     }
     clearUser();
-    router.push("/login");
+    router.push("/signin");
   };
+
+  // Helper to map the plan name to its specific badge styles and icons
+  const getPlanDetails = (planName?: string) => {
+    if (!planName) return { label: "...", color: "from-gray-200 to-gray-300", icon: null };
+
+    switch (planName.toLowerCase()) {
+      case "influencer":
+        return {
+          label: "Premium",
+          color: "from-purple-500 to-indigo-600",
+          icon: (
+            <svg fill="currentColor" viewBox="0 0 24 24" className="w-3.5 h-3.5">
+              <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+            </svg>
+          ),
+        };
+      case "creator":
+        return {
+          label: "PRO",
+          color: "from-amber-400 to-orange-500",
+          icon: (
+            <svg fill="currentColor" viewBox="0 0 24 24" className="w-3.5 h-3.5">
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            </svg>
+          ),
+        };
+      case "hustler":
+      default:
+        return {
+          label: "Free",
+          color: "from-gray-400 to-gray-500",
+          icon: null,
+        };
+    }
+  };
+
+  const planConfig = getPlanDetails(ent?.display_name);
 
   return (
     <div>
       {/* Current plan */}
-      <div
-        style={{
-          backgroundColor: "white",
-          border: "1px solid var(--color-border)",
-          borderRadius: "12px",
-          padding: "1.5rem",
-          marginBottom: "1.5rem",
-        }}
-      >
-        <h3
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "1.1rem",
-            fontWeight: 400,
-            marginBottom: "0.75rem",
-            color: "var(--color-text)",
-          }}
-        >
+      <div className="bg-white border border-gray-200 rounded-4xl p-6 mb-6">
+        <h3 className="font-sans text-lg font-normal mb-3 text-gray-900">
           Current Plan
         </h3>
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.4rem",
-            padding: "0.3rem 0.9rem",
-            borderRadius: "20px",
-            backgroundColor: "var(--color-primary)",
-            color: "#fff",
-            fontSize: "0.78rem",
-            fontWeight: 600,
-            fontFamily: "var(--font-body)",
-          }}
-        >
-          {ent ? ent.display_name : "…"}
-        </span>
+
+        {/* Mapped Badge: [LABEL] Actual Name */}
+        <div className="flex items-center gap-2.5">
+          <span className={`inline-flex items-center gap-1 px-4 py-2 rounded-full bg-gradient-to-r ${planConfig.color} text-white text-xs font-bold uppercase tracking-wider`}>
+            {planConfig.icon}
+            {planConfig.label}
+          </span>
+
+          <span className="text-gray-500 font-medium capitalize text-sm">
+            {ent ? ent.display_name : "Loading..."}
+          </span>
+        </div>
+
         {ent?.payment_warning && (
-          <p
-            style={{
-              marginTop: "0.75rem",
-              fontSize: "0.82rem",
-              color: "var(--color-destructive)",
-              fontFamily: "var(--font-body)",
-            }}
-          >
+          <p className="mt-4 text-sm text-red-600 font-sans">
             There is a problem with your payment — please update your billing.
           </p>
         )}
       </div>
 
-      <div
-        style={{
-          backgroundColor: "white",
-          border: "1px solid var(--color-border)",
-          borderRadius: "12px",
-          padding: "1.5rem",
-          marginBottom: "1.5rem",
-        }}
-      >
-        <h3
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "1.1rem",
-            fontWeight: 400,
-            marginBottom: "1rem",
-            color: "var(--color-text)",
-          }}
-        >
-          Appearance
-        </h3>
-        <p
-          style={{
-            fontSize: "0.85rem",
-            color: "var(--color-muted)",
-            fontFamily: "var(--font-body)",
-          }}
-        >
-          Theme: Light (dark mode coming soon)
-        </p>
+      {/* Appearance */}
+      <div className="bg-white border border-gray-200 rounded-4xl p-6 mb-6">
+        <p className="text-base font-normal mb-4 text-gray-900">Theme (MODE)</p>
+        <p>Light</p>
+        <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 opacity-60 cursor-not-allowed border border-[var(--color-border)]"> <span className="inline-block h-5 w-5 translate-x-0.5 rounded-full bg-white shadow-sm" />
+          </div>
       </div>
 
-      <div
-        style={{
-          backgroundColor: "white",
-          border: "1px solid var(--color-border)",
-          borderRadius: "12px",
-          padding: "1.5rem",
-        }}
-      >
-        <h3
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "1.1rem",
-            fontWeight: 400,
-            marginBottom: "0.5rem",
-            color: "#c0392b",
-          }}
-        >
-          Danger Zone
+      {/* Danger Zone */}
+      <div className="bg-white border border-gray-200 rounded-4xl p-6">
+        <h3 className="font-sans text-lg font-normal mb-2 text-red-700">
+          Danger: Signout
         </h3>
-        <p
-          style={{
-            fontSize: "0.85rem",
-            color: "var(--color-muted)",
-            fontFamily: "var(--font-body)",
-            marginBottom: "1rem",
-          }}
-        >
+        <p className="text-sm text-gray-500 font-sans mb-4">
           Sign out of your Cupid account
         </p>
         <button
           onClick={handleLogout}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            padding: "0.5rem 1.2rem",
-            borderRadius: "8px",
-            fontSize: "0.85rem",
-            fontWeight: 500,
-            fontFamily: "var(--font-body)",
-            color: "#c0392b",
-            backgroundColor: "transparent",
-            border: "1px solid #c0392b",
-            cursor: "pointer",
-            transition: "all 0.15s ease",
-          }}
+          className="inline-flex items-center px-5 py-2 rounded-lg text-sm font-medium text-red-700 bg-transparent border border-red-700 transition-all duration-150 ease-in-out hover:bg-red-50 cursor-pointer"
         >
           Sign out
         </button>
@@ -770,7 +702,7 @@ function ConnectTab() {
       {socialPlatforms.map((platform) => (
         <div
           key={platform.name}
-          className="flex items-center justify-between rounded-xl border bg-muted/40 p-4 transition hover:bg-muted"
+          className="flex items-center justify-between rounded-4xl border bg-muted/40 p-4 transition hover:bg-muted"
         >
           {/* LEFT: ICON + NAME */}
           <div className="flex items-center gap-3">

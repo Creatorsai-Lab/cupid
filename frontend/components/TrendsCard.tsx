@@ -26,7 +26,7 @@ export function NewsCard({ article }: { article: TrendArticle }) {
       href={article.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group border-grey-500 flex gap-4 rounded-xl border bg-white p-2 transition-all duration-200 hover:border-[var(--color-primary)] hover:shadow-sm"
+      className="group border-grey-500 flex gap-4 rounded-4xl border bg-white p-2 transition-all duration-200 hover:border-[var(--color-primary)] hover:shadow-sm"
     >
       {/* Image (or placeholder) */}
       <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-[#fff6ed]">

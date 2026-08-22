@@ -53,6 +53,12 @@ class Settings(BaseSettings):
     google_redirect_uri: str = (
         "http://localhost:8000/api/v1/connections/youtube/callback"
     )
+    # Where Google returns the user after the LOGIN consent (distinct from the
+    # YouTube-connect callback above). Add this exact URI to the same Google
+    # OAuth client's "Authorized redirect URIs".
+    google_login_redirect_uri: str = "http://localhost:8000/api/v1/auth/google/callback"
+    # Frontend origin we bounce the user back to after login completes.
+    frontend_url: str = "http://localhost:3000"
 
     # ── Admin ─────────────────────────────────────────────────────────────
     # Emails promoted to is_admin=True automatically at startup (the env

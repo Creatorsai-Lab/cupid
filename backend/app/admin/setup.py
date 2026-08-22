@@ -18,10 +18,12 @@ SAFETY POSTURE
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI
 from sqladmin import Admin, ModelView
 
+from app.admin.dashboard_view import DashboardView
 from app.admin.security import AdminAuth
 from app.config import settings
 from app.core.db import engine
@@ -103,7 +105,9 @@ def setup_admin(app: FastAPI) -> None:
         authentication_backend=AdminAuth(secret_key=secret),
         base_url=settings.admin_panel_path,
         title="Cupid Admin",
+        templates_dir=str(Path(__file__).parent / "templates"),
     )
+    admin.add_view(DashboardView)  # custom Overview (analytics + health) first
     admin.add_view(UserAdmin)
     admin.add_view(SubscriptionAdmin)
     admin.add_view(AuditLogAdmin)

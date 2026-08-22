@@ -58,7 +58,7 @@ export default function Header() {
                       aria-label={label}
                       title={label}
                       aria-current={isActive ? "page" : undefined}
-                      className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all duration-300 ${
+                      className={`flex h-11 w-11 items-center justify-center rounded-4xl transition-all duration-300 ${
                         isActive
                           ? "text-(--color-primary) drop-shadow-[-1px_1px_1px_rgba(158,68,38,0.4)]"
                           : "text-(--color-text) hover:-translate-y-[2px] hover:drop-shadow-[-1px_1px_1px_rgba(158,68,38,0.4)]"
@@ -73,10 +73,7 @@ export default function Header() {
           </nav>
         ) : (
           <div className="ml-auto flex items-center gap-2">
-            <Link href="/login" className="btn-secondary">
-              Login
-            </Link>
-            <Link href="/register" className="btn-primary">
+            <Link href="/signin" className="btn-primary">
               Get started
             </Link>
           </div>

@@ -15,6 +15,7 @@ from app.routers.auth import router as auth_router
 from app.routers.connections import router as connections_router
 from app.routers.history_router import router as history_router
 from app.routers.insights_router import router as insights_router
+from app.routers.oauth_google import router as oauth_google_router
 from app.routers.profile import router as profile_router
 from app.routers.trends import router as trends_router
 from app.subscriptions.router import router as subscriptions_router
@@ -96,6 +97,7 @@ def create_app() -> FastAPI:
 
     # Register route modules
     app.include_router(auth_router)
+    app.include_router(oauth_google_router)
     app.include_router(profile_router)
     app.include_router(agents_router)
     app.include_router(trends_router, prefix="/api/v1")

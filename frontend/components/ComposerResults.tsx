@@ -394,7 +394,7 @@ function SourceCard({
   };
 
   return (
-    <div className="mt-5 flex flex-col rounded-xl border border-[var(--color-border)] bg-[var(--color-inline-bg)] transition-colors">
+    <div className="mt-5 flex flex-col rounded-4xl border border-[var(--color-border)] bg-[var(--color-inline-bg)] transition-colors">
       {/* Source badge row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4 px-4 py-3">
@@ -461,7 +461,7 @@ function EditCard({
   onCancel: () => void;
 }) {
   return (
-    <div className="mt-10 w-full rounded-xl border-2 border-[var(--color-primary)] bg-[var(--color-inline-bg)] p-4">
+    <div className="mt-10 w-full rounded-4xl border-2 border-[var(--color-primary)] bg-[var(--color-inline-bg)] p-4">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-xs font-semibold text-[var(--color-primary)]">
           Editing Variant {index + 1}

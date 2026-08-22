@@ -21,7 +21,7 @@ export default function ContactPage() {
         <div className="grid grid-cols-1 gap-4 text-sm text-[var(--color-text)] sm:grid-cols-2">
           <a
             href="mailto:hello@cupidagents.com"
-            className="flex items-start gap-3 rounded-xl border border-[var(--color-border)] p-5 transition-colors hover:border-[var(--color-primary)]"
+            className="flex items-start gap-3 rounded-4xl border border-[var(--color-border)] p-5 transition-colors hover:border-[var(--color-primary)]"
           >
             <Mail size={18} className="mt-0.5 flex-shrink-0 text-[var(--color-primary)]" />
             <div>
@@ -32,7 +32,7 @@ export default function ContactPage() {
 
           <a
             href="mailto:support@cupidagents.com"
-            className="flex items-start gap-3 rounded-xl border border-[var(--color-border)] p-5 transition-colors hover:border-[var(--color-primary)]"
+            className="flex items-start gap-3 rounded-4xl border border-[var(--color-border)] p-5 transition-colors hover:border-[var(--color-primary)]"
           >
             <MessageCircle size={18} className="mt-0.5 flex-shrink-0 text-[var(--color-primary)]" />
             <div>
@@ -41,7 +41,7 @@ export default function ContactPage() {
             </div>
           </a>
 
-          <div className="flex items-start gap-3 rounded-xl border border-[var(--color-border)] p-5 sm:col-span-2">
+          <div className="flex items-start gap-3 rounded-4xl border border-[var(--color-border)] p-5 sm:col-span-2">
             <MapPin size={18} className="mt-0.5 flex-shrink-0 text-[var(--color-primary)]" />
             <div>
               <p className="font-medium">Where we are</p>

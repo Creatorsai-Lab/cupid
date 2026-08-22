@@ -257,7 +257,7 @@ export function FacebookCard({
   mediaUrl,
 }: CardProps) {
   return (
-    <div className="h-fit w-full max-w-[500px] overflow-hidden rounded-xl border border-[#ddd] bg-white font-sans text-[#050505] shadow-sm">
+    <div className="h-fit w-full max-w-[500px] overflow-hidden rounded-4xl border border-[#ddd] bg-white font-sans text-[#050505] shadow-sm">
       <div className="flex items-start gap-2.5 p-3 pb-2">
         <Avatar name={name} avatarUrl={avatarUrl} size={40} />
         <div className="min-w-0 flex-1">
@@ -582,7 +582,7 @@ function LazyLandscapeVideo({ src }: { src: string }) {
         className="group absolute inset-0 grid place-items-center bg-black/10 transition-colors hover:bg-black/20"
       >
         {/* YouTube style pill/rectangle play button */}
-        <span className="grid h-12 w-16 place-items-center rounded-xl bg-black/70 backdrop-blur-sm transition-all group-hover:scale-105 group-hover:bg-[#ff0000]">
+        <span className="grid h-12 w-16 place-items-center rounded-4xl bg-black/70 backdrop-blur-sm transition-all group-hover:scale-105 group-hover:bg-[#ff0000]">
           <Play size={24} className="text-white" fill="white" />
         </span>
       </button>
@@ -599,11 +599,11 @@ export function YouTubeCard({
   mediaUrl,
 }: CardProps) {
   return (
-    <div className="h-fit w-full max-w-[540px] overflow-hidden rounded-xl border border-[#e5e5e5] bg-white p-3 font-sans text-[#0f0f0f]">
+    <div className="h-fit w-full max-w-[540px] overflow-hidden rounded-4xl border border-[#e5e5e5] bg-white p-3 font-sans text-[#0f0f0f]">
 
       {/* Replaced MediaBlock with a relative 16:9 container for the LazyVideo */}
       {mediaUrl && (
-        <div className="relative w-full aspect-video overflow-hidden rounded-xl bg-gray-100">
+        <div className="relative w-full aspect-video overflow-hidden rounded-4xl bg-gray-100">
           <LazyLandscapeVideo src={mediaUrl} />
         </div>
       )}
@@ -793,7 +793,7 @@ export function QuizCard({
           return (
             <div
               key={i}
-              className="relative h-11 overflow-hidden rounded-xl border transition-colors"
+              className="relative h-11 overflow-hidden rounded-4xl border transition-colors"
               style={{
                 borderColor: isLeader ? "#d47a03" : "#e2e8f0",
                 cursor: isVoted ? "default" : "pointer",
@@ -802,7 +802,7 @@ export function QuizCard({
               {/* Fill bar */}
               {isVoted && (
                 <div
-                  className="absolute top-0 left-0 h-full rounded-xl transition-all duration-700"
+                  className="absolute top-0 left-0 h-full rounded-4xl transition-all duration-700"
                   style={{
                     width: `${pct}%`,
                     backgroundColor: isLeader ? "#d47a0320" : "#f7fafc",

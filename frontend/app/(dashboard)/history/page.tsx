@@ -139,7 +139,7 @@ function HistoryCard({
 }) {
   return (
     <div
-      className="group relative cursor-pointer rounded-xl border border-[var(--color-border)] bg-white p-4 transition-all duration-200 ease-in-out hover:border-[var(--color-primary)] hover:shadow-md"
+      className="group relative cursor-pointer rounded-4xl border border-[var(--color-border)] bg-white p-4 transition-all duration-200 ease-in-out hover:border-[var(--color-primary)] hover:shadow-md"
       onClick={onOpen}
     >
       {/* Header: prompt + date + delete */}
@@ -177,7 +177,7 @@ function HistoryCard({
 
 function PreviewCard({ variant }: { variant: HistoryVariant }) {
   return (
-    <div className="relative h-[120px] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-3">
+    <div className="relative h-[120px] overflow-hidden rounded-4xl border border-[var(--color-border)] bg-[var(--color-background)] p-3">
       <p className="line-clamp-5 text-sm leading-relaxed">{variant.content}</p>
       <div
         className="pointer-events-none absolute right-0 bottom-0 left-0 h-8"
@@ -276,7 +276,7 @@ function FullVariant({ variant, index }: { variant: HistoryVariant; index: numbe
     .join(" ");
 
   return (
-    <div className="rounded-xl border" style={{ borderColor: "var(--color-border)" }}>
+    <div className="rounded-4xl border" style={{ borderColor: "var(--color-border)" }}>
       <div
         className="flex items-center justify-between border-b px-4 py-2.5"
         style={{
@@ -391,7 +391,7 @@ function ListSkeleton() {
           <div className="mb-4 h-5 w-2/3 rounded bg-[var(--color-primary-tint,#fff6ed)]" />
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {[0, 1, 2].map((j) => (
-              <div key={j} className="h-36 rounded-xl bg-[var(--color-primary-tint,#fff6ed)]" />
+              <div key={j} className="h-36 rounded-4xl bg-[var(--color-primary-tint,#fff6ed)]" />
             ))}
           </div>
         </div>

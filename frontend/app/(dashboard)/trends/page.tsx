@@ -287,7 +287,7 @@ function NewsLoadingSkeleton() {
       {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
         <div
           key={i}
-          className="flex gap-4 rounded-xl border border-[var(--color-border)] bg-white p-3"
+          className="flex gap-4 rounded-4xl border border-[var(--color-border)] bg-white p-3"
         >
           <div className="h-24 w-24 flex-shrink-0 animate-pulse rounded-lg bg-[#fff6ed]" />
           <div className="flex min-w-0 flex-1 flex-col justify-between">
