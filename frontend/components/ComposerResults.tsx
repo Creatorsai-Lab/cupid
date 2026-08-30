@@ -279,7 +279,7 @@ export function ComposerResults({
         </button>
 
         <span
-          className="min-w-[90px] text-center text-xs font-medium"
+          className="min-w-[90px] text-center text-sm font-medium"
           style={{ color: "var(--color-muted)" }}
         >
           Variant {current + 1} of {items.length}
@@ -326,7 +326,7 @@ export function ComposerResults({
 
         {/* "Requires Pro" pill for Improve */}
         {proNote && (
-          <div className="absolute -top-9 left-0 rounded-md bg-[var(--color-text)] px-3 py-1.5 text-xs font-medium text-white shadow">
+          <div className="absolute -top-9 left-0 rounded-md bg-[var(--color-text)] px-3 py-1.5 text-sm font-medium text-white shadow">
             Requires Pro
           </div>
         )}
@@ -398,7 +398,7 @@ function SourceCard({
       {/* Source badge row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4 px-4 py-3">
-          <span className="text-xs font-semibold text-[var(--color-primary)]">
+          <span className="text-sm font-semibold text-[var(--color-primary)]">
             Variant {index + 1}
           </span>
           {scorePct !== null && <QualityBadge score={scorePct} />}
@@ -407,7 +407,7 @@ function SourceCard({
           <button
             onClick={handleCopy}
             title="Copy post"
-            className={`flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${
+            className={`flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors ${
               copied
                 ? "bg-[var(--inline-bg)] text-[var(--color-primary)]"
                 : "bg-transparent text-[var(--color-muted)]"
@@ -463,7 +463,7 @@ function EditCard({
   return (
     <div className="mt-10 w-full rounded-4xl border-2 border-[var(--color-primary)] bg-[var(--color-inline-bg)] p-4">
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs font-semibold text-[var(--color-primary)]">
+        <span className="text-sm font-semibold text-[var(--color-primary)]">
           Editing Variant {index + 1}
         </span>
         <div className="flex items-center gap-2">
@@ -507,7 +507,7 @@ function QualityBadge({ score }: { score: number }) {
   const color = score >= 70 ? "#059669" : score >= 45 ? "#d18904" : "#9ca3af";
   return (
     <div
-      className="rounded-full px-2 py-0.5 text-xs font-semibold"
+      className="rounded-full px-2 py-0.5 text-sm font-semibold"
       style={{ backgroundColor: `${color}18`, color }}
     >
       {score}%

@@ -148,7 +148,7 @@ function HistoryCard({
           {entry.prompt}
         </h2>
         <div className="flex flex-shrink-0 items-center gap-3">
-          <span className="text-xs whitespace-nowrap text-[var(--color-text)] italic">
+          <span className="text-sm whitespace-nowrap text-[var(--color-text)] italic">
             {formatDate(entry.created_at)}
           </span>
           <button
@@ -166,7 +166,7 @@ function HistoryCard({
       </div>
 
       {/* Three variant previews */}
-      <div className="grid grid-cols-1 gap-3 text-xs md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-3">
         {entry.variants.slice(0, 3).map((variant, i) => (
           <PreviewCard key={i} variant={variant} />
         ))}
@@ -225,7 +225,7 @@ function DetailModal({ entry, onClose }: { entry: HistoryEntry; onClose: () => v
             <div className="mb-2 flex items-center gap-2">
               <Sparkles size={13} style={{ color: "var(--color-primary)" }} />
               <span
-                className="text-xs font-medium tracking-wide uppercase"
+                className="text-sm font-medium tracking-wide uppercase"
                 style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}
               >
                 {entry.target_platform}
@@ -285,14 +285,14 @@ function FullVariant({ variant, index }: { variant: HistoryVariant; index: numbe
         }}
       >
         <span
-          className="text-xs font-semibold"
+          className="text-sm font-semibold"
           style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}
         >
           Variant {index + 1} · {angleLabel}
         </span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-colors"
+          className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm transition-colors"
           style={{
             backgroundColor: copied ? "var(--color-primary-tint, #fff6ed)" : "transparent",
             color: copied ? "var(--color-primary)" : "var(--color-muted)",
@@ -363,7 +363,7 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
         Could not load history
       </p>
       <p
-        className="mb-4 max-w-sm text-xs"
+        className="mb-4 max-w-sm text-sm"
         style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
       >
         {message}

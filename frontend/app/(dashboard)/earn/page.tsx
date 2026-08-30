@@ -158,7 +158,7 @@ function QAGate({ onComplete }: { onComplete: () => void }) {
                   <button
                     key={opt.value}
                     onClick={() => setAnswers((a) => ({ ...a, [q.stream_id]: opt.value }))}
-                    className="rounded-lg border px-3 py-2.5 text-center text-xs leading-tight transition-all"
+                    className="rounded-lg border px-3 py-2.5 text-center text-sm leading-tight transition-all"
                     style={{
                       borderColor: active ? "var(--color-primary)" : "var(--color-border)",
                       backgroundColor: active ? "var(--color-primary)" : "transparent",
@@ -175,7 +175,7 @@ function QAGate({ onComplete }: { onComplete: () => void }) {
         ))}
       </div>
 
-      {err && <p className="mt-4 text-center text-xs text-red-500">{err}</p>}
+      {err && <p className="mt-4 text-center text-sm text-red-500">{err}</p>}
 
       <div className="sticky bottom-4 mt-6">
         <button
@@ -193,7 +193,7 @@ function QAGate({ onComplete }: { onComplete: () => void }) {
           )}
         </button>
         {!allAnswered && (
-          <p className="mt-2 text-center text-xs" style={{ color: "var(--color-muted)" }}>
+          <p className="mt-2 text-center text-sm" style={{ color: "var(--color-muted)" }}>
             Answer all {questions.length} to continue
           </p>
         )}
@@ -253,7 +253,7 @@ function SectionStats({ stats }: { stats: ReadinessResponse["stats"] }) {
             Your Monitization Coach
           </h1>
         </div>
-        <span className="rounded-full border border-[var(--color-primary)] px-3 py-1.5 font-[family-name:var(--font-body)] text-xs font-medium text-[var(--color-primary)]">
+        <span className="rounded-full border border-[var(--color-primary)] px-3 py-1.5 font-[family-name:var(--font-body)] text-sm font-medium text-[var(--color-primary)]">
           {stats.tier_label}
         </span>
       </div>
@@ -269,7 +269,7 @@ function SectionStats({ stats }: { stats: ReadinessResponse["stats"] }) {
       >
         {stats.tier_blurb}
         {stats.confidence === "low" && (
-          <span className="mt-1 block text-xs italic">
+          <span className="mt-1 block text-sm italic">
             Based on your connected accounts — connect more for sharper guidance.
           </span>
         )}
@@ -283,7 +283,7 @@ function StatTile({ icon, label, value }: { icon: React.ReactNode; label: string
     <div className="rounded-2xl border bg-white p-4" style={{ borderColor: "var(--color-border)" }}>
       <div className="mb-1 flex items-center gap-1.5" style={{ color: "var(--color-muted)" }}>
         {icon}
-        <span className="text-xs" style={{ fontFamily: "var(--font-body)" }}>
+        <span className="text-sm" style={{ fontFamily: "var(--font-body)" }}>
           {label}
         </span>
       </div>
@@ -313,7 +313,7 @@ function SectionVerdict({ verdict }: { verdict: ReadinessResponse["verdict"] }) 
         <div className="mb-2 flex items-center gap-2">
           <Sparkles size={14} style={{ color: "var(--color-primary)" }} />
           <span
-            className="text-xs font-semibold tracking-wide uppercase"
+            className="text-sm font-semibold tracking-wide uppercase"
             style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}
           >
             Your coach's read
@@ -398,7 +398,7 @@ function StreamRow({ card }: { card: StreamCard }) {
         </h4>
         {card.followers_gap > 0 && (
           <span
-            className="rounded-full px-2 py-0.5 text-xs whitespace-nowrap"
+            className="rounded-full px-2 py-0.5 text-sm whitespace-nowrap"
             style={{ backgroundColor: "var(--color-background)", color: "var(--color-muted)" }}
           >
             {card.followers_gap.toLocaleString()} to go
@@ -406,13 +406,13 @@ function StreamRow({ card }: { card: StreamCard }) {
         )}
       </div>
       <p
-        className="mb-2 text-xs leading-relaxed"
+        className="mb-2 text-sm leading-relaxed"
         style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
       >
         {card.short_pitch}
       </p>
       <p
-        className="text-xs italic"
+        className="text-sm italic"
         style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}
       >
         {card.tradeoff_label}
@@ -459,7 +459,7 @@ function SectionOpportunities({ opp }: { opp: ReadinessResponse["opportunities"]
               </div>
               {o.description && (
                 <p
-                  className="mb-2 line-clamp-2 text-xs leading-relaxed"
+                  className="mb-2 line-clamp-2 text-sm leading-relaxed"
                   style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
                 >
                   {o.description}
@@ -467,7 +467,7 @@ function SectionOpportunities({ opp }: { opp: ReadinessResponse["opportunities"]
               )}
               <div className="flex items-center gap-2">
                 <span
-                  className="rounded-full px-2 py-0.5 text-xs capitalize"
+                  className="rounded-full px-2 py-0.5 text-sm capitalize"
                   style={{
                     backgroundColor: "var(--color-primary-tint, #fff6ed)",
                     color: "var(--color-primary)",
@@ -476,7 +476,7 @@ function SectionOpportunities({ opp }: { opp: ReadinessResponse["opportunities"]
                   {o.opp_type.replace("_", " ")}
                 </span>
                 {o.commission_note && (
-                  <span className="text-xs" style={{ color: "var(--color-muted)" }}>
+                  <span className="text-sm" style={{ color: "var(--color-muted)" }}>
                     {o.commission_note}
                   </span>
                 )}

@@ -117,7 +117,7 @@ export function ConnectionsPanel() {
             Connected accounts
           </h3>
           <p
-            className="mt-0.5 text-xs"
+            className="mt-0.5 text-sm"
             style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
           >
             Connect platforms to unlock analytics and trends
@@ -126,7 +126,7 @@ export function ConnectionsPanel() {
         {connections && connections.length > 0 && (
           <button
             onClick={loadConnections}
-            className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs hover:bg-[#fff6ed]"
+            className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm hover:bg-[#fff6ed]"
             style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
             title="Refresh"
           >
@@ -171,7 +171,7 @@ export function ConnectionsPanel() {
           </p>
           {loading && !connections && (
             <p
-              className="mt-0.5 text-xs"
+              className="mt-0.5 text-sm"
               style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
             >
               Loading...
@@ -181,7 +181,7 @@ export function ConnectionsPanel() {
             <div className="mt-0.5 flex items-center gap-2">
               <CheckCircle2 size={11} style={{ color: "#10b981" }} />
               <p
-                className="text-xs"
+                className="text-sm"
                 style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
               >
                 Connected as {youtubeConnection.handle ?? youtubeConnection.platform_user_id}
@@ -192,7 +192,7 @@ export function ConnectionsPanel() {
           )}
           {!loading && !youtubeConnection && (
             <p
-              className="mt-0.5 text-xs"
+              className="mt-0.5 text-sm"
               style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
             >
               Not connected
@@ -253,7 +253,7 @@ export function ConnectionsPanel() {
             LinkedIn
           </p>
           <p
-            className="mt-0.5 text-xs"
+            className="mt-0.5 text-sm"
             style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
           >
             Coming soon

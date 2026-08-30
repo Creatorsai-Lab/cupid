@@ -1,13 +1,16 @@
 # defines what keys exist and loads them into Python
+from pathlib import Path
 from typing import Annotated
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",  # read backend/.env
+        env_file=BACKEND_DIR / ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="forbid",
@@ -20,7 +23,10 @@ class Settings(BaseSettings):
     debug: bool = True
 
     # Database
-    database_url: str = "postgresql+asyncpg://cupid:cupid@localhost:5432/cupid_db"
+    DATABASE_URL: str = "postgresql+asyncpg://cupid:cupid@localhost:5432/cupid_db"
+
+    # FRONTEND
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # Redis
     # docker-compose.yml maps host 6380 -> container 6379
@@ -57,8 +63,6 @@ class Settings(BaseSettings):
     # YouTube-connect callback above). Add this exact URI to the same Google
     # OAuth client's "Authorized redirect URIs".
     google_login_redirect_uri: str = "http://localhost:8000/api/v1/auth/google/callback"
-    # Frontend origin we bounce the user back to after login completes.
-    frontend_url: str = "http://localhost:3000"
 
     # ── Admin ─────────────────────────────────────────────────────────────
     # Emails promoted to is_admin=True automatically at startup (the env

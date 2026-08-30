@@ -140,7 +140,7 @@ function ChartShell({
           </h3>
         </div>
         <span
-          className="text-xs"
+          className="text-sm"
           style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
         >
           Last {rangeDays} days

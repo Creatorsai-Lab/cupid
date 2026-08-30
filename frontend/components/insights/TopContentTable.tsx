@@ -33,7 +33,7 @@ export function TopContentTable({
           </h3>
         </div>
         <span
-          className="text-xs"
+          className="text-sm"
           style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
         >
           as of {formatDate(snapshotDate)}
@@ -72,7 +72,7 @@ function TopContentRow({ item }: { item: TopContentItem }) {
       >
         {/* Rank badge */}
         <div
-          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-medium"
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-sm font-medium"
           style={{
             backgroundColor: item.rank <= 3 ? "#fff6ed" : "#f3f4f6",
             color: item.rank <= 3 ? "var(--color-primary)" : "var(--color-muted)",
@@ -107,7 +107,7 @@ function TopContentRow({ item }: { item: TopContentItem }) {
             {item.title}
           </p>
           <div
-            className="mt-1.5 flex items-center gap-4 text-xs"
+            className="mt-1.5 flex items-center gap-4 text-sm"
             style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
           >
             <span className="flex items-center gap-1">

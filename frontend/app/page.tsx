@@ -67,7 +67,7 @@ function Hero() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className={`${SANS} relative inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white/60 px-4 py-1.5 text-xs font-medium tracking-wide text-[var(--color-muted)] backdrop-blur`}
+          className={`${SANS} relative inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white/60 px-4 py-1.5 text-sm font-medium tracking-wide text-[var(--color-muted)] backdrop-blur`}
         >
           {/* Micro-shimmer: a soft pulsing ring on the border */}
           <span
@@ -184,7 +184,7 @@ function AgentSwarm() {
         {/* Copy */}
         <div className="order-2 lg:order-1">
           <p
-            className={`${SANS} mb-4 text-xs font-semibold tracking-[0.16em] text-[var(--color-primary)] uppercase`}
+            className={`${SANS} mb-4 text-sm font-semibold tracking-[0.16em] text-[var(--color-primary)] uppercase`}
           >
             The architecture
           </p>
@@ -204,7 +204,7 @@ function AgentSwarm() {
                 <button
                   onMouseEnter={() => setHovered(i)}
                   onMouseLeave={() => setHovered(null)}
-                  className={`${SANS} rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  className={`${SANS} rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                     hovered === i
                       ? "border-[var(--color-primary)] text-[var(--color-primary)]"
                       : "border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-border-hover)]"
@@ -300,7 +300,7 @@ function AgentSwarm() {
                         transition={{ duration: 0.18 }}
                         className="absolute top-full left-1/2 z-20 mt-2 w-44 -translate-x-1/2 rounded-4xl border border-[var(--color-border)] bg-white/95 p-3 text-center shadow-lg backdrop-blur"
                       >
-                        <p className={`${SANS} text-xs font-semibold text-[var(--color-text)]`}>
+                        <p className={`${SANS} text-sm font-semibold text-[var(--color-text)]`}>
                           {n.label}
                         </p>
                         <p className="mt-0.5 text-[11px] leading-snug text-[var(--color-muted)]">
@@ -348,7 +348,7 @@ function Features() {
       <div className="mx-auto max-w-6xl px-6 py-24 lg:py-32">
         <div className="mx-auto max-w-2xl text-center">
           <p
-            className={`${SANS} mb-4 text-xs font-semibold tracking-[0.16em] text-[var(--color-primary)] uppercase`}
+            className={`${SANS} mb-4 text-sm font-semibold tracking-[0.16em] text-[var(--color-primary)] uppercase`}
           >
             Built for creators
           </p>
@@ -444,7 +444,7 @@ function Faq() {
       <div className="mx-auto max-w-3xl px-6 py-24 lg:py-32">
         <div className="text-center">
           <p
-            className={`${SANS} mb-4 text-xs font-semibold tracking-[0.16em] text-[var(--color-primary)] uppercase`}
+            className={`${SANS} mb-4 text-sm font-semibold tracking-[0.16em] text-[var(--color-primary)] uppercase`}
           >
             Questions
           </p>

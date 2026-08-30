@@ -194,7 +194,7 @@ def _build_provider_chain() -> list[QueryProvider]:
             chain.append(GroqProvider(groq_key))
         except Exception as exc:
             logger.warning(
-                "[personalization] Groq initialization skipped: %s", str(exc)[:100]
+                f"[personalization] Groq initialization skipped: {str(exc)[:100]}"
             )
 
     hf_key = getattr(settings, "huggingface_api_key", "")
@@ -203,7 +203,7 @@ def _build_provider_chain() -> list[QueryProvider]:
             chain.append(HuggingFaceProvider(hf_key))
         except Exception as exc:
             logger.warning(
-                "[personalization] HF initialization skipped: %s", str(exc)[:100]
+                f"[personalization] HF initialization skipped: {str(exc)[:100]}"
             )
 
     chain.append(HeuristicProvider())
@@ -219,9 +219,10 @@ async def _run_chain(system: str, user: str) -> tuple[list[str], str]:
                 return queries, provider.name
         except Exception as exc:
             logger.warning(
-                "[personalization] %s execution failed: %s",
-                provider.name,
-                str(exc)[:100],
+                f"[personalization] {provider.name} execution failed: {str(exc)[:100]}"
+            )
+            logger.warning(
+                f"[personalization] {provider.name} execution failed: {str(exc)[:100]}"
             )
             continue
     return [], "none"

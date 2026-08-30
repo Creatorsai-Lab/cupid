@@ -37,7 +37,7 @@ export default function LoginPage() {
     <main className="flex min-h-[calc(100vh-60px)] items-center justify-center px-6">
       <div className="w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-white p-8 text-center shadow-sm">
         <h1 className="text-2xl tracking-tight">Welcome to Cupid</h1>
-        <p className="mt-2 text-sm text-[var(--color-muted)]">
+        <p className="mt-2 text-[var(--color-muted)]">
           Sign in to start creating content that sounds like you.
         </p>
 
@@ -55,7 +55,7 @@ export default function LoginPage() {
           Continue with Google
         </button>
 
-        <p className="mt-6 text-xs text-[var(--color-muted)]">
+        <p className="mt-6 text-sm text-[var(--color-muted)]">
           By continuing you agree to our{" "}
           <a href="/terms" className="underline">
             Terms

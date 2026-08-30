@@ -36,8 +36,8 @@ export default function Header() {
             <Image
               src="/cupid_logo.webp"
               alt="Cupid Logo"
-              width={850}
-              height={814}
+              width={870}
+              height={833}
               className="h-auto w-10"
               priority
             />
@@ -64,7 +64,7 @@ export default function Header() {
                           : "text-(--color-text) hover:-translate-y-[2px] hover:drop-shadow-[-1px_1px_1px_rgba(158,68,38,0.4)]"
                       } `}
                     >
-                      <Icon size={24} strokeWidth={2} />
+                      <Icon size={26} strokeWidth={2} />
                     </Link>
                   </li>
                 );

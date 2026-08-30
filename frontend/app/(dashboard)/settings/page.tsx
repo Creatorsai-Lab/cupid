@@ -175,7 +175,6 @@ const CONTENT_GOAL = [
   ["business_marketing", "Market my business"],
   ["get_clients", "Get clients or consulting work"],
   ["teach", "Teach and share knowledge"],
-  ["get_job", "Get a job or attract recruiters"],
   ["grow_audience", "Grow an audience"],
   ["monetize", "Monetize content"],
   ["community", "Build a community"],
@@ -306,7 +305,7 @@ function Field({
 }) {
   return (
     <div className={full ? "col-span-2" : ""}>
-      <label className="mb-1.5 block text-xs font-medium text-foreground">{label}</label>
+      <label className="mb-1.5 block text-sm font-medium text-foreground">{label}</label>
       {children}
     </div>
   );
@@ -597,7 +596,7 @@ function SettingsTab() {
 
         {/* Mapped Badge: [LABEL] Actual Name */}
         <div className="flex items-center gap-2.5">
-          <span className={`inline-flex items-center gap-1 px-4 py-2 rounded-full bg-gradient-to-r ${planConfig.color} text-white text-xs font-bold uppercase tracking-wider`}>
+          <span className={`inline-flex items-center gap-1 px-4 py-2 rounded-full bg-gradient-to-r ${planConfig.color} text-white text-sm font-bold uppercase tracking-wider`}>
             {planConfig.icon}
             {planConfig.label}
           </span>

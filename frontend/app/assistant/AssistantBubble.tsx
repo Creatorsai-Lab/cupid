@@ -59,7 +59,7 @@ export function AssistantBubble({
           {bubble.navTo && (
             <button
               onClick={() => router.push(bubble.navTo!)}
-              className="mt-2 inline-flex items-center gap-1 rounded-full px-1 text-xs font-medium transition-colors"
+              className="mt-2 inline-flex items-center gap-1 rounded-full px-1 text-sm font-medium transition-colors"
               style={{ backgroundColor: "var(--color-primary)", color: "#fff" }}
             >
               take me there! <ArrowRight size={11} />
@@ -71,7 +71,7 @@ export function AssistantBubble({
       {/* Tiny input */}
       {inputOpen && (
         <div
-          className="py-0.1 flex items-center gap-1.5 rounded-2xl border bg-white px-0.5 text-xs shadow-lg"
+          className="py-0.1 flex items-center gap-1.5 rounded-2xl border bg-white px-0.5 text-sm shadow-lg"
           style={{ borderColor: tooLong ? "#ef4444" : "var(--color-border)" }}
         >
           <input
@@ -98,7 +98,7 @@ export function AssistantBubble({
         </div>
       )}
       {tooLong && (
-        <p className="mt-1 text-right text-xs" style={{ color: "#ef4444" }}>
+        <p className="mt-1 text-right text-sm" style={{ color: "#ef4444" }}>
           just {MAX_CHARS} chars please ❤︎
         </p>
       )}

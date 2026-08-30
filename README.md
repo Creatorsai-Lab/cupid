@@ -139,7 +139,7 @@ Open `.env` in your editor and set at minimum:
 
 ```env
 SECRET_KEY=your-secret-key-here
-DATABASE_URL=postgresql+asyncpg://cupid:cupid@localhost:5432/cupid_db
+database_url=postgresql+asyncpg://cupid:cupid@localhost:5432/cupid_db
 REDIS_URL=redis://localhost:6379/0
 ```
 
@@ -233,7 +233,7 @@ cupid/
 | Variable | Required | Description |
 |---|---|---|
 | `SECRET_KEY` | Yes | JWT signing key. Use a long random string in production. |
-| `DATABASE_URL` | Yes | PostgreSQL async connection string. |
+| `database_url` | Yes | PostgreSQL async connection string. |
 | `REDIS_URL` | Yes | Redis connection string. |
 | `CHROMA_HOST` | Yes | ChromaDB host (default: localhost). |
 | `CHROMA_PORT` | Yes | ChromaDB port (default: 8001). |

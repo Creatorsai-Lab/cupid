@@ -284,7 +284,7 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
         Could not load insights
       </p>
       <p
-        className="mb-4 max-w-sm text-xs"
+        className="mb-4 max-w-sm text-sm"
         style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
       >
         {message}

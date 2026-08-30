@@ -37,11 +37,9 @@
   --color-background: #fff9f3;
   --color-inline-bg: #eae6e1;
 
-  /* ─── TEXT ────────────────────────────────────────────── */
   --color-text: #645a51; /* warm near-black, not stark grey */
   --color-muted: #8b7f75; /* warm grey for captions, helper text */
 
-  /* ─── BORDERS ─────────────────────────────────────────── */
   --color-border: #e8dfd3; /* warm soft border, replaces dark blue */
   --color-border-hover: #d4c7b6; /* slightly stronger on hover */
 
@@ -59,10 +57,7 @@
 
   --border-radius: 0.625rem;
   --font-display: var(--font-instrument-serif, "Georgia", serif);
-
-  /* ─── EXISTING ────────────────────────────────────────── */
   --radius: 0.625rem;
-  --font-display: var(--font-instrument-serif, "Georgia", serif);
   --font-body: var(--font-dm-sans, system-ui, sans-serif);
 }
 
@@ -92,6 +87,9 @@
     color: var(--color-text);
     background-color: var(--color-background);
   }
+  p{
+    font-size: 1rem;
+  }
 
   h1,
   h2,
@@ -106,14 +104,14 @@
   }
 
   h1 {
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     font-weight: 700;
     margin-bottom: 0.6rem;
     color: var(--color-primary);
   }
 
   h2 {
-    font-size: 1.2rem;
+    font-size: 1.4rem;
     margin-bottom: 0.6rem;
     color: var(--color-primary);
   }

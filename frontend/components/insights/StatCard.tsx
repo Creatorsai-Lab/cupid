@@ -33,7 +33,7 @@ export function StatCard({
     <div className="rounded-4xl border bg-white p-5" style={{ borderColor: "var(--color-border)" }}>
       <div className="mb-3 flex items-center justify-between">
         <p
-          className="text-xs font-medium tracking-wide uppercase"
+          className="text-sm font-medium tracking-wide uppercase"
           style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
         >
           {label}
@@ -62,13 +62,13 @@ export function StatCard({
         <div className="mt-2 flex items-center gap-1">
           <DeltaIcon size={11} style={{ color: deltaColor }} />
           <span
-            className="text-xs font-medium"
+            className="text-sm font-medium"
             style={{ color: deltaColor, fontFamily: "var(--font-body)" }}
           >
             {delta === 0 ? "no change" : formatNumber(Math.abs(delta))}
           </span>
           <span
-            className="text-xs"
+            className="text-sm"
             style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
           >
             last 30 days

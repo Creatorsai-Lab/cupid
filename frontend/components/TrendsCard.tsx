@@ -56,7 +56,7 @@ export function NewsCard({ article }: { article: TrendArticle }) {
         </h3>
 
         <div
-          className="mt-2 flex items-center gap-2 text-xs"
+          className="mt-2 flex items-center gap-2 text-sm"
           style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
         >
           <span className="max-w-[140px] truncate font-medium">{article.source}</span>

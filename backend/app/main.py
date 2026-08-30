@@ -87,12 +87,13 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    frontend_origin = settings.frontend_url.rstrip("/")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000"],
+        allow_origins=[frontend_origin],
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
     )
 
     # Register route modules

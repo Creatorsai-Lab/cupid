@@ -108,7 +108,7 @@ export default function TrendsPage() {
             <button
               onClick={() => loadTrends(true)}
               disabled={refreshing}
-              className="mb-2 flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors hover:bg-[#fff6ed] disabled:opacity-50"
+              className="mb-2 flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-[#fff6ed] disabled:opacity-50"
               style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
               title="Bypass cache and recompute"
             >
@@ -121,7 +121,7 @@ export default function TrendsPage() {
         {/* Refresh note — e.g. "No additional articles yet" */}
         {tab === "news" && refreshNote && (
           <div
-            className="mb-4 rounded-md bg-[#fff6ed] py-2 text-center text-xs"
+            className="mb-4 rounded-md bg-[#fff6ed] py-2 text-center text-sm"
             style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
           >
             {refreshNote}
@@ -168,7 +168,7 @@ function TabButton({
       {label}
       {count !== undefined && count > 0 && (
         <span
-          className="rounded-full px-1.5 py-0.5 text-xs"
+          className="rounded-full px-1.5 py-0.5 text-sm"
           style={{
             backgroundColor: active ? "#fff6ed" : "var(--color-border)",
             color: active ? "var(--color-primary)" : "var(--color-muted)",
@@ -209,7 +209,7 @@ function NewsTab({
           Could not load trends
         </p>
         <p
-          className="mb-4 max-w-sm text-xs"
+          className="mb-4 max-w-sm text-sm"
           style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
         >
           {error}
@@ -238,7 +238,7 @@ function NewsTab({
           No trending articles yet
         </p>
         <p
-          className="max-w-sm text-xs"
+          className="max-w-sm text-sm"
           style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
         >
           Articles will appear here once ingestion runs. Check back in a few minutes.
@@ -272,7 +272,7 @@ function PostsTab() {
         Trending posts coming soon
       </p>
       <p
-        className="max-w-sm text-xs"
+        className="max-w-sm text-sm"
         style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
       >
         We will surface viral posts and conversations from social media here in a future update.

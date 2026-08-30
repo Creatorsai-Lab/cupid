@@ -241,7 +241,7 @@ function MediaBlock({
           <ImageIcon size={28} style={{ color: platformColor, opacity: 0.7 }} />
         )}
       </div>
-      <p className="text-xs font-medium" style={{ color: platformColor, opacity: 0.6 }}>
+      <p className="text-sm font-medium" style={{ color: platformColor, opacity: 0.6 }}>
         {isVideo ? "Video" : platformLabel}
       </p>
     </div>
@@ -263,7 +263,7 @@ export function FacebookCard({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">{name}</p>
           <div className="m-0 flex items-center gap-1">
-            <span className="text-xs text-[#65676b]">{time}</span>
+            <span className="text-sm text-[#65676b]">{time}</span>
             <span className="text-[#65676b]">·</span>
             <Earth size={11} className="text-[#65676b]" />
           </div>
@@ -288,7 +288,7 @@ export function FacebookCard({
               <Heart size={9} className="fill-white text-white" strokeWidth={0} />
             </div>
           </div>
-          <span className="text-xs text-[#65676b]">0 comment · 4 shares</span>
+          <span className="text-sm text-[#65676b]">0 comment · 4 shares</span>
         </div>
       </div>
 
@@ -373,7 +373,7 @@ export function InstagramReelCard({
             <button className="rounded-full bg-black/20 p-2 backdrop-blur-sm transition-transform active:scale-90">
               <Icon size={24} className="text-white" strokeWidth={1.75} />
             </button>
-            <span className="text-xs font-semibold text-white drop-shadow">{count}</span>
+            <span className="text-sm font-semibold text-white drop-shadow">{count}</span>
           </div>
         ))}
         {/* More */}
@@ -392,18 +392,18 @@ export function InstagramReelCard({
           <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff" className="flex-shrink-0">
             <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <button className="ml-auto rounded-md border border-white px-2.5 py-0.5 text-xs font-semibold transition-colors hover:bg-white/20">
+          <button className="ml-auto rounded-md border border-white px-2.5 py-0.5 text-sm font-semibold transition-colors hover:bg-white/20">
             Follow
           </button>
         </div>
 
         {/* Caption */}
-        <p className="line-clamp-2 text-xs leading-relaxed text-white/90 drop-shadow">{content}</p>
+        <p className="line-clamp-2 text-sm leading-relaxed text-white/90 drop-shadow">{content}</p>
 
         {/* Audio */}
         <div className="mt-2 flex items-center gap-1.5">
           <Music2 size={12} className="flex-shrink-0 text-white/80" />
-          <span className="truncate text-xs text-white/80">Original audio · {user}</span>
+          <span className="truncate text-sm text-white/80">Original audio · {user}</span>
         </div>
       </div>
     </div>
@@ -435,7 +435,7 @@ export function XCard({ name, handle, content, time = "2h", avatarUrl, mediaUrl 
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="#1d9bf0">
                   <path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91-1.01-1-2.52-1.26-3.9-.8-.66-1.31-1.9-2.19-3.34-2.19-1.44 0-2.68.88-3.34 2.19-1.38-.46-2.9-.2-3.91.81-1 1.01-1.26 2.52-.8 3.91C1.63 9.33.75 10.57.75 12c0 1.43.88 2.67 2.19 3.34-.46 1.39-.2 2.9.81 3.91 1.01 1 2.52 1.26 3.91.81.67 1.31 1.9 2.19 3.34 2.19 1.43 0 2.67-.88 3.33-2.19 1.39.45 2.9.19 3.91-.81 1.01-1.01 1.27-2.52.81-3.91 1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.36-6.2 6.77z" />
                 </svg>
-                <p className="text-xs text-[#71767b]">@{user}</p>
+                <p className="text-sm text-[#71767b]">@{user}</p>
               </div>
             </div>
             <MoreHorizontal size={18} className="text-[#71767b]" />
@@ -472,7 +472,7 @@ export function XCard({ name, handle, content, time = "2h", avatarUrl, mediaUrl 
                 <div className="rounded-full p-1.5 transition-colors group-hover:bg-[#1d9bf0]/10">
                   <Icon size={16} strokeWidth={1.75} />
                 </div>
-                {count && <span className="text-xs">{count}</span>}
+                {count && <span className="text-sm">{count}</span>}
               </button>
             ))}
           </div>
@@ -502,9 +502,9 @@ export function LinkedInCard({
         <Avatar name={name} avatarUrl={avatarUrl} size={48} />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">{name}</p>
-          <p className="truncate text-xs text-[#666]">{subtitle}</p>
+          <p className="truncate text-sm text-[#666]">{subtitle}</p>
           <div className="flex items-center gap-1">
-            <span className="text-xs text-[#666]">{time} ·</span>
+            <span className="text-sm text-[#666]">{time} ·</span>
             <Earth size={11} className="text-[#666]" />
           </div>
         </div>
@@ -530,7 +530,7 @@ export function LinkedInCard({
         platformLabel="Image"
       />
 
-      <div className="flex items-center justify-end border-t border-b border-[#e0e0e0] px-4 py-2 text-xs text-[#666]">
+      <div className="flex items-center justify-end border-t border-b border-[#e0e0e0] px-4 py-2 text-sm text-[#666]">
         <span>0 comments · 0 reposts</span>
       </div>
 
@@ -718,7 +718,7 @@ export function YouTubeShortsCard({ name, handle, content, avatarUrl, mediaUrl }
           </button>
         </div>
         {/* Caption */}
-        <p className="line-clamp-2 text-xs leading-relaxed text-white/90 drop-shadow">{content}</p>
+        <p className="line-clamp-2 text-sm leading-relaxed text-white/90 drop-shadow">{content}</p>
       </div>
     </div>
   );
@@ -773,7 +773,7 @@ export function QuizCard({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm leading-tight font-bold">{name}</p>
-              <p className="mt-0.5 text-xs text-[#718096]">
+              <p className="mt-0.5 text-sm text-[#718096]">
                 @{user} · {time}
               </p>
             </div>
@@ -821,7 +821,7 @@ export function QuizCard({
               {/* Percentage */}
               {isVoted && (
                 <span
-                  className="absolute top-1/2 right-3 z-10 -translate-y-1/2 text-xs font-bold"
+                  className="absolute top-1/2 right-3 z-10 -translate-y-1/2 text-sm font-bold"
                   style={{ color: isLeader ? "#d47a03" : "#718096" }}
                 >
                   {pct}%
@@ -852,15 +852,15 @@ export function QuizCard({
       <div className="mt-1 flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-1.5 text-[#a0aec0]">
           <Users size={13} strokeWidth={1.75} />
-          <span className="text-xs">
+          <span className="text-sm">
             {totalVotes > 0 ? `${totalVotes.toLocaleString()} votes · ${timeLeft}` : timeLeft}
           </span>
         </div>
         <div className="flex items-center gap-4 text-[#a0aec0]">
-          <button className="flex items-center gap-1 text-xs transition-colors hover:text-[#2d3748]">
+          <button className="flex items-center gap-1 text-sm transition-colors hover:text-[#2d3748]">
             <MessageCircle size={15} strokeWidth={1.75} /> 48
           </button>
-          <button className="flex items-center gap-1 text-xs transition-colors hover:text-[#2d3748]">
+          <button className="flex items-center gap-1 text-sm transition-colors hover:text-[#2d3748]">
             <Heart size={15} strokeWidth={1.75} /> 312
           </button>
           <button className="transition-colors hover:text-[#2d3748]">

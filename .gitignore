@@ -64,4 +64,6 @@ yarn-error.log*
 
 # misc files
 admin.md
-temp-user.txt
+bugs.md
+TODO.md
+user_profile.md

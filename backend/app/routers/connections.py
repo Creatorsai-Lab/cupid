@@ -19,6 +19,7 @@ isn't disrupted by the Google round-trip.
 from __future__ import annotations
 
 import logging
+from html import escape
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -115,25 +116,30 @@ async def youtube_callback(
     via Google's redirect, not via our frontend, so there's no JWT cookie
     necessarily attached. We identify the user via the state token.
     """
-    # Reject obvious errors first
-    if error:
+    if not state:
         return _close_window_html(
             success=False,
-            message=f"Google denied access: {error}",
+            message="OAuth callback is missing its security state.",
         )
-
-    if not code or not state:
-        return _close_window_html(
-            success=False,
-            message="OAuth callback missing required parameters",
-        )
-
     # Validate the state — gives us the user_id who started this flow
     user_id_str = await consume_state(redis, state, expected_platform="youtube")
     if not user_id_str:
         return _close_window_html(
             success=False,
             message="OAuth state invalid or expired. Please try again.",
+        )
+    # Reject obvious errors first
+    if error:
+        logger.warning("[connections.callback] Google OAuth denied: %s", error)
+        return _close_window_html(
+            success=False,
+            message="Google denied access. Please try connecting again.",
+        )
+
+    if not code:
+        return _close_window_html(
+            success=False,
+            message="OAuth callback missing its authorization code.",
         )
 
     try:
@@ -155,10 +161,12 @@ async def youtube_callback(
     try:
         channel = await youtube_oauth.get_connected_channel_info(tokens["access_token"])
     except Exception as exc:
-        logger.error("[connections.callback] channel lookup failed: %s", exc)
+        logger.error(
+            "[connections.callback] channel lookup failed: %s", exc, exc_info=True
+        )
         return _close_window_html(
             success=False,
-            message=f"Could not load channel info: {exc}",
+            message="Could not load the YouTube channel. Please try again.",
         )
 
     # Upsert the SocialConnection row
@@ -256,6 +264,8 @@ def _close_window_html(*, success: bool, message: str) -> HTMLResponse:
     icon = "✓" if success else "✕"
     title = "Connected" if success else "Connection failed"
 
+    safe_message = escape(message, quote=True)
+
     return HTMLResponse(
         content=f"""<!DOCTYPE html>
 <html>
@@ -284,7 +294,7 @@ def _close_window_html(*, success: bool, message: str) -> HTMLResponse:
   <div class="card">
     <div class="icon">{icon}</div>
     <h1>{title}</h1>
-    <p>{message}</p>
+    <p>{safe_message}</p>
     {"<p style='margin-top:24px;font-size:13px'>You can close this window.</p>" if success else ""}
   </div>
   <script>

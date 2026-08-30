@@ -323,7 +323,7 @@ export default function CreatePage() {
               size={14}
               className="animate-heartbeat flex-shrink-0 fill-[var(--color-primary)] text-[var(--color-primary)]"
             />
-            <span className="text-xs font-bold text-(--color-input)">
+            <span className="text-sm font-bold text-(--color-input)">
               {agentStatusLabel(agentStatus, personalizationQueries.length > 0, !!researchData)}
             </span>
           </div>
@@ -347,7 +347,7 @@ export default function CreatePage() {
           />
         )}
 
-        <footer className="bg-red fixed right-0 bottom-0 left-0 py-3 text-center text-xs not-italic">
+        <footer className="bg-red fixed right-0 bottom-0 left-0 py-3 text-center text-sm not-italic">
           Cupid can make mistakes, please review post before publishing
         </footer>
       </main>
@@ -398,7 +398,7 @@ function PersonalizationQueriesItems({ queries }: { queries: string[] }) {
         className="mb-1.5 flex w-full items-center gap-3 rounded-2xl bg-(--color-inline-bg) px-4 py-1.5"
       >
         <UserRoundPen size={14} className="flex-shrink-0 text-[var(--color-primary)]" />
-        <span className="flex-1 text-left text-xs font-medium tracking-wide text-(--color-input)">
+        <span className="flex-1 text-left text-sm font-medium tracking-wide text-(--color-input)">
           Personalized queries generated ✓
         </span>
         <ChevronDown size={14} className="flex-shrink-0 text-[var(--color-primary)]" />
@@ -408,7 +408,7 @@ function PersonalizationQueriesItems({ queries }: { queries: string[] }) {
           {queries.map((q, i) => (
             <span
               key={i}
-              className="inline-table rounded-2xl bg-(--color-inline-bg)/50 px-3 py-1 text-xs text-(--color-input)"
+              className="inline-table rounded-2xl bg-(--color-inline-bg)/50 px-3 py-1 text-sm text-(--color-input)"
             >
               {q}
             </span>
@@ -433,7 +433,7 @@ function ResearchResults({ data }: { data: ResearchData }) {
         className="mb-1.5 flex w-full items-center gap-3 rounded-2xl bg-(--color-inline-bg) px-4 py-1.5"
       >
         <Compass size={14} className="flex-shrink-0 text-[var(--color-primary)]" />
-        <span className="flex-1 text-left text-xs font-medium tracking-wide text-(--color-input)">
+        <span className="flex-1 text-left text-sm font-medium tracking-wide text-(--color-input)">
           Research completed: {results.length} Sources ✓
         </span>
         <ChevronDown size={14} className="flex-shrink-0 text-[var(--color-primary)]" />
@@ -442,7 +442,7 @@ function ResearchResults({ data }: { data: ResearchData }) {
       {!hasResults && (
         <div className="flex items-center gap-2 px-4">
           <Compass size={14} className="flex-shrink-0 text-[var(--color-primary)]" />
-          <span className="flex-1 text-left text-xs font-medium tracking-wide text-(--color-grayish-red)">
+          <span className="flex-1 text-left text-sm font-medium tracking-wide text-(--color-grayish-red)">
             No results found ✗ (Try a more specific topic)
           </span>
         </div>
@@ -488,12 +488,12 @@ function SourceCard({ page }: { page: PageContent }) {
           </div>
         )}
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <span className="flex-shrink-0 text-xs font-medium text-[var(--color-text)]">
+          <span className="flex-shrink-0 text-sm font-medium text-[var(--color-text)]">
             {page.title.split(" ").length > 10
               ? page.title.split(" ").slice(0, 10).join(" ") + "..."
               : page.title}
           </span>
-          <span className="flex-1 truncate text-xs font-[var(--font-body)] font-medium text-[var(--color-muted)]">
+          <span className="flex-1 truncate text-sm font-[var(--font-body)] font-medium text-[var(--color-muted)]">
             {page.domain}
           </span>
         </div>
