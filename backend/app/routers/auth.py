@@ -37,7 +37,7 @@ def set_auth_cookie(response: Response, token: str) -> None:
         value=token,
         max_age=COOKIE_MAX_AGE,
         httponly=True,
-        secure=False,  # TODO: set True in production
+        secure=True,
         samesite="lax",
         path="/",
     )
@@ -69,6 +69,9 @@ async def get_current_user(
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+
+    if not user.is_active:
+        raise HTTPException(status_code=401, detail="Account is disabled")
 
     return user
 

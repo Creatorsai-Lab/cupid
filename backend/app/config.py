@@ -23,10 +23,10 @@ class Settings(BaseSettings):
     debug: bool = True
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://cupid:cupid@localhost:5432/cupid_db"
+    database_url: str = "postgresql+asyncpg://cupid:cupid@localhost:5432/cupid_db"
 
     # FRONTEND
-    FRONTEND_URL: str = "http://localhost:3000"
+    frontend_url: str = "http://localhost:3000"
 
     # Redis
     # docker-compose.yml maps host 6380 -> container 6379
