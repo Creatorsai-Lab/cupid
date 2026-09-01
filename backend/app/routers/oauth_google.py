@@ -30,7 +30,7 @@ from app.core.redis import get_redis
 from app.core.security import create_access_token
 from app.models.user import User
 from app.routers.auth import set_auth_cookie
-from app.services.auth import get_user_by_email
+from app.services.auth import get_user_by_email, link_google_identity
 from app.services.google_identity import build_auth_url, exchange_code, fetch_userinfo
 
 logger = logging.getLogger("app.auth.google")
@@ -93,6 +93,13 @@ async def google_callback(
         await db.refresh(user)
         created = True
         logger.info("[auth.google] created user %s", email)
+    if user is not None and user.is_active:
+        return _bounce("signin?error=disabled")
+
+    if user is not None:
+        link_google_identity(user, info)
+        await db.commit()
+        await db.refresh(user)
 
     # Same session cookie the app already uses, then bounce to the frontend.
     dest = "/settings" if created else "/create"
