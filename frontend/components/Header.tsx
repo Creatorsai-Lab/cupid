@@ -24,7 +24,8 @@ const NAV_ITEMS = [
 
 export default function Header() {
   const pathname = usePathname();
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const status = useAuthStore((state) => state.status);
+  const isAuthenticated = status === "authenticated";
   const streak = useAuthStore((s) => (s as { streak?: number }).streak ?? 0);
 
   return (

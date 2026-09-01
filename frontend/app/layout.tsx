@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, Instrument_Serif } from "next/font/google";
 import Header from "@/components/Header";
+import AuthSession from "@/components/AuthSession";
 import "./globals.css";
 import Assistant from "./assistant/Assistant";
 
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       data-scroll-behavior="smooth"
     >
       <body>
+        <AuthSession />
         <Header />
         {children}
         <Assistant />
