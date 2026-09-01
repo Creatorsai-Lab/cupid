@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     secret_key: str
     token_encryption_key: str = ""
     debug: bool = True
+    session_ttl_seconds: int = 60 * 60 * 24 * 7
 
     # Database
     database_url: str = "postgresql+asyncpg://cupid:cupid@localhost:5432/cupid_db"

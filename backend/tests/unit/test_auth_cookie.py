@@ -1,20 +1,13 @@
 from http.cookies import SimpleCookie
 
-from fastapi import Response
-
 from app.config import settings
-from app.routers.auth import COOKIE_KEY, set_auth_cookie
+from app.routers.auth import COOKIE_KEY
 
 
 def _auth_cookie_for(app_env: str, monkeypatch) -> SimpleCookie:
-    monkeypatch.setattr(settings, "app_env", app_env)
-    response = Response()
-
-    set_auth_cookie(response, "test-token")
-
-    cookie = SimpleCookie()
-    cookie.load(response.headers["set-cookie"])
-    return cookie
+    monkeypatch.setattr(settings, "session_ttl_seconds", 600)
+    cookie = _auth_cookie_for("development", monkeypatch)[COOKIE_KEY]
+    assert cookie["max-age"] == "600"
 
 
 def test_development_auth_cookie_allows_local_http(monkeypatch) -> None:
