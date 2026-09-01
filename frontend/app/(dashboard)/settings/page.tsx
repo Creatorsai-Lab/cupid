@@ -525,7 +525,7 @@ function PersonalizationTab({ userName, userEmail }: { userName?: string; userEm
 }
 
 function SettingsTab() {
-  const { clearUser } = useAuthStore();
+  const { setUnauthenticated } = useAuthStore();
   const router = useRouter();
   const [ent, setEnt] = useState<Entitlement | null>(null);
 
@@ -542,8 +542,8 @@ function SettingsTab() {
     } catch {
       // Even if API call fails, clear local state
     }
-    clearUser();
-    router.push("/signin");
+    setUnauthenticated();
+    router.replace("/signin");
   };
 
   // Helper to map the plan name to its specific badge styles and icons

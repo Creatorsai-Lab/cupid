@@ -13,7 +13,7 @@ import { useAuthStore } from "@/lib/store";
  */
 export default function CompletePage() {
   const router = useRouter();
-  const { setUser } = useAuthStore();
+  const { setAuthenticated } = useAuthStore();
 
   useEffect(() => {
     // Only allow internal paths ("/foo") — never "//evil.com" or "https://…".
@@ -22,7 +22,7 @@ export default function CompletePage() {
     authApi
       .me()
       .then((res) => {
-        setUser({
+        setAuthenticated({
           id: res.data.id,
           email: res.data.email,
           full_name: res.data.full_name,
@@ -30,7 +30,7 @@ export default function CompletePage() {
         router.replace(next);
       })
       .catch(() => router.replace("/signin?error=session"));
-  }, [router, setUser]);
+  }, [router, setAuthenticated]);
 
   return (
     <main className="flex min-h-[calc(100vh-60px)] items-center justify-center">
