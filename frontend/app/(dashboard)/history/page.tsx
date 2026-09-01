@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { History, Trash2, X, Copy, Check, Loader2, AlertCircle, Sparkles } from "lucide-react";
 import { historyApi, type HistoryEntry, type HistoryVariant } from "@/lib/api";
-import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function HistoryPage() {
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
@@ -59,7 +58,6 @@ export default function HistoryPage() {
   };
 
   return (
-    <ProtectedRoute>
       <main className="mx-auto max-w-5xl p-3 transition-all duration-500">
         <div className="my-8 flex flex-col gap-1">
           <h1 className="text-[clamp(1.8rem, 4vw, 2.2rem)] tracking-tight">Your Chat History</h1>
@@ -118,7 +116,6 @@ export default function HistoryPage() {
         {/* Detail modal */}
         {activeEntry && <DetailModal entry={activeEntry} onClose={() => setActiveEntry(null)} />}
       </main>
-    </ProtectedRoute>
   );
 }
 

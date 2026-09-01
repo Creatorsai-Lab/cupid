@@ -10,22 +10,16 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter();
-  const { isAuthenticated, _hasHydrated } = useAuthStore();
+
+  const status = useAuthStore((state) => state.status);
 
   useEffect(() => {
-    if (_hasHydrated && !isAuthenticated) {
+    if (status === "unauthenticated") {
       router.replace("/signin");
     }
-  }, [_hasHydrated, isAuthenticated, router]);
+  }, [router, status]);
 
-  // Wait for Zustand to rehydrate from localStorage
-  if (!_hasHydrated) {
-    return null;
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
-
+  if (status !== "authenticated") return null;
   return <>{children}</>;
+
 }

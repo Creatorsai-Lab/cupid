@@ -6,13 +6,10 @@ import {
   MessageSquare,
   RefreshCw,
   AlertCircle,
-  TrendingUp,
-  Loader2,
 } from "lucide-react";
 
 import { trendsApi, type TrendsResponse } from "@/lib/api";
 import { NewsCard } from "@/components/TrendsCard";
-import ProtectedRoute from "@/components/ProtectedRoute";
 
 type Tab = "news" | "posts";
 
@@ -77,7 +74,6 @@ export default function TrendsPage() {
   }, []);
 
   return (
-    <ProtectedRoute>
       <main className="mx-auto max-w-5xl p-3 transition-all duration-500">
         <div className="my-8 flex flex-col gap-1">
           <h1 className="text-[clamp(1.8rem, 4vw, 2.2rem)] tracking-tight">
@@ -135,7 +131,6 @@ export default function TrendsPage() {
 
         {tab === "posts" && <PostsTab />}
       </main>
-    </ProtectedRoute>
   );
 }
 

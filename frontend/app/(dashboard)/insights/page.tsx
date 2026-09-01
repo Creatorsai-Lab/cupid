@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import {
-  BarChart3,
   Eye,
   Users,
   Video,
@@ -26,7 +25,6 @@ import { StatCard } from "@/components/insights/StatCard";
 import { GrowthChart } from "@/components/insights/GrowthChart";
 import { TopContentTable } from "@/components/insights/TopContentTable";
 import { PostingHeatmap } from "@/components/insights/PostingHeatmap";
-import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function InsightsPage() {
   const [summaries, setSummaries] = useState<SummaryResponse[] | null>(null);
@@ -93,7 +91,6 @@ export default function InsightsPage() {
   };
 
   return (
-    <ProtectedRoute>
       <main className="mx-auto max-w-5xl p-3 transition-all duration-500">
         <div className="my-8 flex flex-col gap-1">
           <h1 className="text-[clamp(1.8rem, 4vw, 2.2rem)] tracking-tight">
@@ -138,7 +135,6 @@ export default function InsightsPage() {
           </>
         )}
       </main>
-    </ProtectedRoute>
   );
 }
 

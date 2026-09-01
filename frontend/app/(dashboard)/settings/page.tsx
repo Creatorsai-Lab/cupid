@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { ConnectionsPanel } from "@/components/ConnectionsPanel";
 import { useAuthStore } from "@/lib/store";
 import { User, HelpCircle, Settings, Workflow } from "lucide-react";
@@ -22,7 +21,6 @@ export default function SettingsPage() {
   const { user } = useAuthStore();
 
   return (
-    <ProtectedRoute>
       <main className="mx-auto max-w-5xl p-3 transition-all duration-500">
         <div className="my-8 flex flex-col gap-1">
           <h1 className="text-[clamp(1.8rem, 4vw, 2.2rem)] tracking-tight">Settings</h1>
@@ -55,7 +53,6 @@ export default function SettingsPage() {
         {activeTab === "connect" && <ConnectTab />}
         {activeTab === "help" && <HelpTab />}
       </main>
-    </ProtectedRoute>
   );
 }
 

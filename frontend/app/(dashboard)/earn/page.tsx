@@ -19,7 +19,6 @@ import {
   FileText,
 } from "lucide-react";
 import { earnApi, type EarnQuestion, type ReadinessResponse, type StreamCard } from "@/lib/api";
-import ProtectedRoute from "@/components/ProtectedRoute";
 
 /* ────────────────────────────────────────────────────────────────────────
    /earn — the monetization coach.
@@ -51,7 +50,6 @@ export default function EarnPage() {
   }, [checkProfile]);
 
   return (
-    <ProtectedRoute>
       <main
         className="min-h-[calc(100vh-60px)] px-6 py-10"
         style={{ backgroundColor: "var(--color-background)" }}
@@ -63,7 +61,6 @@ export default function EarnPage() {
           {!checking && !error && hasProfile && <Dashboard />}
         </div>
       </main>
-    </ProtectedRoute>
   );
 }
 

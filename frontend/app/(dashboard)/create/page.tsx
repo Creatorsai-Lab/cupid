@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import ProtectedRoute from "@/components/ProtectedRoute";
+import { useState, useEffect } from "react";
 import { ComposerResults } from "@/components/ComposerResults";
 import { useAuthStore } from "@/lib/store";
 import {
@@ -219,7 +218,6 @@ export default function CreatePage() {
   };
 
   return (
-    <ProtectedRoute>
       <main
         className={`mx-auto flex min-h-[calc(100vh-60px)] max-w-5xl flex-col transition-all duration-500 ease-in-out ${hasActiveResults ? "justify-start" : "justify-center"}`}
       >
@@ -351,7 +349,6 @@ export default function CreatePage() {
           Cupid can make mistakes, please review post before publishing
         </footer>
       </main>
-    </ProtectedRoute>
   );
 }
 
