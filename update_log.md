@@ -14,7 +14,7 @@
 - Added focused regression tests for OAuth HTML escaping, CORS origin handling,
   and development/production authentication cookie behavior.
 
-## 2026-09-01 - residual legacy auth code to google auth
+## 2026-09-01 - Google-only authentication migration
 - backend-authoritative frontend sessions;
 - removal of the stale `/login` redirect;
 - aligned JWT/cookie lifetime;

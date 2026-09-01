@@ -26,7 +26,6 @@ export default function Header() {
   const pathname = usePathname();
   const status = useAuthStore((state) => state.status);
   const isAuthenticated = status === "authenticated";
-  const streak = useAuthStore((s) => (s as { streak?: number }).streak ?? 0);
 
   return (
     <header className="sticky top-0 z-50 bg-(--color-background)">
@@ -44,10 +43,11 @@ export default function Header() {
             />
           </Link>
         </div>
-        {/* 59534e */}
 
         {/* Menu Items */}
-        {isAuthenticated ? (
+        {status === "checking" ? (
+          <div className="ml-auto h-11 w-24" aria-hidden="true" />
+        ) : isAuthenticated ? (
           <nav className="flex min-w-0 flex-1 justify-end">
             <ul className="flex w-max max-w-full list-none flex-row flex-nowrap gap-3 overflow-x-auto overflow-y-hidden rounded-lg bg-(--color-inline-bg) px-1 py-0.5 [scrollbar-color:#635e58_#bd8f77] [scrollbar-width:thin] hover:[scrollbar-color:#57453b_#eae6e1] md:overflow-visible md:[scrollbar-width:none] [&::-webkit-scrollbar]:h-[6px] md:[&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-(--color-inline-bg) [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-[#eae6e1]">
               {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
