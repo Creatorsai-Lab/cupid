@@ -13,3 +13,10 @@
   HTTP, while production adds the `Secure` flag and requires HTTPS.
 - Added focused regression tests for OAuth HTML escaping, CORS origin handling,
   and development/production authentication cookie behavior.
+
+## 2026-09-01 - residual legacy auth code to google auth
+- backend-authoritative frontend sessions;
+- removal of the stale `/login` redirect;
+- aligned JWT/cookie lifetime;
+- progressive Google linking for legacy users;
+- removal of unused password code while retaining the transitional column.

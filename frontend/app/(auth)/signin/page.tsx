@@ -8,6 +8,7 @@ const ERRORS: Record<string, string> = {
   oauth: "Sign-in was cancelled or failed. Please try again.",
   unverified: "Your Google email isn't verified — use a verified Google account.",
   session: "Could not start your session. Please try again.",
+  disabled: "This account has been disabled. Contact support if this is unexpected.",
 };
 
 function GoogleIcon() {

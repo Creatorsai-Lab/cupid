@@ -45,12 +45,9 @@ function parseErrorMessage(json: any): string {
   return "Something went wrong";
 }
 
-async function handle401(endpoint: string) {
-  if (endpoint !== "/api/v1/auth/login") {
-    const { useAuthStore } = await import("@/lib/store");
-    useAuthStore.getState().clearUser();
-    window.location.href = "/login";
-  }
+async function handle401() {
+  const { useAuthStore } = await import("@/lib/store");
+  useAuthStore.getState().setUnauthenticated();
 }
 
 // For auth/profile endpoints — backend wraps response in { success, data, error }
@@ -63,7 +60,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   });
   const json = await res.json();
   if (!res.ok) {
-    if (res.status === 401) await handle401(endpoint);
+    if (res.status === 401) await handle401();
     throw new ApiError(parseErrorMessage(json), res.status);
   }
   return json;
@@ -79,7 +76,7 @@ async function requestRaw<T>(endpoint: string, options: RequestInit = {}): Promi
   });
   const json = await res.json();
   if (!res.ok) {
-    if (res.status === 401) await handle401(endpoint);
+    if (res.status === 401) await handle401();
     throw new ApiError(parseErrorMessage(json), res.status);
   }
   return json as T;
@@ -264,7 +261,7 @@ export const connectionsApi = {
       credentials: "include",
     });
     if (!res.ok) {
-      if (res.status === 401) await handle401("/api/v1/connections/...");
+      if (res.status === 401) await handle401();
       throw new ApiError(`Disconnect failed (${res.status})`, res.status);
     }
   },
@@ -385,7 +382,7 @@ export const historyApi = {
       body: JSON.stringify({ variants }),
     });
     if (!res.ok) {
-      if (res.status === 401) await handle401("/api/v1/history/...");
+      if (res.status === 401) await handle401();
       throw new ApiError(`Update failed (${res.status})`, res.status);
     }
   },
@@ -397,7 +394,7 @@ export const historyApi = {
       credentials: "include",
     });
     if (!res.ok) {
-      if (res.status === 401) await handle401("/api/v1/history/...");
+      if (res.status === 401) await handle401();
       throw new ApiError(`Delete failed (${res.status})`, res.status);
     }
   },

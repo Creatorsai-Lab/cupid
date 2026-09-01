@@ -40,7 +40,7 @@ export default function CookiesPage() {
               <li className="rounded-4xl border border-[var(--color-border)] p-4">
                 <p className="font-medium">Preferences</p>
                 <p className="text-[var(--color-muted)]">
-                  Lightweight local storage remembers things like your session so the interface
+                  Lightweight local storage NOT remembers things like your session so the interface
                   behaves consistently between visits.
                 </p>
               </li>

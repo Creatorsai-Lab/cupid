@@ -80,6 +80,7 @@ async def google_callback(
     # Find-or-create: this is what collapses signup and login into one action.
     user = await get_user_by_email(db, email)
     created = False
+
     if user is None:
         user = User(
             full_name=info.get("name") or email.split("@")[0],
@@ -93,10 +94,10 @@ async def google_callback(
         await db.refresh(user)
         created = True
         logger.info("[auth.google] created user %s", email)
-    if user is not None and user.is_active:
-        return _bounce("signin?error=disabled")
+    else:
+        if not user.is_active:
+            return _bounce("/signin?error=disabled")
 
-    if user is not None:
         link_google_identity(user, info)
         await db.commit()
         await db.refresh(user)
