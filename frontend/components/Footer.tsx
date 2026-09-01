@@ -11,7 +11,7 @@ export default function Footer() {
       >
         CUPID AGENTS
       </div>
-      <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-8 border-t border-white/10 pt-8 text-sm text-gray-300 sm:grid-cols-3">
+      <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-8 border-t border-white/10 pt-8 text-sm text-gray-300 sm:grid-cols-4">
         <div>
           <ul className="m-0 list-none space-y-2.5 p-0">
             <li>
@@ -46,6 +46,15 @@ export default function Footer() {
             <li>
               <Link href="/cookies" className="transition-colors duration-200 hover:text-white">
                 Cookies
+              </Link>
+            </li>
+          </ul>
+          </div>
+          <div>
+          <ul className="m-0 list-none space-y-2.5 p-0">
+            <li>
+              <Link href="/docs" className="transition-colors duration-200 hover:text-white">
+                Docs
               </Link>
             </li>
           </ul>

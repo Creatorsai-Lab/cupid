@@ -11,6 +11,7 @@ the session cookie (set there, read here) and the two cookie-backed endpoints:
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.core.db import get_db
 from app.core.security import decode_access_token
 from app.models.user import User
@@ -28,7 +29,7 @@ def set_auth_cookie(response: Response, token: str) -> None:
     Set the JWT as an HTTP-only cookie.
 
     httponly=True   → JS can't read it (XSS protection)
-    secure=False    → allows HTTP in dev. Set True in production (HTTPS only)
+    secure          → allows local HTTP in development; requires HTTPS in production
     samesite="lax"  → cookie sent on same-site requests + top-level navigations
                       "strict" would break OAuth redirects
     """
@@ -37,7 +38,7 @@ def set_auth_cookie(response: Response, token: str) -> None:
         value=token,
         max_age=COOKIE_MAX_AGE,
         httponly=True,
-        secure=True,
+        secure=settings.app_env == "production",
         samesite="lax",
         path="/",
     )
