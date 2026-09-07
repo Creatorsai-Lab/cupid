@@ -1,3 +1,8 @@
+Position as: Complete AI Suite for Content Creators, Everything in one place
+
+Audience: Creators Economies
+
+
 There’s a simple way to check this. Explain what your company does to someone with zero context — not an advisor, not a friend who’s been following along — a genuine stranger, and then ask them to play it back. If what they describe doesn’t match what you’re building, the explanation is the problem. Not the product. The explanation.
 
 
@@ -7,3 +12,6 @@ The market isn’t misunderstanding you out of carelessness. It’s just describ
 
 
 We will also provide me a profile of user (public) that shows the total all platform number (follower, posts, like and comments). And also option to publish post (polls, survey, idea, gifts), that will in future convert into a social media app
+
+
+Provide Patreon and Buy me coffe feature

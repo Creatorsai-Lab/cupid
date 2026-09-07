@@ -204,11 +204,10 @@ function AgentSwarm() {
                 <button
                   onMouseEnter={() => setHovered(i)}
                   onMouseLeave={() => setHovered(null)}
-                  className={`${SANS} rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-                    hovered === i
+                  className={`${SANS} rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${hovered === i
                       ? "border-[var(--color-primary)] text-[var(--color-primary)]"
                       : "border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-border-hover)]"
-                  }`}
+                    }`}
                 >
                   {a.label}
                 </button>

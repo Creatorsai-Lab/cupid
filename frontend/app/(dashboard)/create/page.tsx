@@ -55,7 +55,7 @@ const GREETINGS = [
 // seen, persists, so the label moves forward monotonically and "Crafting your
 // post…" reliably shows for the whole composition step.
 function agentStatusLabel(status: string, hasQueries: boolean, hasResearch: boolean): string {
-  if (status === "pending") return "Starting up…";
+  if (status === "pending") return "Assembling plan...";
   if (hasResearch) return "Crafting your post…"; // research done → composer running
   if (hasQueries) return "Research agent is searching…"; // personalization done → research running
   return "Personalization agent is thinking…";
