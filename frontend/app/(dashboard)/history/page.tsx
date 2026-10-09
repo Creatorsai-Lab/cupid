@@ -58,64 +58,64 @@ export default function HistoryPage() {
   };
 
   return (
-      <main className="mx-auto max-w-5xl p-3 transition-all duration-500">
-        <div className="my-8 flex flex-col gap-1">
-          <h1 className="text-[clamp(1.8rem, 4vw, 2.2rem)] tracking-tight">Your Chat History</h1>
-          <p>
-            {total > 0
-              ? `${total} saved ${total === 1 ? "history" : "histories"}. Click any card to see the full posts.`
-              : "Every post you generate is saved here automatically."}
-          </p>
+    <main className="mx-auto max-w-5xl p-3 transition-all duration-500">
+      <div className="my-8 flex flex-col gap-1">
+        <h1 className="text-[clamp(1.8rem, 4vw, 2.2rem)] tracking-tight">Your Chat History</h1>
+        <p>
+          {total > 0
+            ? `${total} saved ${total === 1 ? "history" : "histories"}. Click any card to see the full posts.`
+            : "Every post you generate is saved here automatically."}
+        </p>
+      </div>
+      {/* States */}
+      {loading && <ListSkeleton />}
+
+      {error && !loading && <ErrorState message={error} onRetry={() => loadHistory(0, false)} />}
+
+      {!loading && !error && entries.length === 0 && <EmptyState />}
+
+      {/* History cards */}
+      {!loading && entries.length > 0 && (
+        <div className="space-y-4">
+          {entries.map((entry) => (
+            <HistoryCard
+              key={entry.id}
+              entry={entry}
+              onOpen={() => setActiveEntry(entry)}
+              onDelete={() => handleDelete(entry.id)}
+              deleting={deletingId === entry.id}
+            />
+          ))}
         </div>
-        {/* States */}
-        {loading && <ListSkeleton />}
+      )}
 
-        {error && !loading && <ErrorState message={error} onRetry={() => loadHistory(0, false)} />}
-
-        {!loading && !error && entries.length === 0 && <EmptyState />}
-
-        {/* History cards */}
-        {!loading && entries.length > 0 && (
-          <div className="space-y-4">
-            {entries.map((entry) => (
-              <HistoryCard
-                key={entry.id}
-                entry={entry}
-                onOpen={() => setActiveEntry(entry)}
-                onDelete={() => handleDelete(entry.id)}
-                deleting={deletingId === entry.id}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Load more */}
-        {hasMore && !loading && (
-          <div className="mt-8 flex justify-center">
-            <button
-              onClick={() => loadHistory(entries.length, true)}
-              disabled={loadingMore}
-              className="flex items-center gap-2 rounded-md border px-5 py-2 text-sm transition-colors disabled:opacity-50"
-              style={{
-                borderColor: "var(--color-border)",
-                color: "var(--color-text)",
-                fontFamily: "var(--font-body)",
-              }}
-            >
-              {loadingMore ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" />
-                  Loading
-                </>
-              ) : (
-                "Load more"
-              )}
-            </button>
-          </div>
-        )}
-        {/* Detail modal */}
-        {activeEntry && <DetailModal entry={activeEntry} onClose={() => setActiveEntry(null)} />}
-      </main>
+      {/* Load more */}
+      {hasMore && !loading && (
+        <div className="mt-8 flex justify-center">
+          <button
+            onClick={() => loadHistory(entries.length, true)}
+            disabled={loadingMore}
+            className="flex items-center gap-2 rounded-md border px-5 py-2 text-sm transition-colors disabled:opacity-50"
+            style={{
+              borderColor: "var(--color-border)",
+              color: "var(--color-text)",
+              fontFamily: "var(--font-body)",
+            }}
+          >
+            {loadingMore ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                Loading
+              </>
+            ) : (
+              "Load more"
+            )}
+          </button>
+        </div>
+      )}
+      {/* Detail modal */}
+      {activeEntry && <DetailModal entry={activeEntry} onClose={() => setActiveEntry(null)} />}
+    </main>
   );
 }
 

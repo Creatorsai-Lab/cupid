@@ -91,50 +91,50 @@ export default function InsightsPage() {
   };
 
   return (
-      <main className="mx-auto max-w-5xl p-3 transition-all duration-500">
-        <div className="my-8 flex flex-col gap-1">
-          <h1 className="text-[clamp(1.8rem, 4vw, 2.2rem)] tracking-tight">
-            Insights From Your Channels
-          </h1>
-          <p>Analytics, growth, and posting patterns from your connected accounts</p>
-        </div>
+    <main className="mx-auto max-w-5xl p-3 transition-all duration-500">
+      <div className="my-8 flex flex-col gap-1">
+        <h1 className="text-[clamp(1.8rem, 4vw, 2.2rem)] tracking-tight">
+          Insights From Your Channels
+        </h1>
+        <p>Analytics, growth, and posting patterns from your connected accounts</p>
+      </div>
 
-        {/* States */}
-        {loadingList && !summaries && <ListSkeleton />}
+      {/* States */}
+      {loadingList && !summaries && <ListSkeleton />}
 
-        {error && !loadingList && <ErrorState message={error} onRetry={loadList} />}
+      {error && !loadingList && <ErrorState message={error} onRetry={loadList} />}
 
-        {!loadingList && summaries && summaries.length === 0 && <EmptyState />}
+      {!loadingList && summaries && summaries.length === 0 && <EmptyState />}
 
-        {!loadingList && summaries && summaries.length > 0 && (
-          <>
-            {/* Connection selector — only shown if multiple */}
-            {summaries.length > 1 && (
-              <div className="mb-6 flex flex-wrap gap-2">
-                {summaries.map((s) => (
-                  <ConnectionTab
-                    key={s.connection_id}
-                    summary={s}
-                    active={activeId === s.connection_id}
-                    onClick={() => setActiveId(s.connection_id)}
-                  />
-                ))}
-              </div>
-            )}
+      {!loadingList && summaries && summaries.length > 0 && (
+        <>
+          {/* Connection selector — only shown if multiple */}
+          {summaries.length > 1 && (
+            <div className="mb-6 flex flex-wrap gap-2">
+              {summaries.map((s) => (
+                <ConnectionTab
+                  key={s.connection_id}
+                  summary={s}
+                  active={activeId === s.connection_id}
+                  onClick={() => setActiveId(s.connection_id)}
+                />
+              ))}
+            </div>
+          )}
 
-            {/* Dashboard content */}
-            {summary && timeseries && topContent && heatmap && (
-              <Dashboard
-                summary={summary}
-                timeseries={timeseries}
-                topContent={topContent}
-                heatmap={heatmap}
-                loading={loadingData}
-              />
-            )}
-          </>
-        )}
-      </main>
+          {/* Dashboard content */}
+          {summary && timeseries && topContent && heatmap && (
+            <Dashboard
+              summary={summary}
+              timeseries={timeseries}
+              topContent={topContent}
+              heatmap={heatmap}
+              loading={loadingData}
+            />
+          )}
+        </>
+      )}
+    </main>
   );
 }
 

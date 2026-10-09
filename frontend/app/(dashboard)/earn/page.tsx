@@ -50,17 +50,17 @@ export default function EarnPage() {
   }, [checkProfile]);
 
   return (
-      <main
-        className="min-h-[calc(100vh-60px)] px-6 py-10"
-        style={{ backgroundColor: "var(--color-background)" }}
-      >
-        <div className="mx-auto max-w-5xl">
-          {checking && <CenterSpinner label="Loading your earning profile…" />}
-          {error && !checking && <ErrorState message={error} onRetry={checkProfile} />}
-          {!checking && !error && !hasProfile && <QAGate onComplete={() => setHasProfile(true)} />}
-          {!checking && !error && hasProfile && <Dashboard />}
-        </div>
-      </main>
+    <main
+      className="min-h-[calc(100vh-60px)] px-6 py-10"
+      style={{ backgroundColor: "var(--color-background)" }}
+    >
+      <div className="mx-auto max-w-5xl">
+        {checking && <CenterSpinner label="Loading your earning profile…" />}
+        {error && !checking && <ErrorState message={error} onRetry={checkProfile} />}
+        {!checking && !error && !hasProfile && <QAGate onComplete={() => setHasProfile(true)} />}
+        {!checking && !error && hasProfile && <Dashboard />}
+      </div>
+    </main>
   );
 }
 

@@ -21,38 +21,40 @@ export default function SettingsPage() {
   const { user } = useAuthStore();
 
   return (
-      <main className="mx-auto max-w-5xl p-3 transition-all duration-500">
-        <div className="my-8 flex flex-col gap-1">
-          <h1 className="text-[clamp(1.8rem, 4vw, 2.2rem)] tracking-tight">Settings</h1>
-          <p>Manage your profile, preference, subscription plan, connected social accounts, and help.</p>
-        </div>
+    <main className="mx-auto max-w-5xl p-3 transition-all duration-500">
+      <div className="my-8 flex flex-col gap-1">
+        <h1 className="text-[clamp(1.8rem, 4vw, 2.2rem)] tracking-tight">Settings</h1>
+        <p>
+          Manage your profile, preference, subscription plan, connected social accounts, and help.
+        </p>
+      </div>
 
-        {/* Tabs */}
-        <div className="flex w-full bg-white p-1.5 rounded-4xl mb-8">
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-sans transition-all duration-200 rounded-lg ${
-                activeTab === id
-                  ? "bg-white text-[var(--color-primary)] font-semibold"
-                  : "text-gray-500 font-medium hover:text-gray-700 hover:bg-gray-200/50"
-              }`}
-            >
-              <Icon size={16} />
-              {label}
-            </button>
-          ))}
-        </div>
+      {/* Tabs */}
+      <div className="mb-8 flex w-full rounded-4xl bg-white p-1.5">
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-sans text-sm transition-all duration-200 ${
+              activeTab === id
+                ? "bg-white font-semibold text-[var(--color-primary)]"
+                : "font-medium text-gray-500 hover:bg-gray-200/50 hover:text-gray-700"
+            }`}
+          >
+            <Icon size={16} />
+            {label}
+          </button>
+        ))}
+      </div>
 
-        {/* Tab content */}
-        {activeTab === "personalization" && (
-          <PersonalizationTab userName={user?.full_name} userEmail={user?.email} />
-        )}
-        {activeTab === "settings" && <SettingsTab />}
-        {activeTab === "connect" && <ConnectTab />}
-        {activeTab === "help" && <HelpTab />}
-      </main>
+      {/* Tab content */}
+      {activeTab === "personalization" && (
+        <PersonalizationTab userName={user?.full_name} userEmail={user?.email} />
+      )}
+      {activeTab === "settings" && <SettingsTab />}
+      {activeTab === "connect" && <ConnectTab />}
+      {activeTab === "help" && <HelpTab />}
+    </main>
   );
 }
 
@@ -262,7 +264,6 @@ const EMPTY: PersonalizationForm = {
   usp: "",
 };
 
-
 const cx = {
   input:
     "w-full h-10 px-3 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#d47a03] transition-shadow",
@@ -284,8 +285,11 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border w-full bg-white p-5">
-      <div><h3>{title}</h3><p>{hint}</p></div>
+    <div className="w-full rounded-2xl border bg-white p-5">
+      <div>
+        <h3>{title}</h3>
+        <p>{hint}</p>
+      </div>
       {children}
     </div>
   );
@@ -383,7 +387,7 @@ function PersonalizationTab({ userName, userEmail }: { userName?: string; userEm
               disabled
             />
           </Field>
-                    <Field label="Nickname" full>
+          <Field label="Nickname" full>
             <input
               className={cx.textarea}
               value={form.nickname}
@@ -400,7 +404,6 @@ function PersonalizationTab({ userName, userEmail }: { userName?: string; userEm
               placeholder="One or two sentences about yourself. This is used directly in your persona prompt."
             />
           </Field>
-
         </div>
       </Section>
 
@@ -556,8 +559,8 @@ function SettingsTab() {
           label: "Premium",
           color: "from-purple-500 to-indigo-600",
           icon: (
-            <svg fill="currentColor" viewBox="0 0 24 24" className="w-3.5 h-3.5">
-              <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+            <svg fill="currentColor" viewBox="0 0 24 24" className="h-3.5 w-3.5">
+              <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
             </svg>
           ),
         };
@@ -566,8 +569,8 @@ function SettingsTab() {
           label: "PRO",
           color: "from-amber-400 to-orange-500",
           icon: (
-            <svg fill="currentColor" viewBox="0 0 24 24" className="w-3.5 h-3.5">
-              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            <svg fill="currentColor" viewBox="0 0 24 24" className="h-3.5 w-3.5">
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
             </svg>
           ),
         };
@@ -586,49 +589,47 @@ function SettingsTab() {
   return (
     <div>
       {/* Current plan */}
-      <div className="bg-white border border-gray-200 rounded-4xl p-6 mb-6">
-        <h3 className="font-sans text-lg font-normal mb-3 text-gray-900">
-          Current Plan
-        </h3>
+      <div className="mb-6 rounded-4xl border border-gray-200 bg-white p-6">
+        <h3 className="mb-3 font-sans text-lg font-normal text-gray-900">Current Plan</h3>
 
         {/* Mapped Badge: [LABEL] Actual Name */}
         <div className="flex items-center gap-2.5">
-          <span className={`inline-flex items-center gap-1 px-4 py-2 rounded-full bg-gradient-to-r ${planConfig.color} text-white text-sm font-bold uppercase tracking-wider`}>
+          <span
+            className={`inline-flex items-center gap-1 rounded-full bg-gradient-to-r px-4 py-2 ${planConfig.color} text-sm font-bold tracking-wider text-white uppercase`}
+          >
             {planConfig.icon}
             {planConfig.label}
           </span>
 
-          <span className="text-gray-500 font-medium capitalize text-sm">
+          <span className="text-sm font-medium text-gray-500 capitalize">
             {ent ? ent.display_name : "Loading..."}
           </span>
         </div>
 
         {ent?.payment_warning && (
-          <p className="mt-4 text-sm text-red-600 font-sans">
+          <p className="mt-4 font-sans text-sm text-red-600">
             There is a problem with your payment — please update your billing.
           </p>
         )}
       </div>
 
       {/* Appearance */}
-      <div className="bg-white border border-gray-200 rounded-4xl p-6 mb-6">
-        <p className="text-base font-normal mb-4 text-gray-900">Theme (MODE)</p>
+      <div className="mb-6 rounded-4xl border border-gray-200 bg-white p-6">
+        <p className="mb-4 text-base font-normal text-gray-900">Theme (MODE)</p>
         <p>Light</p>
-        <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 opacity-60 cursor-not-allowed border border-[var(--color-border)]"> <span className="inline-block h-5 w-5 translate-x-0.5 rounded-full bg-white shadow-sm" />
-          </div>
+        <div className="relative inline-flex h-6 w-11 cursor-not-allowed items-center rounded-full border border-[var(--color-border)] bg-gray-200 opacity-60">
+          {" "}
+          <span className="inline-block h-5 w-5 translate-x-0.5 rounded-full bg-white shadow-sm" />
+        </div>
       </div>
 
       {/* Danger Zone */}
-      <div className="bg-white border border-gray-200 rounded-4xl p-6">
-        <h3 className="font-sans text-lg font-normal mb-2 text-red-700">
-          Danger: Signout
-        </h3>
-        <p className="text-sm text-gray-500 font-sans mb-4">
-          Sign out of your Cupid account
-        </p>
+      <div className="rounded-4xl border border-gray-200 bg-white p-6">
+        <h3 className="mb-2 font-sans text-lg font-normal text-red-700">Danger: Signout</h3>
+        <p className="mb-4 font-sans text-sm text-gray-500">Sign out of your Cupid account</p>
         <button
           onClick={handleLogout}
-          className="inline-flex items-center px-5 py-2 rounded-lg text-sm font-medium text-red-700 bg-transparent border border-red-700 transition-all duration-150 ease-in-out hover:bg-red-50 cursor-pointer"
+          className="inline-flex cursor-pointer items-center rounded-lg border border-red-700 bg-transparent px-5 py-2 text-sm font-medium text-red-700 transition-all duration-150 ease-in-out hover:bg-red-50"
         >
           Sign out
         </button>

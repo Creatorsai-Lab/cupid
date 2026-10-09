@@ -21,5 +21,4 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (status !== "authenticated") return null;
   return <>{children}</>;
-
 }

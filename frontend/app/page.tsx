@@ -16,7 +16,7 @@ import {
   UserStar,
   Lightbulb,
   ChevronDown,
-  CircleDollarSign
+  CircleDollarSign,
 } from "lucide-react";
 import {
   XCard,
@@ -93,7 +93,6 @@ function Hero() {
             className={`${SANS} relative mx-auto max-w-4xl text-[clamp(2.6rem,7vw,5rem)] leading-[0.98] font-semibold tracking-[-0.03em] text-balance text-[var(--color-text)]`}
           >
             Cupid
-
           </motion.h1>
           <p className="font-xl">A complete AI agents suite for content creation & influencers</p>
         </div>
@@ -204,10 +203,11 @@ function AgentSwarm() {
                 <button
                   onMouseEnter={() => setHovered(i)}
                   onMouseLeave={() => setHovered(null)}
-                  className={`${SANS} rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${hovered === i
+                  className={`${SANS} rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                    hovered === i
                       ? "border-[var(--color-primary)] text-[var(--color-primary)]"
                       : "border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-border-hover)]"
-                    }`}
+                  }`}
                 >
                   {a.label}
                 </button>

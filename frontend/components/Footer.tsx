@@ -49,8 +49,8 @@ export default function Footer() {
               </Link>
             </li>
           </ul>
-          </div>
-          <div>
+        </div>
+        <div>
           <ul className="m-0 list-none space-y-2.5 p-0">
             <li>
               <Link href="/docs" className="transition-colors duration-200 hover:text-white">
