@@ -2,8 +2,8 @@
 # STAGED files only. Fast feedback before code ever leaves your machine.
 #
 # One-time setup (from the repo root):
-#     pip install pre-commit
-#     pre-commit install
+#     cd backend && uv sync          (pre-commit is in the backend dev group)
+#     uv run pre-commit install
 #
 # Run on everything manually:
 #     pre-commit run --all-files

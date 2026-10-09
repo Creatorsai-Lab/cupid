@@ -1,17 +1,18 @@
-# Makefile
+# Makefile — shortcuts for machines with make. Without make, run the
+# same `uv run ...` commands from backend/ directly; no venv activation needed.
 
-.PHONY: lint format typecheck test
+.PHONY: lint format typecheck test check
 
 lint:
-	cd backend && ruff check app/
+	cd backend && uv run ruff check .
 
 format:
-	cd backend && ruff format app/
+	cd backend && uv run ruff format .
 
 typecheck:
-	cd backend && mypy app/
+	cd backend && uv run mypy app/
 
 test:
-	cd backend && pytest
+	cd backend && uv run pytest
 
 check: lint typecheck test

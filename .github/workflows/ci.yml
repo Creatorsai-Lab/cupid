@@ -22,18 +22,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.11"
+          enable-cache: true
 
-      - name: Install Ruff
-        run: pip install ruff==0.15.7
+      # --locked fails the build if uv.lock is out of date with pyproject.toml
+      - name: Install dependencies
+        run: uv sync --locked
 
       - name: Lint (ruff check)
-        run: ruff check .
+        run: uv run ruff check .
 
       - name: Format check (ruff format --check)
-        run: ruff format --check .
+        run: uv run ruff format --check .
 
   # ── Frontend: Prettier + ESLint + types + build ──────────────
   frontend:
