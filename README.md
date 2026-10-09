@@ -35,7 +35,7 @@ Orchestrator (LangGraph StateGraph)
 Structured Output → FastAPI → Next.js Frontend
 ```
 
-All agent state is typed via `MemoryState`. No agent holds internal state between runs. All persistence is in PostgreSQL and ChromaDB.
+All agent state is typed via `MemoryState`. No agent holds internal state between runs. All persistence is in PostgreSQL.
 
 ---
 
@@ -43,13 +43,11 @@ All agent state is typed via `MemoryState`. No agent holds internal state betwee
 
 | Layer | Technology |
 |---|---|
-| API | FastAPI, Python 3.11 |
+| API | FastAPI, Python 3.12 (managed with uv) |
 | Agent Orchestration | LangGraph |
 | Database | PostgreSQL 16 (via SQLAlchemy + Alembic) |
-| Vector Store | ChromaDB |
-| Task Queue | Celery + Redis |
-| LLM Runtime | Ollama (local) |
-| Embeddings | nomic-embed-text via Ollama |
+| Cache | Redis |
+| LLM Providers | Groq (free tier) |
 | Frontend | Next.js 14 (App Router), Tailwind CSS, shadcn/ui |
 | State Management | Zustand, TanStack Query |
 
@@ -59,10 +57,9 @@ All agent state is typed via `MemoryState`. No agent holds internal state betwee
 
 Before running Cupid locally, ensure the following are installed:
 
-- Python 3.11 or higher
+- [uv](https://docs.astral.sh/uv/) (installs Python 3.12 for you)
 - Node.js 18 or higher and npm
 - Docker Desktop (running)
-- Ollama — [ollama.com](https://ollama.com)
 - Git
 
 ---
@@ -78,7 +75,7 @@ cd cupid
 
 ### 2. Start Infrastructure Services
 
-From the project root, start PostgreSQL, Redis, and ChromaDB via Docker:
+From the project root, start PostgreSQL and Redis via Docker:
 
 ```powershell
 docker compose up -d
@@ -90,18 +87,9 @@ Verify all containers are healthy:
 docker compose ps
 ```
 
-You should see `cupid_postgres`, `cupid_redis`, and `cupid_chroma` all in a running state.
+You should see `cupid_postgres` and `cupid_redis` in a running state.
 
-### 3. Pull Ollama Models
-
-Cupid uses local LLMs via Ollama. Pull the required models:
-
-```powershell
-ollama pull llama3.2
-ollama pull nomic-embed-text
-```
-
-### 4. Backend Setup
+### 3. Backend Setup
 
 Navigate to the backend directory:
 
@@ -149,7 +137,7 @@ http://localhost:8000/health         → {"status": "ok", "env": "development"}
 http://localhost:8000/api/docs       → Swagger UI (interactive API docs)
 ```
 
-### 5. Frontend Setup
+### 4. Frontend Setup
 
 Open a second PowerShell window:
 
@@ -169,15 +157,13 @@ http://localhost:3000
 
 ## Running the Full System
 
-To run the complete local stack you need four things active simultaneously:
+To run the complete local stack you need three things active simultaneously:
 
 | Process | Command | Window |
 |---|---|---|
 | Infrastructure | `docker compose up -d` | Background |
-| Ollama | `ollama serve` | Terminal 1 |
-| Backend API | `uv run uvicorn app.main:app --reload --port 8000` | Terminal 2 |
-| Celery Worker | `celery -A app.celery_app worker --loglevel=info` | Terminal 3 |
-| Frontend | `npm run dev` | Terminal 4 |
+| Backend API | `uv run uvicorn app.main:app --reload --port 8000` | Terminal 1 |
+| Frontend | `npm run dev` | Terminal 2 |
 
 ---
 
@@ -197,7 +183,7 @@ cupid/
 │   │   │   └── notifications.py
 │   │   ├── routers/              # FastAPI route handlers
 │   │   ├── models/               # SQLAlchemy ORM models
-│   │   └── core/                 # DB, Redis, ChromaDB clients
+│   │   └── core/                 # DB, Redis, logging
 │   ├── alembic/                  # Migration files
 │   ├── tests/
 │   ├── pyproject.toml          # dependencies + tool config
@@ -222,14 +208,15 @@ cupid/
 | `SECRET_KEY` | Yes | JWT signing key. Use a long random string in production. |
 | `database_url` | Yes | PostgreSQL async connection string. |
 | `REDIS_URL` | Yes | Redis connection string. |
-| `CHROMA_HOST` | Yes | ChromaDB host (default: localhost). |
-| `CHROMA_PORT` | Yes | ChromaDB port (default: 8001). |
-| `OLLAMA_BASE_URL` | Yes | Ollama server URL (default: http://localhost:11434). |
-| `OLLAMA_LLM_MODEL` | Yes | LLM model name pulled via Ollama. |
-| `OLLAMA_EMBED_MODEL` | Yes | Embedding model name pulled via Ollama. |
-| `TAVILY_API_KEY` | No | Optional. Enriches Research Agent search. Free tier available. |
-| `REDDIT_CLIENT_ID` | No | Optional. Enables Reddit trend source. |
-| `RESEND_API_KEY` | No | Optional. Enables email notifications. |
+| `FRONTEND_URL` | Yes | Frontend origin for CORS and redirects. |
+| `TOKEN_ENCRYPTION_KEY` | Yes | Fernet key that encrypts stored OAuth tokens. |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth client for login and YouTube connect. |
+| `GROQ_API_KEY` | Yes | LLM provider used by the agents. |
+| `TAVILY_API_KEY` | Phase 3 | Web search for the new research agent. |
+| `GNEWS_API_KEY` | No | News source for trends. |
+| `ADMIN_*` | No | Admin allowlist and dashboard login. |
+
+The full list, with defaults, is `backend/.env.example`.
 
 ---
 

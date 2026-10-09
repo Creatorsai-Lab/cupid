@@ -2,7 +2,6 @@
 # ---
 # 1. PostgreSQL | Permanent structured data | Users, profiles, posts, settings
 # 2. Redis | Temporary cache/sessions | Rate limits, real-time data, job queues
-# 3. ChromaDB | Vector embeddings | AI persona vectors, semantic search
 
 services:
   postgres:
@@ -30,17 +29,6 @@ services:
     volumes:
       - redis_data:/data
 
-  chromadb:
-    image: chromadb/chroma:latest
-    container_name: cupid_chroma
-    ports:
-      - "8001:8000"
-    volumes:
-      - chroma_data:/chroma/chroma
-    environment:
-      IS_PERSISTENT: "TRUE"
-
 volumes:
   postgres_data:
   redis_data:
-  chroma_data:

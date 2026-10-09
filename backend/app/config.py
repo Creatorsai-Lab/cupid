@@ -33,27 +33,11 @@ class Settings(BaseSettings):
     # docker-compose.yml maps host 6380 -> container 6379
     redis_url: str = "redis://localhost:6380/0"
 
-    # ChromaDB
-    chroma_host: str = "localhost"
-    chroma_port: int = 8001
-
-    # Ollama
-    ollama_base_url: str = "http://localhost:11434"
-    ollama_embed_model: str = "nomic-embed-text"
-    ollama_llm_model: str = "llama3.2"
-
-    # External APIs
-    # the "" is only a default fallback. If .env contains ANTHROPIC_API_KEY=..., then Pydantic will override the default.
-    tavily_api_key: str = ""
-    anthropic_api_key: str = ""
-    gemini_api_key: str = ""
+    # External APIs ("" = not configured; a value in .env overrides it)
     groq_api_key: str = ""
-    huggingface_api_key: str = ""
+    tavily_api_key: str = ""  # research agent search (Phase 3)
     gnews_api_key: str = ""
-    reddit_client_id: str = ""
-    reddit_client_secret: str = ""
-    reddit_user_agent: str = "cupid/1.0"
-    resend_api_key: str = ""
+    huggingface_api_key: str = ""  # old composer fallback; removed with it (Phase 5)
     # Google OAuth (for YouTube and other Google services)
     google_client_id: str = ""
     google_client_secret: str = ""

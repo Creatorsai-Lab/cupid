@@ -66,11 +66,10 @@ Follow the setup guide in [README.md](./README.md) completely before contributin
 
 Required tools:
 
-- Python 3.11
+- uv (installs Python 3.12)
 - Node.js 18+
 - Docker Desktop
-- Ollama with `llama3.2` and `nomic-embed-text` pulled
-- `ruff` installed in your backend virtual environment
+- Backend tools via `uv sync` in `backend/` (ruff, pytest, pre-commit)
 
 ---
 
