@@ -408,20 +408,20 @@ checks until the full supervisor lands (Phase 4).
 - [x] Switch to uv (D17): dependencies in `pyproject.toml` (direct pins, dev group) with
       `uv.lock`; `requirements*.txt` removed; local `.venv` synced (unused packages such as
       torch removed). Verified: app starts, same test results as before.
-- [ ] Tests: register `integration` and `db` markers, exclude `integration` by default, mark
-      the 3 network tests (`test_agent.py`, `test_streaming*.py`), mark the 6 keyword-supervisor
-      and 2 trends failures as expected failures with reasons.
-- [ ] Remove settings nothing reads (check both `settings.x` and `getattr(settings, "x")`);
-      remove ChromaDB from `docker-compose.yml`.
-- [ ] Tones once per language: `Tone` in `app/agents/models.py`; `TONES` exported from
-      `frontend/lib/api.ts` and used by the create page.
-- [x] CI backend job uses uv (`setup-uv`, `uv sync --locked`, `uv run ruff ...`).
-- [ ] CI: add a `uv run pytest` step once the test markers above are in place.
-- [ ] Make CI green: frontend `npm run format` (17 files) and the 6 ESLint errors
-      (backend ruff already passes).
-- [ ] Stop tracking `frontend/tsconfig.tsbuildinfo` (a compiler cache that changes on every
-      typecheck): add it to `.gitignore` and `git rm --cached` it.
-- [ ] Tag `legacy-pipeline` on the baseline commit; push once CI is green.
+- [x] Tests: `integration` and `db` markers (strict); default run skips `integration`; the
+      3 network tests marked; 6 keyword-supervisor and 2 trends failures are strict xfails.
+      Default run: ~1 s, green.
+- [x] Removed settings nothing reads (ChromaDB, Ollama, Reddit, Resend, Anthropic, Gemini)
+      and the ChromaDB container; `.env.example` lists exactly the settings, enforced by a test.
+- [x] Request options (content type, platform, length, tone) defined once per language:
+      `app/agents/models.py` and `frontend/lib/api.ts`, kept equal by a test.
+- [x] CI backend job uses uv (`setup-uv`, `uv sync --locked`) and runs ruff and pytest.
+- [x] CI green locally: Prettier applied, 0 ESLint errors (17 warnings remain), tsc and
+      `next build` pass, `npm ci` accepts the lock file, no Linux path-case problems.
+- [x] `backend/Scripts/` tracked as `scripts/` (Linux CI is case-sensitive).
+- [x] Stopped tracking generated `next-env.d.ts` and `tsconfig.tsbuildinfo`.
+- [x] Tag `legacy-pipeline` on the baseline commit (`db5fd4e`).
+- [ ] Push the `phase-0-stabilize` branch and the tag; merge into `main` when CI is green.
 
 Done when: the app starts, `pytest` passes in seconds, CI is green on GitHub.
 
@@ -447,6 +447,7 @@ Pure moves, no behavior change. One commit per feature, using `git mv` to keep h
 - [ ] `agents/router.py` from `routers/agents.py`.
 - [ ] `alembic/env.py` imports `core/tables.py`; `tests/conftest.py` imports `Base` from `core/db.py`.
 - [ ] Delete the emptied `models/`, `schemas/`, `services/`, `routers/`, `tasks/`.
+- [ ] README: update the project tree to the new layout.
 
 Done when: the OpenAPI schema is identical, `alembic revision --autogenerate` produces an
 empty migration, test results are unchanged, and the app starts.
@@ -497,6 +498,8 @@ Done when: the 40-prompt test set passes with no extra LLM calls.
 - [ ] Delete the old composer, old `graph.py`, `state.py`, `run_store.py`; drop
       `langchain-core`, `langchain-groq` if unused.
 - [ ] UI: render blocks; edits save back to history.
+- [ ] README: rewrite the architecture section for the new pipeline (it still describes the
+      old agents and `MemoryState`).
 
 Done when: the studio beats the old composer on the test set and no old agent code remains.
 
@@ -536,3 +539,4 @@ Done when: agreed latency and token targets are met.
 - Frontend types generated from the OpenAPI schema instead of hand-written.
 - Tracing dashboard (e.g. Langfuse) once logged usage is not enough.
 - Consider PyJWT in place of python-jose for session tokens.
+- Clear the 17 ESLint warnings (mostly unused variables) as those files are touched.
