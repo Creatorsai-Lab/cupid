@@ -77,3 +77,9 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
+# Default run is fast and offline; opt in with `uv run pytest -m integration`.
+addopts = "--strict-markers -m 'not integration'"
+markers = [
+    "integration: calls real external services (LLM, search APIs); needs keys and network",
+    "db: needs a Postgres test database",
+]
