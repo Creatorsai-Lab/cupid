@@ -27,6 +27,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get("error");
+    // Reads the URL after mount on purpose: reading it during render would differ
+    // between server and browser and cause a hydration mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (code) setError(ERRORS[code] ?? "Something went wrong. Please try again.");
   }, []);
 

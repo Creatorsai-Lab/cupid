@@ -335,7 +335,7 @@ function EmptyState() {
         className="mb-5 max-w-md text-sm"
         style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
       >
-        Head to the Create page and generate your first set of posts. They'll show up here
+        Head to the Create page and generate your first set of posts. They&apos;ll show up here
         automatically.
       </p>
       <a

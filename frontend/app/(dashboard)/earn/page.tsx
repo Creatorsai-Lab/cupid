@@ -122,7 +122,7 @@ function QAGate({ onComplete }: { onComplete: () => void }) {
             color: "var(--color-text)",
           }}
         >
-          Let's map your{" "}
+          Let&apos;s map your{" "}
           <em style={{ color: "var(--color-primary)", fontStyle: "italic" }}>earning paths</em>
         </h1>
         <p
@@ -313,7 +313,7 @@ function SectionVerdict({ verdict }: { verdict: ReadinessResponse["verdict"] }) 
             className="text-sm font-semibold tracking-wide uppercase"
             style={{ color: "var(--color-primary)", fontFamily: "var(--font-body)" }}
           >
-            Your coach's read
+            Your coach&apos;s read
           </span>
         </div>
         <p
