@@ -6,7 +6,8 @@ from pydantic import BaseModel, Field
 
 class PersonalizationUpdate(BaseModel):
     """
-    What the frontend sends when saving persona data.\n+    Mirrors `PersonalizationForm` in the Settings page.\n+"""
+    What the frontend sends when saving persona data.
+    Mirrors `PersonalizationForm` in the Settings page."""
 
     name: str | None = Field(None, max_length=255)
     nickname: str | None = Field(None, max_length=255)

@@ -113,6 +113,7 @@ class MemoryState(TypedDict, total=False):
         "Data Driven",
         "Story Led",
         "Lifestyle",
+        "Inspirational",
     ]
 
     # User profile context (from database)

@@ -79,6 +79,7 @@ class GenerateRequest(BaseModel):
         "Data Driven",
         "Story Led",
         "Lifestyle",
+        "Inspirational",
     ] = "Formal"
 
 
