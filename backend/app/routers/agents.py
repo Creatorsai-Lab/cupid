@@ -21,6 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.models import ContentLength, ContentType, Platform, Tone
 from app.agents.run_store import load_run, save_run
 from app.core.db import get_db
 from app.core.logging_config import get_agent_logger
@@ -64,23 +65,10 @@ _TONE_TO_VOICE: dict[str, str] = {
 
 class GenerateRequest(BaseModel):
     prompt: str
-    content_type: Literal["Text", "Image", "Article", "Video", "Ads", "Quiz"] = "Text"
-    platform: Literal[
-        "Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube", "Web"
-    ] = "Twitter"
-    length: Literal["Short", "Medium", "Long", "Full Article"] = "Medium"
-    tone: Literal[
-        "Casual",
-        "Formal",
-        "Informative",
-        "GenZ",
-        "Factual",
-        "Hook First",
-        "Data Driven",
-        "Story Led",
-        "Lifestyle",
-        "Inspirational",
-    ] = "Formal"
+    content_type: ContentType = "Text"
+    platform: Platform = "Twitter"
+    length: ContentLength = "Medium"
+    tone: Tone = "Formal"
 
 
 class GenerateResponse(BaseModel):

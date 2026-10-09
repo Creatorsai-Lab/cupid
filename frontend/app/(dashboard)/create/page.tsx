@@ -6,6 +6,14 @@ import { useAuthStore } from "@/lib/store";
 import {
   agentsApi,
   profileApi,
+  CONTENT_TYPES,
+  PLATFORMS,
+  LENGTHS,
+  TONES,
+  type ContentType,
+  type Platform,
+  type ContentLength,
+  type Tone,
   type ResearchData,
   type PageContent,
   type SearchResult,
@@ -21,21 +29,6 @@ import {
   UserRoundPen,
   Heart,
 } from "lucide-react";
-
-const CONTENT_TYPES = ["Text", "Image", "Article", "Video", "Ads", "Quiz"] as const;
-const PLATFORMS = ["Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube", "Web"] as const;
-const LENGTHS = ["Short", "Medium", "Long", "Full Article"] as const;
-const TONES = [
-  "Casual",
-  "Formal",
-  "Informative",
-  "GenZ",
-  "Factual",
-  "Hook First",
-  "Data Driven",
-  "Story Led",
-  "Lifestyle"
-] as const;
 
 // Welcome lines — one is picked at random and locked for 24h (see effect below).
 const GREETINGS = [
@@ -66,10 +59,10 @@ function agentStatusLabel(status: string, hasQueries: boolean, hasResearch: bool
 export default function CreatePage() {
   const { user } = useAuthStore();
   const [prompt, setPrompt] = useState("");
-  const [contentType, setContentType] = useState<string>("Text");
-  const [platform, setPlatform] = useState<string>("Twitter");
-  const [length, setLength] = useState<string>("Medium");
-  const [tone, setTone] = useState<string>("Formal");
+  const [contentType, setContentType] = useState<ContentType>("Text");
+  const [platform, setPlatform] = useState<Platform>("Twitter");
+  const [length, setLength] = useState<ContentLength>("Medium");
+  const [tone, setTone] = useState<Tone>("Formal");
   const [nickname, setNickname] = useState<string | null>(null);
   const [greetIdx, setGreetIdx] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -106,6 +99,9 @@ export default function CreatePage() {
   useEffect(() => {
     try {
       const draft = localStorage.getItem("cupid-prompt-draft");
+      // localStorage exists only in the browser; reading it after mount avoids
+      // a hydration mismatch.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (draft) setPrompt(draft);
     } catch {}
   }, []);
@@ -129,6 +125,8 @@ export default function CreatePage() {
       if (raw) {
         const { i, ts } = JSON.parse(raw);
         if (typeof i === "number" && Date.now() - ts < DAY) {
+          // Same reason as the draft restore above: browser-only storage, read after mount.
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setGreetIdx(i % GREETINGS.length);
           return;
         }
@@ -200,10 +198,10 @@ export default function CreatePage() {
     try {
       const res = await agentsApi.generate({
         prompt,
-        content_type: contentType as any,
-        platform: platform as any,
-        length: length as any,
-        tone: tone as any,
+        content_type: contentType,
+        platform,
+        length,
+        tone,
       });
       setRunId(res.run_id);
       setAgentStatus(res.status);
@@ -353,21 +351,22 @@ export default function CreatePage() {
 }
 
 // SELECT DROPDOWN
-function SelectDropdown({
+function SelectDropdown<T extends string>({
   label,
   options,
   value,
   onChange,
 }: {
   label: string;
-  options: readonly string[];
-  value: string;
-  onChange: (v: string) => void;
+  options: readonly T[];
+  value: T;
+  onChange: (v: T) => void;
 }) {
   return (
     <select
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      // Safe cast: the browser only reports values from the <option>s rendered from `options`.
+      onChange={(e) => onChange(e.target.value as T)}
       title={label}
       className="w-full cursor-pointer truncate rounded-full border-none bg-(--color-inline-bg) px-1 py-1 text-center font-[family-name:var(--font-body)] text-[0.75rem] text-(--color-text) outline-none md:px-3 md:text-left md:text-[0.8rem]"
     >
