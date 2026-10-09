@@ -12,9 +12,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── Backend: Ruff lint + format check ────────────────────────
+  # ── Backend: Ruff lint + format check + tests ────────────────
   backend:
-    name: Backend (Ruff)
+    name: Backend (Ruff · pytest)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -35,6 +35,13 @@ jobs:
 
       - name: Format check (ruff format --check)
         run: uv run ruff format --check .
+
+      # Fast offline set (integration tests are deselected in pyproject.toml).
+      - name: Tests (pytest)
+        run: uv run pytest
+        env:
+          # Test-only value so Settings loads without a .env; not a real secret.
+          SECRET_KEY: ci-only-test-key-not-a-real-secret-0123456789abcdef
 
   # ── Frontend: Prettier + ESLint + types + build ──────────────
   frontend:
