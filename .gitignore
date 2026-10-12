@@ -18,6 +18,8 @@ ENV/
 backend/.env
 # Eval run outputs (scores, model responses), regenerated per run
 backend/evals/results/
+# Coverage data from `uv run pytest --cov`
+.coverage
 
 # Node.js (Next.js frontend)
 node_modules/

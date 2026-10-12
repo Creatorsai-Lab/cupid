@@ -1,0 +1,24 @@
+# Known findings in git history, reviewed on 2026-10-12. Listing a fingerprint
+# here means "already handled"; CI fails on any new finding. Never add a new
+# finding without first revoking the secret (or confirming it is not one).
+
+# REAL secret: a Hugging Face access token committed in dev_resources/composer_agent.py
+# (file later deleted, still in public history). Must be REVOKED at
+# huggingface.co/settings/tokens; listing it here does not make it safe.
+d71ef4f3345a68228381db3e726f23c32a7df9dd:dev_resources/composer_agent.py:huggingface-access-token:7
+
+# False positive: example Fernet key in a docstring (not the real key; now a placeholder).
+c5dd2d2d2315beb03fdf1584c8e5b01f7aca86a8:backend/app/connections/token_crypto.py:generic-api-key:44
+
+# False positive: fake canary value in the leak test (now marked gitleaks:allow).
+ca635a08fd3f195651e0f6bf80cedc6559e2d8b4:backend/tests/security/test_no_secret_leaks.py:generic-api-key:14
+
+# False positives: curl examples in old docs with a `Bearer YOUR_TOKEN` placeholder.
+5896575d3d7f360f35a25e3e8e4d05d31d5831f9:FIXES_SUMMARY.md:curl-auth-header:164
+5896575d3d7f360f35a25e3e8e4d05d31d5831f9:SUPERVISOR_IMPLEMENTATION_SUMMARY.md:curl-auth-header:171
+5896575d3d7f360f35a25e3e8e4d05d31d5831f9:SUPERVISOR_AGENT_GUIDE.md:curl-auth-header:307
+5896575d3d7f360f35a25e3e8e4d05d31d5831f9:SUPERVISOR_AGENT_GUIDE.md:curl-auth-header:324
+5896575d3d7f360f35a25e3e8e4d05d31d5831f9:SUPERVISOR_QUICK_REFERENCE.md:curl-auth-header:14
+d80fee105eab6381987c4acef626592302853743:LOGGING_IMPLEMENTATION_SUMMARY.md:curl-auth-header:166
+d80fee105eab6381987c4acef626592302853743:QUICK_START_GUIDE.md:curl-auth-header:87
+d80fee105eab6381987c4acef626592302853743:QUICK_START_GUIDE.md:curl-auth-header:105

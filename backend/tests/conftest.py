@@ -1,78 +1,29 @@
-"""
-Conftest: The brain. Defines all the fixtures - reusable setup that any test can pull in by name. This is the magic file.
+"""Shared test fixtures. See tests/tests.md for how the suite is organized.
 
-Test Infrastructure — shared fixtures for all tests.
+Only fixtures used across features live here; a feature's own fixtures go in
+that feature's conftest.py (e.g. tests/trends/conftest.py).
 
-WHAT THIS FILE DOES
--------------------
-Pytest auto-discovers any file named `conftest.py` and makes its fixtures
-available to every test in the same directory tree. Tests pull what they
-need by listing fixture names as parameters — pytest wires them up.
-
-For example, a test that needs a database session writes:
-
-    async def test_something(db_session):
-        result = await db_session.execute(...)
-
-Pytest sees `db_session` in the parameter list, calls our fixture below,
-and passes the result. After the test finishes, the fixture's cleanup
-code runs automatically.
-
-DESIGN DECISIONS
-----------------
-
-1. SEPARATE TEST DATABASE
-   Tests must NEVER write to your real cupid_db. We create a dedicated
-   `cupid_test_db` that gets truncated between tests. Same Postgres
-   instance, different database — fast and isolated.
-
-2. SESSION-SCOPED ENGINE, FUNCTION-SCOPED SESSION
-   Creating an engine is expensive (~100ms). Creating a session is cheap.
-   We make the engine once per pytest run (`scope="session"`) and a fresh
-   session per test (default `scope="function"`). This is the standard
-   pattern.
-
-3. ROLLBACK-BASED ISOLATION
-   Each test runs inside a transaction. After the test, we ROLLBACK —
-   nothing persists. Tests stay independent without slow truncates.
-
-4. ASYNC ALL THE WAY
-   Your app is async-first. Tests must be too. We use httpx.AsyncClient
-   instead of TestClient (which is sync) so async code paths get exercised.
-
-PRODUCTION CI NOTES
-------------------
-When you set up GitHub Actions later, these fixtures work the same way.
-The CI just needs:
-    - Postgres service running (docker-compose or GitHub services block)
-    - Environment variable TEST_DATABASE_URL pointing at the test DB
-The conftest doesn't change — the environment provides the DB URL.
+Database tests run against a separate Postgres database (`cupid_test_db`, or
+TEST_DATABASE_URL). Tables are created once per run from the models; each test
+runs inside a transaction that is rolled back, so tests never see each other's
+data and code under test may still call `commit()`.
 """
 
 from __future__ import annotations
 
-import asyncio
 import os
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 
 import pytest
-import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from sqlalchemy.exc import DBAPIError
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 
-# Import your application bits
-from app.core.db import Base
+from app.auth.deps import get_current_user
+from app.auth.models import User
+from app.core.db import get_db
+from app.core.tables import metadata
 from app.main import app
-
-# ─── Test database URL ─────────────────────────────────────────
-# Override via env var for CI; default to a dev-friendly local DB.
-# Note: this is a SEPARATE database from your dev one — `cupid_test_db`.
-# Make sure it exists. (Setup instructions in the README of this folder.)
 
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL",
@@ -80,110 +31,100 @@ TEST_DATABASE_URL = os.environ.get(
 )
 
 
-# ─── Event loop fixture ────────────────────────────────────────
-# pytest-asyncio creates a new event loop per test by default. For shared
-# fixtures (like the engine), we want one loop for the whole session.
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Mark every test that uses the database as `db`, so it can't be forgotten."""
+    for item in items:
+        if "db_session" in getattr(item, "fixturenames", ()):
+            item.add_marker(pytest.mark.db)
+
+
+@pytest.fixture(autouse=True)
+def _reset_dependency_overrides():
+    """Overrides set by one test (signed-in user, DB session) never leak into the next."""
+    yield
+    app.dependency_overrides.clear()
+
+
+# ── Database ───────────────────────────────────────────────────
 
 
 @pytest.fixture(scope="session")
-def event_loop():
-    """Session-scoped event loop so async fixtures can be session-scoped too."""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+async def engine() -> AsyncGenerator[AsyncEngine]:
+    """One engine and a fresh schema per test run.
 
-
-# ─── Database engine (session-scoped) ──────────────────────────
-
-
-@pytest_asyncio.fixture(scope="session")
-async def engine() -> AsyncGenerator[AsyncEngine, None]:
+    Locally, DB tests are skipped with a hint if Postgres isn't running;
+    in CI (CI is set) an unreachable database fails the run instead.
     """
-    One engine for the entire test session.
-
-    Why session-scoped: creating an engine is expensive (connection pool
-    setup, dialect inspection). Tests just borrow connections from the
-    engine — they don't need their own.
-    """
-    eng = create_async_engine(TEST_DATABASE_URL, echo=False)
-
-    # Create all tables once at session start
-    async with eng.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    eng = create_async_engine(TEST_DATABASE_URL)
+    try:
+        async with eng.begin() as conn:
+            await conn.run_sync(metadata.drop_all)  # clean slate after a crashed run
+            await conn.run_sync(metadata.create_all)
+    except (OSError, DBAPIError) as exc:
+        await eng.dispose()
+        if os.environ.get("CI"):
+            raise
+        pytest.skip(
+            f"Postgres test DB unreachable ({type(exc).__name__}); "
+            "run: docker compose up -d"
+        )
 
     yield eng
 
-    # Drop all tables at session end (clean slate next run)
     async with eng.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(metadata.drop_all)
     await eng.dispose()
 
 
-# ─── Database session (function-scoped, with rollback isolation) ──
+@pytest.fixture
+async def db_session(engine: AsyncEngine) -> AsyncGenerator[AsyncSession]:
+    """A session inside a transaction that is rolled back after the test.
 
-
-@pytest_asyncio.fixture
-async def db_session(engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
+    join_transaction_mode="create_savepoint" turns the code's own commit() calls
+    into savepoints, so the outer rollback still undoes everything.
     """
-    A fresh DB session per test. All writes are rolled back at the end,
-    so tests never see each other's data.
-
-    Pattern: connection → transaction → session.
-    The session is bound to the connection; the transaction is on the
-    connection. When we rollback, everything done in this test vanishes.
-    """
-    async with engine.connect() as connection:
-        transaction = await connection.begin()
-
-        session_factory = async_sessionmaker(
-            bind=connection,
+    async with engine.connect() as conn:
+        transaction = await conn.begin()
+        session = AsyncSession(
+            bind=conn,
             expire_on_commit=False,
-            class_=AsyncSession,
+            join_transaction_mode="create_savepoint",
         )
-
-        async with session_factory() as session:
+        try:
             yield session
-
-        # Rollback — nothing this test wrote actually persists
-        await transaction.rollback()
-
-
-# ─── HTTP test client ──────────────────────────────────────────
+        finally:
+            await session.close()
+            await transaction.rollback()
 
 
-@pytest_asyncio.fixture
-async def client() -> AsyncGenerator[AsyncClient, None]:
-    """
-    An anonymous async HTTP client targeting your FastAPI app.
+# ── HTTP ───────────────────────────────────────────────────────
 
-    No real network — httpx talks to the ASGI app directly via
-    ASGITransport. Faster than launching uvicorn, identical behavior.
 
-    Use this for testing endpoints that don't require auth.
-    """
+@pytest.fixture
+async def client() -> AsyncGenerator[AsyncClient]:
+    """HTTP client talking to the app in-process (no server, no network)."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
 
-# ─── Sample data fixtures ──────────────────────────────────────
-# These are the "Lego blocks" tests use to build scenarios. Define
-# common shapes once, reuse everywhere.
+@pytest.fixture
+def db_client(client: AsyncClient, db_session: AsyncSession) -> AsyncClient:
+    """`client` whose requests use the test database session."""
+
+    async def _test_db() -> AsyncGenerator[AsyncSession]:
+        yield db_session
+
+    app.dependency_overrides[get_db] = _test_db
+    return client
 
 
 @pytest.fixture
-def sample_persona() -> dict:
-    """A minimal persona dict — the shape the ranker expects."""
-    return {
-        "name": "Test User",
-        "content_niche": "ai/ml",
-        "target_audience": "developers and researchers",
-        "bio": "I write about machine learning and software engineering.",
-        "usp": "deep technical clarity for self-taught engineers",
-    }
+def sign_in() -> Callable[[User], User]:
+    """Make requests act as `user`: `sign_in(user)` skips the cookie check."""
 
+    def _sign_in(user: User) -> User:
+        app.dependency_overrides[get_current_user] = lambda: user
+        return user
 
-@pytest.fixture
-def sample_persona_empty() -> dict:
-    """An empty persona — tests the ranker's behavior on cold-start users."""
-    return {}
+    return _sign_in

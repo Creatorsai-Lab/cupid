@@ -9,38 +9,46 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 
 class Settings(BaseSettings):
+    """Secret fields use Field(repr=False): printing or logging the settings
+    object never shows them (tests/security/test_no_secret_leaks.py)."""
+
     model_config = SettingsConfigDict(
         env_file=BACKEND_DIR / ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="forbid",
+        # Validation errors must not echo rejected values: they may be secrets.
+        hide_input_in_errors=True,
     )
 
     # App
     app_env: str = "development"
-    secret_key: str
-    token_encryption_key: str = ""
+    secret_key: str = Field(repr=False)
+    token_encryption_key: str = Field("", repr=False)
     debug: bool = True
     session_ttl_seconds: int = 60 * 60 * 24 * 7
 
     # Database
-    database_url: str = "postgresql+asyncpg://cupid:cupid@localhost:5432/cupid_db"
+    database_url: str = Field(
+        "postgresql+asyncpg://cupid:cupid@localhost:5432/cupid_db", repr=False
+    )
 
     # FRONTEND
     frontend_url: str = "http://localhost:3000"
 
     # Redis
     # docker-compose.yml maps host 6380 -> container 6379
-    redis_url: str = "redis://localhost:6380/0"
+    redis_url: str = Field("redis://localhost:6380/0", repr=False)
 
     # External APIs ("" = not configured; a value in .env overrides it)
-    groq_api_key: str = ""
-    tavily_api_key: str = ""  # research agent search (Phase 3)
-    gnews_api_key: str = ""
-    huggingface_api_key: str = ""  # old composer fallback; removed with it (Phase 5)
+    groq_api_key: str = Field("", repr=False)
+    tavily_api_key: str = Field("", repr=False)  # research agent search (Phase 3)
+    gnews_api_key: str = Field("", repr=False)
+    # old composer fallback; removed with it (Phase 5)
+    huggingface_api_key: str = Field("", repr=False)
     # Google OAuth (for YouTube and other Google services)
     google_client_id: str = ""
-    google_client_secret: str = ""
+    google_client_secret: str = Field("", repr=False)
     google_redirect_uri: str = (
         "http://localhost:8000/api/v1/connections/youtube/callback"
     )
@@ -62,9 +70,9 @@ class Settings(BaseSettings):
     # on its own, just a thin extra layer over the credential gate).
     admin_panel_path: str = "/ctrl-panel"
     admin_panel_user: str = ""
-    admin_panel_password: str = ""
+    admin_panel_password: str = Field("", repr=False)
     # Signs the dashboard's session cookie. Falls back to secret_key if unset.
-    admin_session_secret: str = ""
+    admin_session_secret: str = Field("", repr=False)
 
     @field_validator("admin_emails", mode="before")
     @classmethod

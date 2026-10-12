@@ -484,15 +484,24 @@ Docker was off for autogenerate); tests unchanged; the app starts and serves its
 - [x] `tests/security/` with the first app-wide rule: every route requires login except an
       allowlist of 5 deliberately public routes (verified it catches a forgotten check).
 - [x] `tests/agents/supervisor/` subfolder; `backend/evals/` skeleton with its README.
-- [ ] `conftest.py`: drop the custom `event_loop` fixture, make the DB fixtures work, move
-      feature-only fixtures (e.g. `sample_persona`) into that feature's `conftest.py`.
-- [ ] `fakes.py` (`FakeLLM`, …) and `factories.py` (`make_user()`, …); fake signed-in user
-      via `dependency_overrides`.
-- [ ] Dev tools: `respx` (fake HTTP), `pytest-cov` (coverage report).
-- [ ] CI: Postgres service, run `db` tests; `pip-audit`, `npm audit`, secret scan.
-- [ ] Tests for money- and security-critical features: auth, entitlements, history ownership.
-- [ ] More app-wide security tests: no secrets in errors/logs, CORS origin, internal-address
-      fetch guard.
+- [x] `conftest.py` rewritten: one event loop per run, working Postgres fixtures
+      (`db_session` rolled back per test, auto `db` marker, skip locally / fail in CI when
+      the DB is down), `db_client`, `sign_in(user)`; trends fixtures moved to its conftest.
+- [x] `factories.py` (`make_user`, `make_history`, `make_subscription`, `save`).
+      `FakeLLM` / `fakes.py` deferred to Phase 2 so it matches the gateway's interface.
+- [x] Dev tools: `respx`, `pytest-cov` (baseline coverage 52%).
+- [x] CI: Postgres service (`db` tests run), coverage, `pip-audit`, vitest, `npm audit`
+      (production deps), gitleaks secret scan over full history (`.gitleaksignore`).
+- [x] Tests: session cookie checks, entitlement rules, history ownership (25 tests).
+- [x] App-wide security tests: no secrets in settings output/errors or 500 responses,
+      CORS origin. Fetch-guard and untrusted-content tests deferred to Phase 3 (research).
+- [x] Fixed what the new checks found: settings leaked secrets (now hidden); 7 vulnerable
+      Python packages (upgraded; python-jose replaced by PyJWT, existing sessions stay
+      valid); 22 frontend vulnerabilities (production audit now 0); Phase 1's
+      `alembic check` confirmed against the real DB.
+- [x] `backend/tests/tests.md`: guide to the test suite.
+- [ ] **Revoke the Hugging Face token** found in git history (repo is public) —
+      huggingface.co/settings/tokens. Owner action.
 
 Done when: DB tests run in CI, and auth, entitlements and history ownership are covered.
 
@@ -584,3 +593,5 @@ Done when: agreed latency and token targets are met.
 - Tracing dashboard (e.g. Langfuse) once logged usage is not enough.
 - Consider PyJWT in place of python-jose for session tokens.
 - Clear the 17 ESLint warnings (mostly unused variables) as those files are touched.
+- Adopt `eslint-plugin-react-hooks` 7.1 (pinned to 7.0.1 via npm overrides): its stricter
+  rules report 8 findings, some possibly real bugs ("variable used before declared").

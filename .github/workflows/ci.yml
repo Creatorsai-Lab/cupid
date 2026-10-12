@@ -12,13 +12,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── Backend: Ruff lint + format check + tests ────────────────
+  # ── Backend: lint, tests (incl. Postgres), dependency audit ──
   backend:
-    name: Backend (Ruff · pytest)
+    name: Backend (Ruff · pytest · pip-audit)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
+    # Postgres for `db` tests. In CI (CI=true) an unreachable DB fails the run.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: cupid
+          POSTGRES_PASSWORD: cupid
+          POSTGRES_DB: cupid_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cupid"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -36,12 +51,19 @@ jobs:
       - name: Format check (ruff format --check)
         run: uv run ruff format --check .
 
-      # Fast offline set (integration tests are deselected in pyproject.toml).
+      # Default set incl. `db` tests (integration tests are deselected in pyproject.toml).
       - name: Tests (pytest)
-        run: uv run pytest
+        run: uv run pytest --cov=app --cov-report=term:skip-covered
         env:
-          # Test-only value so Settings loads without a .env; not a real secret.
+          # Test-only values so Settings loads without a .env; not real secrets.
           SECRET_KEY: ci-only-test-key-not-a-real-secret-0123456789abcdef
+          TEST_DATABASE_URL: postgresql+asyncpg://cupid:cupid@localhost:5432/cupid_test_db
+
+      # Known vulnerabilities in any locked Python package fail the build.
+      - name: Dependency audit (pip-audit)
+        run: |
+          uv export --format requirements-txt --no-hashes --quiet > requirements-audit.txt
+          uvx pip-audit@2.10.1 -r requirements-audit.txt --no-deps --disable-pip --progress-spinner off
 
   # ── Frontend: Prettier + ESLint + types + build ──────────────
   frontend:
@@ -55,7 +77,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"  # matches local development; jsdom 30 needs Node 22+
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -71,7 +93,29 @@ jobs:
       - name: Typecheck (tsc)
         run: npm run typecheck
 
+      - name: Tests (vitest)
+        run: npm test
+
+      # Production dependencies only: dev tooling (eslint, shadcn CLI) never ships.
+      - name: Dependency audit (npm audit)
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Build (next build)
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8000
+
+  # ── Secret scan over the full git history ────────────────────
+  # Known, reviewed findings are listed in .gitleaksignore; anything new fails.
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: gitleaks
+        run: >-
+          docker run --rm -v "${{ github.workspace }}:/repo"
+          ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo --redact --no-banner

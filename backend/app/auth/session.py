@@ -2,8 +2,9 @@
 
 from datetime import UTC, datetime, timedelta
 
+import jwt
 from fastapi import Response
-from jose import JWTError, jwt
+from jwt import InvalidTokenError
 
 from app.config import settings
 
@@ -28,7 +29,7 @@ def decode_access_token(token: str) -> str | None:
         payload = jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
         user_id: str | None = payload.get("sub")
         return user_id
-    except JWTError:
+    except InvalidTokenError:
         return None
 
 
