@@ -11,7 +11,8 @@ from pydantic import ValidationError
 from app.config import Settings
 from app.main import create_app
 
-SECRET = "LEAK-CANARY-7f3a9c"  # any output containing this has leaked a secret
+# Fake value: any output containing it has leaked a secret.
+SECRET = "LEAK-CANARY-7f3a9c"  # gitleaks:allow
 VALID_KEY = "k" * 40 + SECRET
 
 

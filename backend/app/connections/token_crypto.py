@@ -41,7 +41,7 @@ First time only — run this in a Python REPL once and save the output:
     'jZdOh7K9mF2pXr...'  # something like this, 44 chars
 
 Add it to your .env:
-    TOKEN_ENCRYPTION_KEY=jZdOh7K9mF2pXr...
+    TOKEN_ENCRYPTION_KEY=<output of Fernet.generate_key()>
 
 NEVER commit this key. NEVER change it after tokens are encrypted (you'd
 lose ability to decrypt them — users would all need to reconnect).
