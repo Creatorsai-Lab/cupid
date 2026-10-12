@@ -46,11 +46,14 @@ only tests the fake. Keep them apart.
 ```
 backend/tests/
   conftest.py              shared fixtures (see section 6)
+  factories.py             make_user(), make_history(), make_subscription(), save()
   tests.md                 this file
-  core/                    settings, errors, DB plumbing
-  auth/                    sign-in, session token, cookie
+  core/                    settings, errors
+  auth/                    sign-in, session token and cookie, current user
   connections/             YouTube OAuth connection
-  trends/                  trending articles
+  history/                 ownership of saved creations
+  subscriptions/           entitlement rules (what each plan grants)
+  trends/                  trending articles (+ its own conftest.py)
   agents/                  request options, old pipeline (integration)
     supervisor/            one subfolder per agent part:
                            later research/, studio/, llm/, runtime/
@@ -58,7 +61,7 @@ backend/tests/
 ```
 
 Not yet tested (folders appear with their first test): `profile/`, `insights/`,
-`history/`, `earn/`, `subscriptions/`, `admin/`.
+`earn/`, `admin/`.
 
 ### The two rules
 
@@ -69,7 +72,7 @@ Not yet tested (folders appear with their first test): `profile/`, `insights/`,
 | Marker               | Needs                    | Runs by default?                      |
 | -------------------- | ------------------------ | ------------------------------------- |
 | *(none)*             | nothing external         | yes                                   |
-| `@pytest.mark.db`    | the Postgres test DB     | yes, once DB fixtures work (see §8)   |
+| `@pytest.mark.db`    | the Postgres test DB     | yes — **added automatically** to any test using `db_session` |
 | `@pytest.mark.integration` | network + API keys | no — `uv run pytest -m integration` |
 
 Markers are strict (`--strict-markers`): a typo in a marker name is an error. They are
@@ -80,10 +83,14 @@ declared in `pyproject.toml` under `[tool.pytest.ini_options]`.
 - **One feature's rule → that feature's folder.** Examples: a forged token is rejected
   (`auth/`), you can't read another user's history (`history/`), a forged OAuth state is
   rejected (`connections/`).
-- **A rule for the whole app → `security/`.** Examples: every route requires login unless
-  allowlisted (exists: `security/test_route_auth.py`), no secrets in error messages or
-  logs, CORS allows only the frontend, agents don't obey instructions inside fetched web
-  pages, the page fetcher refuses internal addresses.
+- **A rule for the whole app → `security/`.** Today:
+  - `test_route_auth.py` — every route requires login unless allowlisted;
+  - `test_no_secret_leaks.py` — settings never print secrets, settings errors never
+    echo input, unhandled 500s never reveal exception details;
+  - `test_cors.py` — only the frontend origin may call the API with credentials.
+
+  Coming with the agents: fetched web pages can't instruct the agents, and the page
+  fetcher refuses internal addresses (Phase 3).
 
 If you add a deliberately **public** route, add it to `PUBLIC_ROUTES` in
 `security/test_route_auth.py` with the reason — otherwise that test fails, by design.
@@ -104,7 +111,8 @@ If you add a deliberately **public** route, add it to `PUBLIC_ROUTES` in
 3. **Fakes record what they received,** so tests can check the prompt or request that
    was sent, not only the result (e.g. `fake_llm.calls[-1]["user"]`).
 4. **No real network.** External HTTP goes through `httpx`; fake it with `respx`
-   (planned, §8). A test that reaches the internet must be marked `integration`.
+   (`respx.mock` + a route per URL). A test that reaches the internet must be marked
+   `integration`.
 5. **Time is an input.** Pass `now=` / a clock function instead of patching the clock
    (the research agent already does this).
 6. **Expected failures are explicit.** Known-wrong behavior that will be replaced is
@@ -112,20 +120,22 @@ If you add a deliberately **public** route, add it to `PUBLIC_ROUTES` in
    the run fails and someone removes the marker.
 7. **Async tests need no decorator** (`asyncio_mode = "auto"`): just `async def test_...`.
 
-Example: an API test with a fake signed-in user (pattern; the shared fixture is planned):
+Example: an API test against the database, as a signed-in user
+(from `history/test_ownership.py`):
 
 ```python
-from app.auth.deps import get_current_user
-from app.main import app
+from tests.factories import make_history, make_user, save
 
 
-async def test_history_requires_owner(client, make_user):
-    app.dependency_overrides[get_current_user] = lambda: make_user()
-    try:
-        response = await client.get("/api/v1/history/")
-        assert response.status_code == 200
-    finally:
-        app.dependency_overrides.clear()
+async def test_cannot_delete_another_users_entry(db_client, db_session, sign_in):
+    me, other = make_user(), make_user()
+    theirs = make_history(other)
+    await save(db_session, me, other, theirs)
+    sign_in(me)
+
+    response = await db_client.delete(f"/api/v1/history/{theirs.id}")
+
+    assert response.status_code == 404
 ```
 
 ---
@@ -148,13 +158,23 @@ answers. Quality of real output belongs in `evals/`.
 
 ---
 
-## 6. Fixtures available today (`conftest.py`)
+## 6. Fixtures and helpers
 
-| Fixture                | What it gives                                   | Status                 |
-| ---------------------- | ----------------------------------------------- | ---------------------- |
-| `client`               | `httpx.AsyncClient` talking to the app in-process | works                |
-| `engine`, `db_session` | Postgres test DB, rolled back after each test   | not working yet (§8)   |
-| `sample_persona`, `sample_persona_empty` | persona dicts for the trends ranker | works; moves to `trends/conftest.py` |
+| Name                   | What it gives                                                     |
+| ---------------------- | ----------------------------------------------------------------- |
+| `client`               | `httpx.AsyncClient` talking to the app in-process (no DB)         |
+| `db_session`           | Postgres session inside a transaction rolled back after the test; the code's own `commit()` calls become savepoints. Using it marks the test `db`. |
+| `db_client`            | `client` whose requests use `db_session`                          |
+| `sign_in(user)`        | requests act as `user` (skips the cookie check)                   |
+| `engine`               | session-wide engine; creates the schema once per run from the models |
+| `tests/factories.py`   | `make_user()`, `make_history(user)`, `make_subscription()` — defaults, override any field; `save(session, *objs)` adds and flushes |
+
+Dependency overrides (`sign_in`, `db_client`) are reset after every test automatically.
+
+**Database tests locally:** start Postgres with `docker compose up -d` (from the repo
+root). The test database is `cupid_test_db` (override with `TEST_DATABASE_URL`). If
+Postgres isn't running, `db` tests are **skipped** with that hint; in CI they **fail**
+instead, so they can never be silently skipped there.
 
 Put fixtures used by one feature in that feature's own `conftest.py`; only shared
 fixtures belong in the top-level one.
@@ -164,36 +184,39 @@ fixtures belong in the top-level one.
 ## 7. CI
 
 `.github/workflows/ci.yml` runs on every pull request and push to `main`:
-`uv sync --locked`, `ruff check`, `ruff format --check`, `pytest` (default suite, with a
-test-only `SECRET_KEY` so settings load without `.env`). Evals and `integration` tests
-never run in CI.
+
+| Job      | Checks                                                                 |
+| -------- | ---------------------------------------------------------------------- |
+| backend  | `uv sync --locked`, ruff (incl. security rules), `pytest` with coverage against a Postgres service, `pip-audit` (known vulnerabilities in any locked package fail) |
+| frontend | `npm ci`, Prettier, ESLint, `tsc`, vitest, `npm audit` on production dependencies (high+ fails), `next build` |
+| secrets  | gitleaks over the full git history; reviewed historical findings are listed in `.gitleaksignore` with reasons, anything new fails |
+
+Evals and `integration` tests never run in CI.
 
 Ruff's security rules (`S`, from bandit) are on. In `tests/` and `evals/`, `assert` and
 fake credentials are allowed. Anywhere else, a false alarm is silenced inline **with its
-reason**, e.g. `# noqa: S311 - retry jitter, not security`.
+reason**, e.g. `# noqa: S311 - retry jitter, not security`. A fake secret in a test is
+marked `# gitleaks:allow`.
 
 ---
 
 ## 8. Current state and what's next
 
-As of 2026-10-12: **78 passed, 8 expected failures, 2 skipped, 5 integration
-(deselected)**, in about a second.
+As of 2026-10-12: **110 passed** (10 of them against Postgres), **8 expected failures**,
+2 skipped, 5 integration deselected. Coverage of `app/`: **52%**
+(`uv run pytest --cov=app`).
 
 Known expected failures (strict `xfail`):
 - 6 in `agents/supervisor/` — the keyword supervisor misjudges intent; it is replaced in
   Phase 4.
 - 2 in `trends/` — authority scores drifted; trends is rebuilt later.
 
-Still to do (Phase 1.5 in the plan):
-- [ ] `conftest.py`: remove the old custom `event_loop` fixture, make `db_session` work
-      against Postgres, move `sample_persona` into `trends/conftest.py`.
-- [ ] `fakes.py` (`FakeLLM`, …), `factories.py` (`make_user()`, `make_profile()`, …),
-      and a shared fake signed-in user fixture.
-- [ ] Add `respx` (fake HTTP) and `pytest-cov` (coverage report) to the dev group.
-- [ ] CI: Postgres service so `db` tests run; `pip-audit`, `npm audit`, secret scan.
-- [ ] Tests for auth, entitlements (money rules) and history ownership.
-- [ ] More `security/` tests: no secrets in errors/logs, CORS origin, internal-address
-      fetch guard.
+Next:
+- `FakeLLM` in a shared `fakes.py` arrives with the LLM gateway (Phase 2), so it matches
+  the gateway's interface; the research agent's 311 tests come in Phase 3.
+- Security tests for fetched web content and internal-address fetching come with the
+  research agent (Phase 3).
+- `profile/`, `insights/`, `earn/`, `admin/` get tests when their code is next touched.
 
 Coverage is reported, not enforced as a percentage. What is enforced: auth, money
 (entitlements), ownership checks and agent resume always have tests.
