@@ -15,14 +15,13 @@ from __future__ import annotations
 import asyncio
 import uuid
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agents.models import ContentLength, ContentType, Platform, Tone
 from app.agents.run_store import load_run, save_run
+from app.agents.schemas import GenerateRequest, GenerateResponse, RunStatusResponse
 from app.auth.deps import get_current_user
 from app.auth.models import User
 from app.core.db import get_db
@@ -53,44 +52,12 @@ _STREAM_KEYS: frozenset[str] = frozenset(
 )
 
 
-# ── Request / Response Schemas ────────────────────────────────
-
 # Tones that directly map to a composition angle; everything else uses hook_first.
 _TONE_TO_VOICE: dict[str, str] = {
     "Hook First": "hook_first",
     "Data Driven": "data_driven",
     "Story Led": "story_led",
 }
-
-
-class GenerateRequest(BaseModel):
-    prompt: str
-    content_type: ContentType = "Text"
-    platform: Platform = "Twitter"
-    length: ContentLength = "Medium"
-    tone: Tone = "Formal"
-
-
-class GenerateResponse(BaseModel):
-    run_id: str
-    status: str
-    message: str
-
-
-class RunStatusResponse(BaseModel):
-    run_id: str
-    status: Literal["pending", "running", "completed", "failed"]
-    created_at: datetime
-    current_agent: str | None = None
-    agents_completed: list[str] = []
-    error: str | None = None
-    personalization_queries: list[str] = []
-    research_data: dict | None = None
-    trend_data: dict | None = None
-    composer_output: list | None = None
-    composer_evidence: list | None = None
-    composer_sources: list | None = None
-    history_id: str | None = None
 
 
 # ── Background Pipeline ───────────────────────────────────────

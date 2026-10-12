@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.agents.router import router as agents_router
 from app.auth.router import router as auth_router
 from app.config import settings
 from app.connections.router import router as connections_router
@@ -17,7 +18,6 @@ from app.insights.router import router as insights_router
 from app.insights.scheduler import start_scheduler as start_insights_scheduler
 from app.insights.scheduler import stop_scheduler as stop_insights_scheduler
 from app.profile.router import router as profile_router
-from app.routers.agents import router as agents_router
 from app.subscriptions.router import router as subscriptions_router
 from app.trends.router import router as trends_router
 from app.trends.scheduler import start_scheduler as start_trends_scheduler
