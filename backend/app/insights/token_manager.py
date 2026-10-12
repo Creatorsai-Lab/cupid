@@ -39,8 +39,8 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.connections import youtube_oauth
+from app.connections.models import SocialConnection
 from app.connections.token_crypto import decrypt_token, encrypt_token
-from app.models.social_connection import SocialConnection
 
 logger = logging.getLogger(__name__)
 

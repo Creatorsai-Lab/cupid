@@ -30,8 +30,8 @@ from datetime import UTC, date, timedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.connections.models import SocialConnection
 from app.models.insights_snapshot import InsightsSnapshot
-from app.models.social_connection import SocialConnection
 from app.models.top_content import TopContent
 from app.schemas.insights_schema import (
     HeatmapCell,

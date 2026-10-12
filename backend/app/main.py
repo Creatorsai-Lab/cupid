@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from app.auth.router import router as auth_router
 from app.config import settings
+from app.connections.router import router as connections_router
 from app.core.db import async_session
 from app.core.errors import AppError
 from app.core.logging_config import setup_logging
@@ -15,7 +16,6 @@ from app.insights.scheduler import start_scheduler as start_insights_scheduler
 from app.insights.scheduler import stop_scheduler as stop_insights_scheduler
 from app.profile.router import router as profile_router
 from app.routers.agents import router as agents_router
-from app.routers.connections import router as connections_router
 from app.routers.history_router import router as history_router
 from app.routers.insights_router import router as insights_router
 from app.routers.trends import router as trends_router

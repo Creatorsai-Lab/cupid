@@ -37,9 +37,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import get_current_user
 from app.auth.models import User
+from app.connections.models import SocialConnection
 from app.core.db import get_db
 from app.insights import insights_service as insights_service
-from app.models.social_connection import SocialConnection
 from app.schemas.insights_schema import (
     HeatmapResponse,
     SummaryResponse,

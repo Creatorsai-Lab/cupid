@@ -31,15 +31,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.deps import get_current_user
 from app.auth.models import User
 from app.connections import youtube_oauth
+from app.connections.models import SocialConnection
+from app.connections.schemas import ConnectionResponse, ConnectionStartResponse
 from app.connections.token_crypto import encrypt_token
 from app.core.db import get_db
 from app.core.oauth_state import consume_state, generate_state_token, store_state
 from app.core.redis import get_redis
-from app.models.social_connection import SocialConnection
-from app.schemas.connections import (
-    ConnectionResponse,
-    ConnectionStartResponse,
-)
 
 logger = logging.getLogger(__name__)
 

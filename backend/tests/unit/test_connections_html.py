@@ -1,6 +1,6 @@
 from html import escape
 
-from app.routers.connections import _close_window_html
+from app.connections.router import _close_window_html
 
 
 def test_close_windows_html_escapes_messages() -> None:

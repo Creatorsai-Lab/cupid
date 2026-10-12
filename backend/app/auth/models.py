@@ -12,8 +12,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.db import Base
 
 if TYPE_CHECKING:
+    from app.connections.models import SocialConnection
     from app.models.creation_history import CreationHistory
-    from app.models.social_connection import SocialConnection
 
 
 class User(Base):
