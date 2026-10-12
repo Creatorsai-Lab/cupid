@@ -3,7 +3,7 @@
 > Living plan for rebuilding Cupid's agent system. Edit freely: tick tasks as they land,
 > add decisions to the log, and keep "Open questions" current.
 >
-> Last updated: 2026-10-09
+> Last updated: 2026-10-12
 
 ---
 
@@ -427,7 +427,7 @@ checks until the full supervisor lands (Phase 4).
 - [ ] Fix pyright errors in code that stays (40 as of Phase 1, incl. 6 in scripts/; ~15 in old agents/trends that are
       deleted later, ~7 real `None`-handling gaps, ~13 library typing noise), then add
       `uv run pyright` to CI.
-- [ ] Push the `phase-0-stabilize` branch and the tag; merge into `main` when CI is green.
+- [x] Pushed the `phase-0-stabilize` branch and the `legacy-pipeline` tag; CI green, merged into `main` (PR #2).
 
 Done when: the app starts, `pytest` passes in seconds, CI is green on GitHub.
 
@@ -452,7 +452,7 @@ Pure moves, no behavior change. One commit per feature, using `git mv` to keep h
 - [x] Stale `pyrightconfig.json` (it silently overrode `pyproject.toml`) and an empty
       `backend/package-lock.json` removed.
 - [x] README project tree updated.
-- [ ] Push the branch, open a PR, merge when CI is green.
+- [x] Pushed, CI green, merged into `main` (PR #3).
 
 Done when: the OpenAPI schema is identical, `alembic revision --autogenerate` produces an
 empty migration, test results are unchanged, and the app starts.
