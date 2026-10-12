@@ -16,6 +16,8 @@ ENV/
 !.env.example
 .env
 backend/.env
+# Eval run outputs (scores, model responses), regenerated per run
+backend/evals/results/
 
 # Node.js (Next.js frontend)
 node_modules/

@@ -3,7 +3,7 @@
 > Living plan for rebuilding Cupid's agent system. Edit freely: tick tasks as they land,
 > add decisions to the log, and keep "Open questions" current.
 >
-> Last updated: 2026-10-12
+> Last updated: 2026-10-09
 
 ---
 
@@ -17,26 +17,25 @@ creation) is the product; every other step exists to feed it well.
 
 ## 2. Decision log
 
-| #   | Decision                                                                                                                                              | Date       |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| D1  | Agent endpoints stay under `/api/v1/agents`. New routes are added there (pre-launch, no v2).                                                         | 2026-10-06 |
-| D2  | Keep `_TONE_TO_VOICE`: one copy in `studio/voices.py`, every tone mapped, actually read by the studio.                                               | 2026-10-06 |
-| D3  | The new research agent (`D:\cupid_agents\web-search-agent`) replaces both the personalization and research agents.                                    | 2026-10-06 |
-| D4  | Workflow outside, agents inside: a fixed LangGraph pipeline with intelligence inside each step. No swarm.                                            | 2026-10-06 |
-| D5  | Free LLM APIs only until a working MVP. Each role has an ordered provider list; one provider per role for a whole run; skip a provider while it is rate-limited. | 2026-10-09 |
-| D6  | Send as little user data to LLMs as possible; use provider settings and request options that disable logging and training.                          | 2026-10-09 |
-| D7  | Prompt caching from the first step (see 5.5).                                                                                                        | 2026-10-09 |
-| D8  | No research-output compression until the optimization phase (Phase 6).                                                                              | 2026-10-09 |
-| D9  | Composer renamed **studio**: head agent **director**, sub-agents **specialists**, later a lightweight **editor**. Not "creator" — that is our user.  | 2026-10-09 |
-| D10 | Studio output is stored as typed, addressable blocks — never plain text.                                                                             | 2026-10-09 |
-| D11 | Tones are defined once per language (one Python type, one TypeScript constant).                                                                      | 2026-10-09 |
-| D12 | Feature folders: every feature and every agent owns its `models.py`. No top-level `models/`, `schemas/`, `services/`, `routers/`.                    | 2026-10-09 |
-| D13 | Folder depth is `app/<feature>/<file>`; only agents go one level deeper.                                                                             | 2026-10-09 |
-| D14 | Trends ingestion is rebuilt from scratch later; no piecemeal fixes until then.                                                                       | 2026-10-09 |
-| D15 | The first pipeline step keeps the name **supervisor** (`agents/supervisor/`); it will gain more files in later versions.                             | 2026-10-09 |
-| D16 | The supervisor makes no LLM calls — every check is deterministic.                                                                                    | 2026-10-09 |
-| D17 | uv is the Python dependency manager: `pyproject.toml` + `uv.lock`, commands via `uv run` (no venv activation).                                       | 2026-10-09 |
-| D18 | No git pre-commit hooks. Quality checks are run manually with `uv run`: ruff (lint + format), pyright (types), pytest; CI runs them on pull requests. | 2026-10-12 |
+| #   | Decision                                                                                                                                                                    | Date       |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| D1  | Agent endpoints stay under`/api/v1/agents`. New routes are added there (pre-launch, no v2).                                                                               | 2026-10-06 |
+| D2  | Keep`_TONE_TO_VOICE`: one copy in `studio/voices.py`, every tone mapped, actually read by the studio.                                                                   | 2026-10-06 |
+| D3  | The new research agent (`D:\cupid_agents\web-search-agent`) replaces both the personalization and research agents.                                                        | 2026-10-06 |
+| D4  | Workflow outside, agents inside: a fixed LangGraph pipeline with intelligence inside each step. No swarm.                                                                   | 2026-10-06 |
+| D5  | Free LLM APIs only until a working MVP. Each role has an ordered provider list; one provider per role for a whole run; skip a provider while it is rate-limited.            | 2026-10-09 |
+| D6  | Send as little user data to LLMs as possible; use provider settings and request options that disable logging and training.                                                  | 2026-10-09 |
+| D7  | Prompt caching from the first step (see 5.5).                                                                                                                               | 2026-10-09 |
+| D8  | No research-output compression until the optimization phase (Phase 6).                                                                                                      | 2026-10-09 |
+| D9  | Composer renamed**studio**: head agent **director**, sub-agents **specialists**, later a lightweight **editor**. Not "creator" — that is our user. | 2026-10-09 |
+| D10 | Studio output is stored as typed, addressable blocks — never plain text.                                                                                                   | 2026-10-09 |
+| D11 | Tones are defined once per language (one Python type, one TypeScript constant).                                                                                             | 2026-10-09 |
+| D12 | Feature folders: every feature and every agent owns its`models.py`. No top-level `models/`, `schemas/`, `services/`, `routers/`.                                  | 2026-10-09 |
+| D13 | Folder depth is`app/<feature>/<file>`; only agents go one level deeper.                                                                                                   | 2026-10-09 |
+| D14 | Trends ingestion is rebuilt from scratch later; no piecemeal fixes until then.                                                                                              | 2026-10-09 |
+| D15 | The first pipeline step keeps the name**supervisor** (`agents/supervisor/`); it will gain more files in later versions.                                             | 2026-10-09 |
+| D16 | The supervisor makes no LLM calls — every check is deterministic.                                                                                                          | 2026-10-09 |
+| D17 | uv is the Python dependency manager:`pyproject.toml` + `uv.lock`, commands via `uv run` (no venv activation).                                                         | 2026-10-09 |
 
 ---
 
@@ -54,13 +53,13 @@ POST /api/v1/agents/generate ──► run_id
      every step     ──► typed events ──► Redis stream ──► GET /runs/{id}/events (SSE)
 ```
 
-| Step        | Job                                                                                                                                  | Writes to the run pool   |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
-| supervisor  | Deterministic checks (input, quota, rate limits) and the run plan from the request. No LLM call. Replaces the keyword supervisor. | `plan`                   |
-| research    | Plan queries, search, extract, evaluate and select personalized sources.                                                             | `research`               |
-| director    | Reads everything once and makes the creative decisions every specialist follows.                                                     | `brief`                  |
-| specialists | Produce each deliverable variant in parallel. Writer first; designer, infographic, animator and video later. Each piece is reviewed before it lands. | `pieces` (appended)      |
-| finalize    | Save to history once (keyed by run id) and emit `run.completed`.                                                                     | —                        |
+| Step        | Job                                                                                                                                                  | Writes to the run pool |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| supervisor  | Deterministic checks (input, quota, rate limits) and the run plan from the request. No LLM call. Replaces the keyword supervisor.                    | `plan`               |
+| research    | Plan queries, search, extract, evaluate and select personalized sources.                                                                             | `research`           |
+| director    | Reads everything once and makes the creative decisions every specialist follows.                                                                     | `brief`              |
+| specialists | Produce each deliverable variant in parallel. Writer first; designer, infographic, animator and video later. Each piece is reviewed before it lands. | `pieces` (appended)  |
+| finalize    | Save to history once (keyed by run id) and emit`run.completed`.                                                                                    | —                     |
 
 ### Principles
 
@@ -79,13 +78,13 @@ POST /api/v1/agents/generate ──► run_id
 
 ### 4.1 Feature-folder convention
 
-| File         | Job                                                                                   |
-| ------------ | ------------------------------------------------------------------------------------- |
-| `models.py`  | Data this folder owns: DB tables in features, typed contracts (Pydantic) in agents.   |
-| `schemas.py` | HTTP request and response shapes only.                                                |
-| `service.py` | Logic.                                                                                |
-| `router.py`  | HTTP only, thin. No try/except, no business logic.                                    |
-| `deps.py`    | FastAPI dependencies.                                                                 |
+| File           | Job                                                                                 |
+| -------------- | ----------------------------------------------------------------------------------- |
+| `models.py`  | Data this folder owns: DB tables in features, typed contracts (Pydantic) in agents. |
+| `schemas.py` | HTTP request and response shapes only.                                              |
+| `service.py` | Logic.                                                                              |
+| `router.py`  | HTTP only, thin. No try/except, no business logic.                                  |
+| `deps.py`    | FastAPI dependencies.                                                               |
 
 Rules:
 
@@ -104,11 +103,11 @@ backend/app/
   config.py          settings (unchanged)
   core/              shared infrastructure, imports no feature
     db.py            engine, session, Base, DbSession
-    tables.py        discovers every models.py so Alembic and SQLAlchemy see all tables
+    tables.py        imports every models.py so Alembic and SQLAlchemy see all tables
     errors.py        AppError family
     redis.py  logging_config.py  oauth_state.py
   auth/              models.py (User)  schemas.py  service.py  router.py  deps.py
-                     google.py (login OAuth)  session.py (JWT + cookie)
+                     google.py (login OAuth)  tokens.py (JWT)
   profile/           models.py  schemas.py  service.py  router.py
   connections/       models.py  schemas.py  router.py  youtube_oauth.py  token_crypto.py
   insights/          models.py (snapshot, top content)  schemas.py  service.py  router.py
@@ -167,16 +166,15 @@ async def list_history(user: CurrentUser, db: DbSession) -> HistoryList: ...
 
 ### 4.5 Daily commands (from `backend/`, no venv activation)
 
-| Task                       | Command                                            |
-| -------------------------- | -------------------------------------------------- |
+| Task                       | Command                                              |
+| -------------------------- | ---------------------------------------------------- |
 | Install / sync environment | `uv sync`                                          |
 | Run tests                  | `uv run pytest`                                    |
 | Format                     | `uv run ruff format .`                             |
 | Lint (and auto-fix)        | `uv run ruff check . --fix`                        |
-| Type check                 | `uv run pyright`                                   |
 | Start the API              | `uv run uvicorn app.main:app --reload --port 8000` |
 | Migrate the database       | `uv run alembic upgrade head`                      |
-| Add or upgrade a package   | `uv add <package>==<version>` (dev: `--dev`)       |
+| Add or upgrade a package   | `uv add <package>==<version>` (dev: `--dev`)     |
 | Remove a package           | `uv remove <package>`                              |
 
 ---
@@ -288,7 +286,6 @@ class ContentPiece(ContractModel):
       max_chars: int | None
       guide: str                                # what a great one looks like
   ```
-
 - **Specialists** share one interface, so the director routes through the registry:
   `async def make(task: Assignment, brief: CreativeBrief) -> ContentPiece`.
   (`edit()` is added with the editor.)
@@ -338,7 +335,6 @@ Built by promoting the research agent's `LLMClient` (and its tests), not written
       ):
           await events.publish(run_id, to_event(mode, chunk))
   ```
-
 - **Worker:** runs execute outside the API process (SAQ on Redis), so deploys and restarts
   do not kill runs; the worker's concurrency limit protects provider rate limits.
 - **Events:** Redis stream per run → SSE. Reconnects resume from `Last-Event-ID`.
@@ -346,23 +342,21 @@ Built by promoting the research agent's `LLMClient` (and its tests), not written
   `run.degraded`, `run.failed`, `run.completed`.
 - **Endpoints** (all under v1, D1):
 
-  | Method | Path                                  | Status                 |
-  | ------ | ------------------------------------- | ---------------------- |
-  | POST   | `/api/v1/agents/generate`             | exists, body unchanged |
-  | GET    | `/api/v1/agents/runs/{id}`            | exists (snapshot)      |
-  | GET    | `/api/v1/agents/runs/{id}/events`     | new (SSE)              |
-  | POST   | `/api/v1/agents/runs/{id}/resume`     | new                    |
-
+  | Method | Path                                | Status                 |
+  | ------ | ----------------------------------- | ---------------------- |
+  | POST   | `/api/v1/agents/generate`         | exists, body unchanged |
+  | GET    | `/api/v1/agents/runs/{id}`        | exists (snapshot)      |
+  | GET    | `/api/v1/agents/runs/{id}/events` | new (SSE)              |
+  | POST   | `/api/v1/agents/runs/{id}/resume` | new                    |
 - **Failure handling:**
 
-  | Failure                              | Handling                                                    |
-  | ------------------------------------ | ----------------------------------------------------------- |
-  | Rate limit, timeout, 5xx on a call   | Gateway retries, then the next provider for that role       |
-  | A step keeps failing                 | `RetryPolicy(max_attempts=2)`, then run marked failed, resumable |
-  | Worker crash or deploy               | Queue hands the job out again → `execute(run_id)` resumes   |
-  | User clicks Retry                    | `POST .../resume` → `execute(run_id)`                       |
-  | Weaker result                        | Run completes with a visible "degraded" label               |
-
+  | Failure                            | Handling                                                           |
+  | ---------------------------------- | ------------------------------------------------------------------ |
+  | Rate limit, timeout, 5xx on a call | Gateway retries, then the next provider for that role              |
+  | A step keeps failing               | `RetryPolicy(max_attempts=2)`, then run marked failed, resumable |
+  | Worker crash or deploy             | Queue hands the job out again →`execute(run_id)` resumes        |
+  | User clicks Retry                  | `POST .../resume` → `execute(run_id)`                         |
+  | Weaker result                      | Run completes with a visible "degraded" label                      |
 - **Resume safety:** side effects only in finalize, keyed by run id. Slow media jobs store
   the provider's job id in state before waiting, so a resume never pays twice.
 
@@ -380,9 +374,9 @@ class AppError(Exception):
     status: int = 500
     code: str = "internal_error"
 
-class NotFoundError(AppError):  status, code = 404, "not_found"
-class ForbiddenError(AppError): status, code = 403, "forbidden"
-class ConflictError(AppError):  status, code = 409, "conflict"
+class NotFound(AppError):  status, code = 404, "not_found"
+class Forbidden(AppError): status, code = 403, "forbidden"
+class Conflict(AppError):  status, code = 409, "conflict"
 
 # main.py — the only place errors become HTTP
 @app.exception_handler(AppError)
@@ -405,29 +399,25 @@ checks until the full supervisor lands (Phase 4).
 
 ### Phase 0 — Stabilize (S)
 
-- [x] Restore `models/top_content.py`.
-- [x] Baseline commit of the old codebase (`db5fd4e`).
-- [x] Switch to uv (D17): dependencies in `pyproject.toml` (direct pins, dev group) with
-      `uv.lock`; `requirements*.txt` removed; local `.venv` synced (unused packages such as
-      torch removed). Verified: app starts, same test results as before.
-- [x] Tests: `integration` and `db` markers (strict); default run skips `integration`; the
-      3 network tests marked; 6 keyword-supervisor and 2 trends failures are strict xfails.
-      Default run: ~1 s, green.
-- [x] Removed settings nothing reads (ChromaDB, Ollama, Reddit, Resend, Anthropic, Gemini)
-      and the ChromaDB container; `.env.example` lists exactly the settings, enforced by a test.
-- [x] Request options (content type, platform, length, tone) defined once per language:
-      `app/agents/models.py` and `frontend/lib/api.ts`, kept equal by a test.
-- [x] CI backend job uses uv (`setup-uv`, `uv sync --locked`) and runs ruff and pytest.
-- [x] CI green locally: Prettier applied, 0 ESLint errors (17 warnings remain), tsc and
-      `next build` pass, `npm ci` accepts the lock file, no Linux path-case problems.
-- [x] `backend/Scripts/` tracked as `scripts/` (Linux CI is case-sensitive).
-- [x] Stopped tracking generated `next-env.d.ts` and `tsconfig.tsbuildinfo`.
-- [x] Tag `legacy-pipeline` on the baseline commit (`db5fd4e`).
-- [x] Removed pre-commit hooks (D18); pyright replaces mypy as the type checker.
-- [ ] Fix pyright errors in code that stays (40 as of Phase 1, incl. 6 in scripts/; ~15 in old agents/trends that are
-      deleted later, ~7 real `None`-handling gaps, ~13 library typing noise), then add
-      `uv run pyright` to CI.
-- [x] Pushed the `phase-0-stabilize` branch and the `legacy-pipeline` tag; CI green, merged into `main` (PR #2).
+- [X] Restore `models/top_content.py`.
+- [X] Baseline commit of the old codebase (`db5fd4e`).
+- [X] Switch to uv (D17): dependencies in `pyproject.toml` (direct pins, dev group) with
+  `uv.lock`; `requirements*.txt` removed; local `.venv` synced (unused packages such as
+  torch removed). Verified: app starts, same test results as before.
+- [X] Tests: `integration` and `db` markers (strict); default run skips `integration`; the
+  3 network tests marked; 6 keyword-supervisor and 2 trends failures are strict xfails.
+  Default run: ~1 s, green.
+- [X] Removed settings nothing reads (ChromaDB, Ollama, Reddit, Resend, Anthropic, Gemini)
+  and the ChromaDB container; `.env.example` lists exactly the settings, enforced by a test.
+- [X] Request options (content type, platform, length, tone) defined once per language:
+  `app/agents/models.py` and `frontend/lib/api.ts`, kept equal by a test.
+- [X] CI backend job uses uv (`setup-uv`, `uv sync --locked`) and runs ruff and pytest.
+- [X] CI green locally: Prettier applied, 0 ESLint errors (17 warnings remain), tsc and
+  `next build` pass, `npm ci` accepts the lock file, no Linux path-case problems.
+- [X] `backend/Scripts/` tracked as `scripts/` (Linux CI is case-sensitive).
+- [X] Stopped tracking generated `next-env.d.ts` and `tsconfig.tsbuildinfo`.
+- [X] Tag `legacy-pipeline` on the baseline commit (`db5fd4e`).
+- [ ] Push the `phase-0-stabilize` branch and the tag; merge into `main` when CI is green.
 
 Done when: the app starts, `pytest` passes in seconds, CI is green on GitHub.
 
@@ -435,30 +425,28 @@ Done when: the app starts, `pytest` passes in seconds, CI is green on GitHub.
 
 Pure moves, no behavior change. One commit per feature, using `git mv` to keep history.
 
-- [x] Before moving: snapshot of the OpenAPI schema, every table definition and test results.
-- [x] `core/`: `Base` and `DbSession` in `db.py`; `tables.py` discovers every `models.py`
-      automatically (no list to keep in sync, so no test needed); `errors.py` with one JSON
-      handler in `main.py` (tested); `oauth_state.py` moved in.
-- [x] `auth/`: models, schemas, service, `google.py` (OAuth client), `session.py` (JWT +
-      session cookie), `deps.py` (`get_current_user`, `CurrentUser`), `router.py` (both auth
-      routers merged; URLs unchanged).
-- [x] `profile/`, `connections/`, `history/`, `admin/` (AuditLog), `agents/router.py` +
-      `agents/schemas.py`.
-- [x] `insights/`: one `models.py` for both tables (snapshot + top content).
-- [x] `trends/`: models, schemas, router; the dead Celery task (`tasks/trends_ingest.py`) deleted.
-- [x] `alembic/env.py` uses `core.tables`; `tests/conftest.py` imports `Base` from `core/db.py`.
-- [x] Emptied `models/`, `schemas/`, `services/`, `routers/`, `tasks/` deleted.
-- [x] Tests mirror the app: `tests/<feature>/`.
-- [x] Stale `pyrightconfig.json` (it silently overrode `pyproject.toml`) and an empty
-      `backend/package-lock.json` removed.
-- [x] README project tree updated.
-- [x] Pushed, CI green, merged into `main` (PR #3).
+- [ ] Before moving: save the OpenAPI schema (`openapi.json`) and record test results.
+- [ ] `core/`: `Base` and `DbSession` into `db.py`; `tables.py` and its test (every
+  `models.py` under `app/` is imported); `errors.py` and its handler; move `oauth_state.py`.
+- [ ] `auth/`: `models/user.py`, `routers/auth.py`, `routers/oauth_google.py`,
+  `services/auth.py`, `services/google_identity.py`, `core/security.py`, `schemas/auth.py`;
+  `get_current_user` and `CurrentUser` into `deps.py`.
+- [ ] `profile/`: `models/persona.py`, `schemas/persona.py`, `services/profile.py`, `routers/profile.py`.
+- [ ] `connections/`: `models/social_connection.py`, `schemas/connections.py`, `routers/connections.py`.
+- [ ] `insights/`: `models/insights_snapshot.py`, `models/top_content.py`,
+  `schemas/insights_schema.py`, `routers/insights_router.py`.
+- [ ] `history/`: `models/creation_history.py`, `schemas/history_schemas.py`,
+  `services/history_service.py`, `routers/history_router.py`.
+- [ ] `trends/`: `models/trending_article.py`, `schemas/trends.py`, `routers/trends.py`,
+  `tasks/trends_ingest.py`.
+- [ ] `admin/`: `models/audit_log.py`.
+- [ ] `agents/router.py` from `routers/agents.py`.
+- [ ] `alembic/env.py` imports `core/tables.py`; `tests/conftest.py` imports `Base` from `core/db.py`.
+- [ ] Delete the emptied `models/`, `schemas/`, `services/`, `routers/`, `tasks/`.
+- [ ] README: update the project tree to the new layout.
 
 Done when: the OpenAPI schema is identical, `alembic revision --autogenerate` produces an
 empty migration, test results are unchanged, and the app starts.
-
-Result: OpenAPI schema and all 11 table definitions identical (compared directly, since
-Docker was off for autogenerate); tests unchanged; the app starts and serves its routes.
 
 ### Phase 2 — Agent foundations (L)
 
@@ -466,10 +454,10 @@ Test-first, on placeholder steps.
 
 - [ ] `agents/models.py` (shared contracts) and `state.py` (run pool) with the ownership test.
 - [ ] `llm/`: gateway from the research `LLMClient` and its tests; roles from settings; one
-      provider per run; 429 cooldown; timeouts; structured output; usage and cached-token
-      logging; privacy options; prompt builder with determinism tests.
+  provider per run; 429 cooldown; timeouts; structured output; usage and cached-token
+  logging; privacy options; prompt builder with determinism tests.
 - [ ] `runtime/`: Postgres checkpointer, `execute()`, events, SSE endpoint, SAQ worker,
-      `resume` endpoint.
+  `resume` endpoint.
 - [ ] Placeholder supervisor, research and studio steps.
 - [ ] UI: create page switches from polling to live events and shows step progress.
 
@@ -479,10 +467,10 @@ resume, step 1 does not re-run); prompt-prefix tests pass.
 ### Phase 3 — Research (M)
 
 - [ ] Port the agent and its 311 tests into `agents/research/` and `tests/agents/research/`,
-      using the gateway and Cupid settings.
+  using the gateway and Cupid settings.
 - [ ] `adapter.py`: profile → `PersonaContext`; result → `ResearchPack`.
 - [ ] Delete the old personalization and research packages and their tests; drop `ddgs`,
-      `langsmith` and other packages only they used.
+  `langsmith` and other packages only they used.
 - [ ] UI: sources panel fed by `research.sources` events.
 
 Done when: the 311 tests pass in Cupid CI and a real run shows research progress and sources live.
@@ -491,7 +479,7 @@ Done when: the 311 tests pass in Cupid CI and a real run shows research progress
 
 - [ ] Deterministic supervisor: input checks, quota and rate limits, `RunPlan` from the request.
 - [ ] Content safety in the agreed place (see Open questions), tested with about 40 prompts,
-      including normal ones the keyword supervisor blocked.
+  including normal ones the keyword supervisor blocked.
 - [ ] Replace the old keyword supervisor and its tests.
 - [ ] UI: blocked-reason message.
 
@@ -500,21 +488,21 @@ Done when: the 40-prompt test set passes with no extra LLM calls.
 ### Phase 5 — Studio, text (L)
 
 - [ ] `studio/models.py` (blocks, `ContentPiece`, `CreativeBrief`), `voices.py`, `registry.py`,
-      `director.py`, `specialists/writer.py`, `reviewer.py`.
+  `director.py`, `specialists/writer.py`, `reviewer.py`.
 - [ ] History stores `ContentPiece`s (migration from the old variants shape).
 - [ ] Test set of 20–30 real prompts with a judge rubric.
 - [ ] Delete the old composer, old `graph.py`, `state.py`, `run_store.py`; drop
-      `langchain-core`, `langchain-groq` if unused.
+  `langchain-core`, `langchain-groq` if unused.
 - [ ] UI: render blocks; edits save back to history.
 - [ ] README: rewrite the architecture section for the new pipeline (it still describes the
-      old agents and `MemoryState`).
+  old agents and `MemoryState`).
 
 Done when: the studio beats the old composer on the test set and no old agent code remains.
 
 ### Phase 6 — Optimize (M)
 
 - [ ] Research compression: select passages per source, tuned by a fact-survival test on
-      saved runs.
+  saved runs.
 - [ ] Cache tuning from logged `cached_tokens`; stagger parallel calls only if data says so.
 - [ ] Tokens and time per run; load test against free-tier limits.
 
