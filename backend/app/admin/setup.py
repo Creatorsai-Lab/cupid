@@ -24,11 +24,11 @@ from fastapi import FastAPI
 from sqladmin import Admin, ModelView
 
 from app.admin.dashboard_view import DashboardView
+from app.admin.models import AuditLog
 from app.admin.security import AdminAuth
 from app.auth.models import User
 from app.config import settings
 from app.core.db import engine
-from app.models.audit_log import AuditLog
 from app.subscriptions.models import Subscription
 
 logger = logging.getLogger("app.admin")
