@@ -18,8 +18,8 @@ from app.insights.scheduler import start_scheduler as start_insights_scheduler
 from app.insights.scheduler import stop_scheduler as stop_insights_scheduler
 from app.profile.router import router as profile_router
 from app.routers.agents import router as agents_router
-from app.routers.trends import router as trends_router
 from app.subscriptions.router import router as subscriptions_router
+from app.trends.router import router as trends_router
 from app.trends.scheduler import start_scheduler as start_trends_scheduler
 from app.trends.scheduler import stop_scheduler as stop_trends_scheduler
 

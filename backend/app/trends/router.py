@@ -20,7 +20,7 @@ from app.auth.deps import get_current_user
 from app.auth.models import User
 from app.core.db import get_db
 from app.core.redis import get_redis
-from app.schemas.trends import TrendsResponse
+from app.trends.schemas import TrendsResponse
 from app.trends.service import get_trends_for_user
 
 logger = logging.getLogger(__name__)

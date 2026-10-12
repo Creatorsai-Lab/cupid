@@ -26,7 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.db import async_session as async_session_factory
-from app.models.trending_article import TrendingArticle
+from app.trends.models import TrendingArticle
 from app.trends.source_client import RawArticle, fetch_category
 
 logger = logging.getLogger(__name__)
