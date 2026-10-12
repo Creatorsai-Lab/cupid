@@ -1,21 +1,22 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
+from app.auth.router import router as auth_router
 from app.config import settings
 from app.core.db import async_session
+from app.core.errors import AppError
 from app.core.logging_config import setup_logging
 from app.earn.router import router as earn_router
 from app.earn.scheduler import run_earn_scheduler
 from app.insights.scheduler import start_scheduler as start_insights_scheduler
 from app.insights.scheduler import stop_scheduler as stop_insights_scheduler
 from app.routers.agents import router as agents_router
-from app.routers.auth import router as auth_router
 from app.routers.connections import router as connections_router
 from app.routers.history_router import router as history_router
 from app.routers.insights_router import router as insights_router
-from app.routers.oauth_google import router as oauth_google_router
 from app.routers.profile import router as profile_router
 from app.routers.trends import router as trends_router
 from app.subscriptions.router import router as subscriptions_router
@@ -97,8 +98,13 @@ def create_app() -> FastAPI:
     )
 
     # Register route modules
+    @app.exception_handler(AppError)
+    async def app_error(_: Request, exc: AppError) -> JSONResponse:
+        return JSONResponse(
+            {"error": {"code": exc.code, "message": str(exc)}}, status_code=exc.status
+        )
+
     app.include_router(auth_router)
-    app.include_router(oauth_google_router)
     app.include_router(profile_router)
     app.include_router(agents_router)
     app.include_router(trends_router, prefix="/api/v1")

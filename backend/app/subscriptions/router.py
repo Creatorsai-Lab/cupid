@@ -24,8 +24,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.admin.security import require_admin
+from app.auth.models import User
 from app.core.db import get_db
-from app.models.user import User
 from app.subscriptions import service
 from app.subscriptions.deps import get_tier_context
 from app.subscriptions.entitlement import TierContext

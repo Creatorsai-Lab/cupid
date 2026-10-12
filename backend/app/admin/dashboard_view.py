@@ -12,11 +12,11 @@ from sqladmin import BaseView, expose
 from sqlalchemy import func, select
 from starlette.requests import Request
 
+from app.auth.models import User
 from app.core.db import async_session
 from app.models.audit_log import AuditLog
 from app.models.creation_history import CreationHistory
 from app.models.social_connection import SocialConnection
-from app.models.user import User
 from app.subscriptions.models import Subscription
 
 

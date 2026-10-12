@@ -22,7 +22,7 @@ from sqlalchemy import DateTime, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.user import Base
+from app.core.db import Base
 
 
 def _utcnow() -> datetime:

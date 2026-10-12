@@ -2,8 +2,8 @@ from http.cookies import SimpleCookie
 
 from fastapi import Response
 
+from app.auth.session import COOKIE_KEY, set_auth_cookie
 from app.config import settings
-from app.routers.auth import COOKIE_KEY, set_auth_cookie
 
 
 def _auth_cookie_for(app_env: str, monkeypatch) -> SimpleCookie:

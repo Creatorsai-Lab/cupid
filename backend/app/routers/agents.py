@@ -23,11 +23,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.models import ContentLength, ContentType, Platform, Tone
 from app.agents.run_store import load_run, save_run
+from app.auth.deps import get_current_user
+from app.auth.models import User
 from app.core.db import get_db
 from app.core.logging_config import get_agent_logger
 from app.models.persona import UserPersonalization
-from app.models.user import User
-from app.routers.auth import get_current_user
 
 logger = get_agent_logger("router")
 router = APIRouter(prefix="/api/v1/agents", tags=["agents"])

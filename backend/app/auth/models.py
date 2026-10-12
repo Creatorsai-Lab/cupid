@@ -7,20 +7,13 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.core.db import Base
 
 if TYPE_CHECKING:
     from app.models.creation_history import CreationHistory
     from app.models.social_connection import SocialConnection
-
-
-class Base(DeclarativeBase):
-    """
-    Base class for all ORM models. Alembic uses this Base.
-    Every model in Cupid should inherit from this Base.
-    """
-
-    pass
 
 
 class User(Base):

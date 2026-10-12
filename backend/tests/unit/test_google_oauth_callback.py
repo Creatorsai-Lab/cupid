@@ -4,9 +4,9 @@ from uuid import uuid4
 
 import pytest
 
-from app.models.user import User
-from app.routers import oauth_google
-from app.routers.auth import COOKIE_KEY
+from app.auth import router as oauth_google
+from app.auth.models import User
+from app.auth.session import COOKIE_KEY
 
 
 def mock_successful_google_response(monkeypatch, user: User):

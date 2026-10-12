@@ -1,41 +1,46 @@
 """
-Google login — the only sign-in path.
+Auth endpoints. Sign-in is Google-only; signup and login are the same action.
 
-  GET /api/v1/auth/google/login     → redirect to Google consent
-  GET /api/v1/auth/google/callback  → find-or-create user, set cookie, bounce
+    GET  /api/v1/auth/google/login     → redirect to Google consent
+    GET  /api/v1/auth/google/callback  → find-or-create user, set cookie, bounce
+    POST /api/v1/auth/logout           → clear cookie
+    GET  /api/v1/auth/me               → current user from cookie
 
-Signup and login are the SAME action: if the verified Google email already has
-an account we log in, otherwise we create one. New accounts land on /settings
-(onboarding); returning users land on /create. The cookie issued here is the
-exact same session cookie the rest of the app already uses.
+If the verified Google email already has an account we log in, otherwise we
+create one. New accounts land on /settings (onboarding); returning users land
+on /create.
 """
 
 from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from fastapi.responses import RedirectResponse
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.deps import get_current_user
+from app.auth.google import build_auth_url, exchange_code, fetch_userinfo
+from app.auth.models import User
+from app.auth.schemas import AuthResponse, UserResponse
+from app.auth.service import get_user_by_email, link_google_identity
+from app.auth.session import COOKIE_KEY, create_access_token, set_auth_cookie
 from app.config import settings
-from app.connections.oauth_state import (
+from app.core.db import get_db
+from app.core.oauth_state import (
     consume_login_state,
     generate_state_token,
     store_login_state,
 )
-from app.core.db import get_db
 from app.core.redis import get_redis
-from app.core.security import create_access_token
-from app.models.user import User
-from app.routers.auth import set_auth_cookie
-from app.services.auth import get_user_by_email, link_google_identity
-from app.services.google_identity import build_auth_url, exchange_code, fetch_userinfo
 
 logger = logging.getLogger("app.auth.google")
 
-router = APIRouter(prefix="/api/v1/auth/google", tags=["auth"])
+router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+
+
+# ── Google sign-in ────────────────────────────────────────────
 
 
 def _bounce(path: str) -> RedirectResponse:
@@ -43,7 +48,7 @@ def _bounce(path: str) -> RedirectResponse:
     return RedirectResponse(url=f"{settings.frontend_url}{path}")
 
 
-@router.get("/login")
+@router.get("/google/login")
 async def google_login(redis: Redis = Depends(get_redis)) -> RedirectResponse:
     """Start the flow: issue a CSRF state, then send the user to Google."""
     state = generate_state_token()
@@ -51,7 +56,7 @@ async def google_login(redis: Redis = Depends(get_redis)) -> RedirectResponse:
     return RedirectResponse(url=build_auth_url(state))
 
 
-@router.get("/callback")
+@router.get("/google/callback")
 async def google_callback(
     code: str | None = Query(default=None),
     state: str | None = Query(default=None),
@@ -107,3 +112,19 @@ async def google_callback(
     response = _bounce(f"/complete?next={dest}")
     set_auth_cookie(response, create_access_token(str(user.id)))
     return response
+
+
+# ── Session ───────────────────────────────────────────────────
+
+
+@router.post("/logout")
+async def logout(response: Response):
+    """Clear the auth cookie."""
+    response.delete_cookie(key=COOKIE_KEY, path="/")
+    return {"success": True, "data": None, "error": None}
+
+
+@router.get("/me", response_model=AuthResponse)
+async def me(user: User = Depends(get_current_user)):
+    """Return the currently authenticated user."""
+    return AuthResponse(data=UserResponse.model_validate(user))

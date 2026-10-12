@@ -28,9 +28,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
+from app.auth.deps import get_current_user
+from app.auth.models import User
 from app.config import settings
-from app.models.user import User
-from app.routers.auth import get_current_user
 
 # ─────────────────────────────────────────────────────────────────────────
 #  1. Gate for the admin API (404 to non-admins)

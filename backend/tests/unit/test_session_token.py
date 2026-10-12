@@ -2,8 +2,8 @@ from datetime import UTC, datetime
 
 from jose import jwt
 
+from app.auth.session import ALGORITHM, create_access_token
 from app.config import settings
-from app.core.security import ALGORITHM, create_access_token
 
 
 def test_access_token_uses_configured_session_lifetime(monkeypatch) -> None:

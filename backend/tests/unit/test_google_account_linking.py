@@ -1,5 +1,5 @@
-from app.models.user import User
-from app.services.auth import link_google_identity
+from app.auth.models import User
+from app.auth.service import link_google_identity
 
 
 def test_link_google_identity_upgrades_a_legacy_user() -> None:

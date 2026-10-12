@@ -65,10 +65,9 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from app.main import app
-
 # Import your application bits
-from app.models.user import Base
+from app.core.db import Base
+from app.main import app
 
 # ─── Test database URL ─────────────────────────────────────────
 # Override via env var for CI; default to a dev-friendly local DB.

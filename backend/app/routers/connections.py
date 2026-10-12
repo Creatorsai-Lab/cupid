@@ -28,18 +28,14 @@ from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.deps import get_current_user
+from app.auth.models import User
 from app.connections import youtube_oauth
-from app.connections.oauth_state import (
-    consume_state,
-    generate_state_token,
-    store_state,
-)
 from app.connections.token_crypto import encrypt_token
 from app.core.db import get_db
+from app.core.oauth_state import consume_state, generate_state_token, store_state
 from app.core.redis import get_redis
 from app.models.social_connection import SocialConnection
-from app.models.user import User
-from app.routers.auth import get_current_user
 from app.schemas.connections import (
     ConnectionResponse,
     ConnectionStartResponse,

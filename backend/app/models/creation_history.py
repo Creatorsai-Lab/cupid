@@ -40,10 +40,10 @@ from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.user import Base
+from app.core.db import Base
 
 if TYPE_CHECKING:
-    from app.models.user import User
+    from app.auth.models import User
 
 
 class CreationHistory(Base):

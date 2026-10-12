@@ -10,7 +10,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User
+from app.auth.models import User
 
 
 async def get_user_by_email(db: AsyncSession, email: str) -> User | None:

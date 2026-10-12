@@ -16,7 +16,7 @@ from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.user import Base
+from app.core.db import Base
 
 
 class UserPersonalization(Base):

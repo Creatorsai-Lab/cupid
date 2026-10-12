@@ -46,7 +46,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.user import Base
+from app.core.db import Base
 
 if TYPE_CHECKING:
     from app.models.social_connection import SocialConnection
