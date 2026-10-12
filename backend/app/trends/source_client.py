@@ -110,7 +110,7 @@ async def fetch_via_rss(
                 return [_parse_rss_item(item) for item in raw if item.get("url")]
             # Empty response could mean rate-limited — retry once
             if attempt < retry_attempts:
-                wait = 3.0 * (2**attempt) + random.uniform(0, 1)
+                wait = 3.0 * (2**attempt) + random.uniform(0, 1)  # noqa: S311 - retry jitter, not security
                 logger.debug(
                     "[trends.source] %s: empty RSS, retrying in %.1fs", category, wait
                 )
@@ -121,7 +121,7 @@ async def fetch_via_rss(
             if attempt < retry_attempts:
                 wait = (4.0 if is_rate_limited else 2.0) * (
                     2**attempt
-                ) + random.uniform(0, 1)
+                ) + random.uniform(0, 1)  # noqa: S311 - retry jitter, not security
                 logger.warning(
                     "[trends.source] %s: %s (attempt %d), retrying in %.1fs",
                     category,

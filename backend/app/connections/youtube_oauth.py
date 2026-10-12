@@ -66,7 +66,7 @@ logger = logging.getLogger(__name__)
 # ─── Constants ─────────────────────────────────────────────────
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"  # noqa: S105 - a URL, not a password
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 GOOGLE_CHANNELS_URL = "https://www.googleapis.com/youtube/v3/channels"
 
