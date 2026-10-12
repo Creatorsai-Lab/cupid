@@ -509,9 +509,9 @@ Done when: DB tests run in CI, and auth, entitlements and history ownership are 
 
 Test-first, on placeholder steps. Split into small steps, each its own pull request:
 
-- [ ] **2.0** Move the old pipeline into `app/agents/legacy/` (pure move) so the new code can
+- [x] **2.0** Move the old pipeline into `app/agents/legacy/` (pure move) so the new code can
       use the planned names; each old part is deleted when its replacement lands.
-- [ ] **2.1** Contracts in `agents/models.py` (`RunRequest`, `RunPlan`, `Issue`, `RunEvent`, …)
+- [x] **2.1** Contracts in `agents/models.py` (`RunRequest`, `RunPlan`, `Issue`, `RunEvent`, …)
       and the run pool in `agents/state.py` (inputs / shared decisions / outputs, reducers).
 - [ ] **2.2** `llm/` gateway built from the research agent's `LLMClient` and its tests: roles
       from settings, one provider per run, 429 cooldown, timeouts, retries, structured
