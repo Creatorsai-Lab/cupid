@@ -20,7 +20,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agents.run_store import load_run, save_run
+from app.agents.legacy.run_store import load_run, save_run
 from app.agents.schemas import GenerateRequest, GenerateResponse, RunStatusResponse
 from app.auth.deps import get_current_user
 from app.auth.models import User
@@ -76,7 +76,7 @@ async def run_agent_pipeline(
     task is the single writer: it mutates `record` and pushes a full snapshot to
     Redis after each change. The poll endpoint only reads.
     """
-    from app.agents.graph import get_orchestrator
+    from app.agents.legacy.graph import get_orchestrator
 
     user_voice = _TONE_TO_VOICE.get(request.tone, "hook_first")
 

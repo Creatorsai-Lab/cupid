@@ -15,11 +15,11 @@ import httpx
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 
-from app.agents.composer.compose import (
+from app.agents.legacy.composer.compose import (
     build_composer_system_prompt,
     build_composer_user_prompt,
 )
-from app.agents.state import MemoryState
+from app.agents.legacy.state import MemoryState
 from app.config import settings
 from app.core.logging_config import get_agent_logger
 

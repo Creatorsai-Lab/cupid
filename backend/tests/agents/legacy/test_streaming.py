@@ -8,7 +8,7 @@ import asyncio
 
 import pytest
 
-from app.agents.graph import get_orchestrator
+from app.agents.legacy.graph import get_orchestrator
 
 # Calls real LLM and search APIs; run with `uv run pytest -m integration`.
 pytestmark = pytest.mark.integration

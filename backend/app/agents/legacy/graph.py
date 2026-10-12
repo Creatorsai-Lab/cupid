@@ -16,11 +16,11 @@ from typing import Any
 
 from langgraph.graph import END, StateGraph
 
-from app.agents.composer import composer_node
-from app.agents.personalization import personalization_node
-from app.agents.research import research_node
-from app.agents.state import MemoryState
-from app.agents.supervisor import supervisor_node
+from app.agents.legacy.composer import composer_node
+from app.agents.legacy.personalization import personalization_node
+from app.agents.legacy.research import research_node
+from app.agents.legacy.state import MemoryState
+from app.agents.legacy.supervisor import supervisor_node
 from app.core.logging_config import get_agent_logger
 
 logger = get_agent_logger("orchestrator")

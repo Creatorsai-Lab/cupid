@@ -21,10 +21,10 @@ import httpx
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 
-from app.agents.personalization.local_heuristic import (
+from app.agents.legacy.personalization.local_heuristic import (
     generate_queries as heuristic_queries,
 )
-from app.agents.state import MemoryState
+from app.agents.legacy.state import MemoryState
 from app.config import settings
 from app.core.logging_config import get_agent_logger
 
