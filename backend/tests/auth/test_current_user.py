@@ -3,8 +3,8 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import jwt
 import pytest
-from jose import jwt
 
 from app.auth.session import ALGORITHM, COOKIE_KEY, create_access_token
 from app.config import settings
