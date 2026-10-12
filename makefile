@@ -10,7 +10,7 @@ format:
 	cd backend && uv run ruff format .
 
 typecheck:
-	cd backend && uv run mypy app/
+	cd backend && uv run pyright
 
 test:
 	cd backend && uv run pytest

@@ -69,7 +69,7 @@ Required tools:
 - uv (installs Python 3.12)
 - Node.js 18+
 - Docker Desktop
-- Backend tools via `uv sync` in `backend/` (ruff, pytest, pre-commit)
+- Backend tools via `uv sync` in `backend/` (ruff, pyright, pytest)
 
 ---
 

@@ -36,6 +36,7 @@ creation) is the product; every other step exists to feed it well.
 | D15 | The first pipeline step keeps the name **supervisor** (`agents/supervisor/`); it will gain more files in later versions.                             | 2026-10-09 |
 | D16 | The supervisor makes no LLM calls — every check is deterministic.                                                                                    | 2026-10-09 |
 | D17 | uv is the Python dependency manager: `pyproject.toml` + `uv.lock`, commands via `uv run` (no venv activation).                                       | 2026-10-09 |
+| D18 | No git pre-commit hooks. Quality checks are run manually with `uv run`: ruff (lint + format), pyright (types), pytest; CI runs them on pull requests. | 2026-10-12 |
 
 ---
 
@@ -172,6 +173,7 @@ async def list_history(user: CurrentUser, db: DbSession) -> HistoryList: ...
 | Run tests                  | `uv run pytest`                                    |
 | Format                     | `uv run ruff format .`                             |
 | Lint (and auto-fix)        | `uv run ruff check . --fix`                        |
+| Type check                 | `uv run pyright`                                   |
 | Start the API              | `uv run uvicorn app.main:app --reload --port 8000` |
 | Migrate the database       | `uv run alembic upgrade head`                      |
 | Add or upgrade a package   | `uv add <package>==<version>` (dev: `--dev`)       |
@@ -421,6 +423,10 @@ checks until the full supervisor lands (Phase 4).
 - [x] `backend/Scripts/` tracked as `scripts/` (Linux CI is case-sensitive).
 - [x] Stopped tracking generated `next-env.d.ts` and `tsconfig.tsbuildinfo`.
 - [x] Tag `legacy-pipeline` on the baseline commit (`db5fd4e`).
+- [x] Removed pre-commit hooks (D18); pyright replaces mypy as the type checker.
+- [ ] Fix pyright errors in code that stays (35 today: ~15 in old agents/trends that are
+      deleted later, ~7 real `None`-handling gaps, ~13 library typing noise), then add
+      `uv run pyright` to CI.
 - [ ] Push the `phase-0-stabilize` branch and the tag; merge into `main` when CI is green.
 
 Done when: the app starts, `pytest` passes in seconds, CI is green on GitHub.

@@ -222,69 +222,48 @@ The full list, with defaults, is `backend/.env.example`.
 
 ## Code Quality & Tooling
 
-Cupid enforces consistent style and catches mistakes automatically at three
-layers: **as you save** (EditorConfig), **before you commit** (pre-commit
-hooks), and **before you merge** (GitHub Actions CI).
+Cupid checks code at two layers: **when you run the tools** (locally, from
+`backend/` with `uv run`, no venv activation) and **before you merge** (GitHub Actions CI).
 
 | Layer | Backend (Python) | Frontend (TypeScript/React) |
 |---|---|---|
 | Linter | **Ruff** (`E,F,I,N,W,UP`) | **ESLint** (Next config) |
 | Formatter | **Ruff format** | **Prettier** (+ Tailwind class sorting) |
-| Types | — | **TypeScript** (`tsc --noEmit`) |
+| Types | **Pyright** (standard mode) | **TypeScript** (`tsc --noEmit`) |
+| Tests | **pytest** | **Vitest** |
 | Editor baseline | `.editorconfig` | `.editorconfig` |
-| Pre-commit | `pre-commit` framework | `pre-commit` framework |
 | CI gate | GitHub Actions | GitHub Actions |
 
 ### One-time setup
 
 ```powershell
-# 1. Frontend: install Prettier + ESLint deps
-cd frontend
-npm install
-
-# 2. Pre-commit hooks (pre-commit is in the backend dev group)
-uv run pre-commit install        # wires the hooks into .git so they run on every commit
+cd backend
+uv sync            # Python, all dependencies and dev tools into backend/.venv
+cd ../frontend
+npm install        # Prettier, ESLint, TypeScript
 ```
 
 ### Frontend commands (run inside `frontend/`)
 
 | Command | What it does | Expect |
 |---|---|---|
-| `npm run format` | Prettier rewrites all files to the canonical style (and sorts Tailwind classes). | Files get reformatted in place. The **first run touches many files** — commit that as one "format" commit. |
+| `npm run format` | Prettier rewrites all files to the canonical style (and sorts Tailwind classes). | Files get reformatted in place. |
 | `npm run format:check` | Checks formatting **without** writing. Used by CI. | Exit 0 if clean; lists files + non-zero exit if not. |
 | `npm run lint` | ESLint finds bugs/anti-patterns. | Prints warnings/errors; non-zero exit on error. |
 | `npm run lint:fix` | ESLint auto-fixes what it safely can. | Fixable issues disappear; the rest are reported. |
 | `npm run typecheck` | `tsc --noEmit` — full TypeScript type check, no output files. | Exit 0 if types are sound; lists type errors otherwise. |
 
-### Backend commands (run inside `backend/`, venv active)
+### Backend commands (run inside `backend/`)
 
 | Command | What it does | Expect |
 |---|---|---|
-| `ruff check .` | Lints all Python (imports, unused vars, naming, pyupgrade…). | Lists violations; non-zero exit if any. |
-| `ruff check . --fix` | Lints **and** auto-fixes the safe ones. | Fixable issues vanish; rest reported. |
-| `ruff format .` | Formats all Python (Black-compatible). | Files reformatted in place. |
-| `ruff format --check .` | Format check only (no writes). Used by CI. | Exit 0 if clean, non-zero otherwise. |
-
-### Pre-commit (runs automatically on `git commit`)
-
-After `pre-commit install`, every commit runs the hooks **on your staged files only**:
-
-- Ruff lint + format on changed `backend/**` Python
-- Hygiene: trailing whitespace, final newline, merge-conflict markers, YAML/JSON validity, large-file guard
-
-Frontend formatting is **not** in pre-commit (Node formatters with local plugins
-don't resolve reliably inside pre-commit's isolated env on Windows). It's enforced
-by your editor's "format on save" and by CI (`npm run format:check`).
-
-If a hook reformats a file, the commit is **aborted** and the fixes are left
-staged-but-unstaged — review them, `git add`, and commit again. To run every
-hook against the whole repo manually:
-
-```powershell
-pre-commit run --all-files
-```
-
-To bypass hooks in an emergency (avoid this): `git commit --no-verify`.
+| `uv run ruff check .` | Lints all Python (imports, unused vars, naming, pyupgrade…). | Lists violations; non-zero exit if any. |
+| `uv run ruff check . --fix` | Lints **and** auto-fixes the safe ones. | Fixable issues vanish; rest reported. |
+| `uv run ruff format .` | Formats all Python (Black-compatible). | Files reformatted in place. |
+| `uv run ruff format --check .` | Format check only (no writes). Used by CI. | Exit 0 if clean, non-zero otherwise. |
+| `uv run pyright` | Type-checks `app/`, `tests/`, `scripts/` (config in `pyproject.toml`). | Lists type errors; non-zero exit if any. |
+| `uv run pytest` | Fast offline test suite (~1 s). | Exit 0 when green. |
+| `uv run pytest -m integration` | Tests that call real LLM/search APIs (needs keys). | Slower; uses API quota. |
 
 ### Continuous Integration
 
