@@ -12,12 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.deps import get_current_user
 from app.auth.models import User
 from app.core.db import get_db
-from app.schemas.persona import (
+from app.profile.schemas import (
     PersonalizationApiResponse,
     PersonalizationResponse,
     PersonalizationUpdate,
 )
-from app.services.profile import get_profile_by_user_id, upsert_profile
+from app.profile.service import get_profile_by_user_id, upsert_profile
 
 router = APIRouter(prefix="/api/v1/profile", tags=["profile"])
 

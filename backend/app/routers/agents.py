@@ -27,7 +27,7 @@ from app.auth.deps import get_current_user
 from app.auth.models import User
 from app.core.db import get_db
 from app.core.logging_config import get_agent_logger
-from app.models.persona import UserPersonalization
+from app.profile.models import UserPersonalization
 
 logger = get_agent_logger("router")
 router = APIRouter(prefix="/api/v1/agents", tags=["agents"])

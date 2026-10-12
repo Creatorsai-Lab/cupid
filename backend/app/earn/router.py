@@ -141,7 +141,7 @@ async def _resolve_niche(db: AsyncSession, user: User) -> str | None:
     try:
         from sqlalchemy import select
 
-        from app.models.persona import UserPersonalization
+        from app.profile.models import UserPersonalization
 
         result = await db.execute(
             select(UserPersonalization.content_niche).where(
