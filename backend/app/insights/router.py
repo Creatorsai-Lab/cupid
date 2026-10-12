@@ -39,8 +39,8 @@ from app.auth.deps import get_current_user
 from app.auth.models import User
 from app.connections.models import SocialConnection
 from app.core.db import get_db
-from app.insights import insights_service as insights_service
-from app.schemas.insights_schema import (
+from app.insights import service as insights_service
+from app.insights.schemas import (
     HeatmapResponse,
     SummaryResponse,
     TimeSeriesResponse,
