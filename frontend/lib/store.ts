@@ -1,13 +1,12 @@
 import { create } from "zustand";
 
-export type AuthStatus  = "checking" | "authenticated" | "unauthenticated";
+export type AuthStatus = "checking" | "authenticated" | "unauthenticated";
 
 export interface AuthUser {
   id: string;
   email: string;
   full_name: string;
 }
-
 
 interface AuthState {
   user: AuthUser | null;

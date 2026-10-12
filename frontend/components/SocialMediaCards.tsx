@@ -70,7 +70,7 @@ function LazyVideo({ src }: { src: string }) {
     return (
       <video
         src={src}
-        className="absolute inset-0 h-full w-full bg-black object-cover cursor-pointer"
+        className="absolute inset-0 h-full w-full cursor-pointer bg-black object-cover"
         autoPlay
         loop // Added: Makes the short loop automatically
         playsInline
@@ -116,7 +116,7 @@ export interface CardProps {
   avatarUrl?: string;
   /** Image or video thumbnail URL. Omit to show a platform-styled placeholder. */
   mediaUrl?: string;
-  subscribers?:string;
+  subscribers?: string;
 }
 
 // ─── Avatar ────────────────────────────────────────────────────
@@ -249,13 +249,7 @@ function MediaBlock({
 }
 
 // ─── 1. Facebook Card ──────────────────────────────────────────
-export function FacebookCard({
-  name,
-  content,
-  time = "Just now",
-  avatarUrl,
-  mediaUrl,
-}: CardProps) {
+export function FacebookCard({ name, content, time = "Just now", avatarUrl, mediaUrl }: CardProps) {
   return (
     <div className="h-fit w-full max-w-[500px] overflow-hidden rounded-4xl border border-[#ddd] bg-white font-sans text-[#050505] shadow-sm">
       <div className="flex items-start gap-2.5 p-3 pb-2">
@@ -274,9 +268,7 @@ export function FacebookCard({
       <p className="px-3 pb-2.5 text-sm leading-relaxed whitespace-pre-line">{content}</p>
 
       {/* Conditionally render MediaBlock only if mediaUrl exists */}
-      {mediaUrl && (
-        <MediaBlock mediaUrl={mediaUrl} />
-      )}
+      {mediaUrl && <MediaBlock mediaUrl={mediaUrl} />}
 
       <div className="flex items-center justify-between px-3 py-1.5">
         <div className="flex items-center gap-1">
@@ -592,25 +584,17 @@ function LazyLandscapeVideo({ src }: { src: string }) {
 
 // ─── 5. YouTube wide Card ─────────────────────────────────
 // 2. The Updated YouTube Card
-export function YouTubeCard({
-  name,
-  content,
-  avatarUrl,
-  mediaUrl,
-}: CardProps) {
+export function YouTubeCard({ name, content, avatarUrl, mediaUrl }: CardProps) {
   return (
     <div className="h-fit w-full max-w-[540px] overflow-hidden rounded-4xl border border-[#e5e5e5] bg-white p-3 font-sans text-[#0f0f0f]">
-
       {/* Replaced MediaBlock with a relative 16:9 container for the LazyVideo */}
       {mediaUrl && (
-        <div className="relative w-full aspect-video overflow-hidden rounded-4xl bg-gray-100">
+        <div className="relative aspect-video w-full overflow-hidden rounded-4xl bg-gray-100">
           <LazyLandscapeVideo src={mediaUrl} />
         </div>
       )}
 
-      <p className="mt-3 text-base leading-relaxed whitespace-pre-line text-[#0f0f0f]">
-        {content}
-      </p>
+      <p className="mt-3 text-base leading-relaxed whitespace-pre-line text-[#0f0f0f]">{content}</p>
 
       <div className="mt-3">
         <div className="flex items-center gap-3">
@@ -636,7 +620,6 @@ export function YouTubeCard({
               </button>
             </div>
           </div>
-
         </div>
       </div>
     </div>

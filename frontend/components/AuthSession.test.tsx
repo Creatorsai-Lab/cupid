@@ -27,9 +27,7 @@ it("hydrates a valid backend session", async () => {
 
   render(<AuthSession />);
 
-  await waitFor(() =>
-    expect(useAuthStore.getState().status).toBe("authenticated"),
-  );
+  await waitFor(() => expect(useAuthStore.getState().status).toBe("authenticated"));
 });
 
 it("marks a missing or expired session unauthenticated", async () => {
@@ -37,7 +35,5 @@ it("marks a missing or expired session unauthenticated", async () => {
 
   render(<AuthSession />);
 
-  await waitFor(() =>
-    expect(useAuthStore.getState().status).toBe("unauthenticated"),
-  );
+  await waitFor(() => expect(useAuthStore.getState().status).toBe("unauthenticated"));
 });

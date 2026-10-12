@@ -363,8 +363,7 @@ function SourceCard({
   const [copied, setCopied] = useState(false);
   // Quality is optional — lean drafts have no score, so render the badge only
   // when the composer actually attached one.
-  const scorePct =
-    variant.quality != null ? Math.round(variant.quality.composite * 100) : null;
+  const scorePct = variant.quality != null ? Math.round(variant.quality.composite * 100) : null;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(variant.content);

@@ -12,9 +12,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── Backend: Ruff lint + format check ────────────────────────
+  # ── Backend: Ruff lint + format check + tests ────────────────
   backend:
-    name: Backend (Ruff)
+    name: Backend (Ruff · pytest)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -22,18 +22,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.11"
+          enable-cache: true
 
-      - name: Install Ruff
-        run: pip install ruff==0.15.7
+      # --locked fails the build if uv.lock is out of date with pyproject.toml
+      - name: Install dependencies
+        run: uv sync --locked
 
       - name: Lint (ruff check)
-        run: ruff check .
+        run: uv run ruff check .
 
       - name: Format check (ruff format --check)
-        run: ruff format --check .
+        run: uv run ruff format --check .
+
+      # Fast offline set (integration tests are deselected in pyproject.toml).
+      - name: Tests (pytest)
+        run: uv run pytest
+        env:
+          # Test-only value so Settings loads without a .env; not a real secret.
+          SECRET_KEY: ci-only-test-key-not-a-real-secret-0123456789abcdef
 
   # ── Frontend: Prettier + ESLint + types + build ──────────────
   frontend:

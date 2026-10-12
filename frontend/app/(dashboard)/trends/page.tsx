@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Newspaper,
-  MessageSquare,
-  RefreshCw,
-  AlertCircle,
-} from "lucide-react";
+import { Newspaper, MessageSquare, RefreshCw, AlertCircle } from "lucide-react";
 
 import { trendsApi, type TrendsResponse } from "@/lib/api";
 import { NewsCard } from "@/components/TrendsCard";
@@ -74,63 +69,63 @@ export default function TrendsPage() {
   }, []);
 
   return (
-      <main className="mx-auto max-w-5xl p-3 transition-all duration-500">
-        <div className="my-8 flex flex-col gap-1">
-          <h1 className="text-[clamp(1.8rem, 4vw, 2.2rem)] tracking-tight">
-            Personalized and Recommendation Trends
-          </h1>
-          <p>Trendy and hot topics in your niche</p>
-        </div>
-        {/* Tab bar + actions */}
-        <div className="mb-6 flex items-center justify-between rounded-lg bg-[var(--inline-bg)]">
-          <div className="flex gap-1">
-            <TabButton
-              active={tab === "news"}
-              onClick={() => setTab("news")}
-              icon={Newspaper}
-              label="News"
-              count={data?.articles.length}
-            />
-            <TabButton
-              active={tab === "posts"}
-              onClick={() => setTab("posts")}
-              icon={MessageSquare}
-              label="Posts"
-            />
-          </div>
-
-          {/* Refresh button  only shown on News tab */}
-          {tab === "news" && data && !error && (
-            <button
-              onClick={() => loadTrends(true)}
-              disabled={refreshing}
-              className="mb-2 flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-[#fff6ed] disabled:opacity-50"
-              style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
-              title="Bypass cache and recompute"
-            >
-              <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
-              {refreshing ? "Refreshing" : "Refresh"}
-            </button>
-          )}
+    <main className="mx-auto max-w-5xl p-3 transition-all duration-500">
+      <div className="my-8 flex flex-col gap-1">
+        <h1 className="text-[clamp(1.8rem, 4vw, 2.2rem)] tracking-tight">
+          Personalized and Recommendation Trends
+        </h1>
+        <p>Trendy and hot topics in your niche</p>
+      </div>
+      {/* Tab bar + actions */}
+      <div className="mb-6 flex items-center justify-between rounded-lg bg-[var(--inline-bg)]">
+        <div className="flex gap-1">
+          <TabButton
+            active={tab === "news"}
+            onClick={() => setTab("news")}
+            icon={Newspaper}
+            label="News"
+            count={data?.articles.length}
+          />
+          <TabButton
+            active={tab === "posts"}
+            onClick={() => setTab("posts")}
+            icon={MessageSquare}
+            label="Posts"
+          />
         </div>
 
-        {/* Refresh note — e.g. "No additional articles yet" */}
-        {tab === "news" && refreshNote && (
-          <div
-            className="mb-4 rounded-md bg-[#fff6ed] py-2 text-center text-sm"
+        {/* Refresh button  only shown on News tab */}
+        {tab === "news" && data && !error && (
+          <button
+            onClick={() => loadTrends(true)}
+            disabled={refreshing}
+            className="mb-2 flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-[#fff6ed] disabled:opacity-50"
             style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
+            title="Bypass cache and recompute"
           >
-            {refreshNote}
-          </div>
+            <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+            {refreshing ? "Refreshing" : "Refresh"}
+          </button>
         )}
+      </div>
 
-        {/* Tab content */}
-        {tab === "news" && (
-          <NewsTab data={data} loading={loading} error={error} onRetry={() => loadTrends(false)} />
-        )}
+      {/* Refresh note — e.g. "No additional articles yet" */}
+      {tab === "news" && refreshNote && (
+        <div
+          className="mb-4 rounded-md bg-[#fff6ed] py-2 text-center text-sm"
+          style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)" }}
+        >
+          {refreshNote}
+        </div>
+      )}
 
-        {tab === "posts" && <PostsTab />}
-      </main>
+      {/* Tab content */}
+      {tab === "news" && (
+        <NewsTab data={data} loading={loading} error={error} onRetry={() => loadTrends(false)} />
+      )}
+
+      {tab === "posts" && <PostsTab />}
+    </main>
   );
 }
 

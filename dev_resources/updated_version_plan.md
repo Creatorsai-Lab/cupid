@@ -33,6 +33,10 @@ creation) is the product; every other step exists to feed it well.
 | D12 | Feature folders: every feature and every agent owns its `models.py`. No top-level `models/`, `schemas/`, `services/`, `routers/`.                    | 2026-10-09 |
 | D13 | Folder depth is `app/<feature>/<file>`; only agents go one level deeper.                                                                             | 2026-10-09 |
 | D14 | Trends ingestion is rebuilt from scratch later; no piecemeal fixes until then.                                                                       | 2026-10-09 |
+| D15 | The first pipeline step keeps the name **supervisor** (`agents/supervisor/`); it will gain more files in later versions.                             | 2026-10-09 |
+| D16 | The supervisor makes no LLM calls — every check is deterministic.                                                                                    | 2026-10-09 |
+| D17 | uv is the Python dependency manager: `pyproject.toml` + `uv.lock`, commands via `uv run` (no venv activation).                                       | 2026-10-09 |
+| D18 | No git pre-commit hooks. Quality checks are run manually with `uv run`: ruff (lint + format), pyright (types), pytest; CI runs them on pull requests. | 2026-10-12 |
 
 ---
 
@@ -43,7 +47,7 @@ POST /api/v1/agents/generate ──► run_id
         │
      worker (queue) ── LangGraph pipeline, state checkpointed in Postgres per run
         │
-     gate ──► research ──► studio: director ──► specialists, in parallel ──► finalize
+     supervisor ──► research ──► studio: director ──► specialists, in parallel ──► finalize
                                                 (each: make → review → one rewrite if needed)
 
      every LLM call ──► LLM gateway (roles, one provider per run, retries, usage logging)
@@ -52,7 +56,7 @@ POST /api/v1/agents/generate ──► run_id
 
 | Step        | Job                                                                                                                                  | Writes to the run pool   |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
-| gate        | Is the request allowed, does it need research, which deliverables? Instant checks + one small-model call. Replaces the keyword supervisor. | `plan`                   |
+| supervisor  | Deterministic checks (input, quota, rate limits) and the run plan from the request. No LLM call. Replaces the keyword supervisor. | `plan`                   |
 | research    | Plan queries, search, extract, evaluate and select personalized sources.                                                             | `research`               |
 | director    | Reads everything once and makes the creative decisions every specialist follows.                                                     | `brief`                  |
 | specialists | Produce each deliverable variant in parallel. Writer first; designer, infographic, animator and video later. Each piece is reviewed before it lands. | `pieces` (appended)      |
@@ -122,7 +126,7 @@ backend/app/
     graph.py         wiring only
     runtime/         runner.py  events.py  worker.py  checkpoint.py
     llm/             gateway.py  roles.py  prompts.py  errors.py
-    gate/            models.py  agent.py
+    supervisor/      models.py  agent.py
     research/        models.py  agent.py  planning.py  filters.py  providers.py  config.py  adapter.py
     studio/          models.py  director.py  registry.py  reviewer.py  voices.py
                      specialists/writer.py   (later: designer, infographic, animator, video)
@@ -161,6 +165,20 @@ async def list_history(user: CurrentUser, db: DbSession) -> HistoryList: ...
 - Markers: `integration` (needs network or API keys), `db` (needs Postgres).
 - Default `pytest` run excludes `integration` and finishes in seconds. CI runs the default set.
 
+### 4.5 Daily commands (from `backend/`, no venv activation)
+
+| Task                       | Command                                            |
+| -------------------------- | -------------------------------------------------- |
+| Install / sync environment | `uv sync`                                          |
+| Run tests                  | `uv run pytest`                                    |
+| Format                     | `uv run ruff format .`                             |
+| Lint (and auto-fix)        | `uv run ruff check . --fix`                        |
+| Type check                 | `uv run pyright`                                   |
+| Start the API              | `uv run uvicorn app.main:app --reload --port 8000` |
+| Migrate the database       | `uv run alembic upgrade head`                      |
+| Add or upgrade a package   | `uv add <package>==<version>` (dev: `--dev`)       |
+| Remove a package           | `uv remove <package>`                              |
+
 ---
 
 ## 5. Key designs
@@ -175,7 +193,7 @@ class RunState(TypedDict, total=False):
     voice: VoiceSpec                       # from TONE_TO_VOICE
 
     # Shared decisions: one owner each, read-only for everyone else
-    plan: RunPlan                          # owner: gate
+    plan: RunPlan                          # owner: supervisor
     research: ResearchPack                 # owner: research
     brief: CreativeBrief                   # owner: director
 
@@ -202,24 +220,26 @@ def assign(state: RunState) -> list[Send]:
     ]
 ```
 
-### 5.2 Gate (`agents/gate/`)
+### 5.2 Supervisor (`agents/supervisor/`)
 
-The first step of every run, replacing the keyword supervisor (which blocks normal prompts
-such as "5 ways to kill procrastination"). Two layers:
+The first step of every run. It replaces the old keyword supervisor (which blocks normal
+prompts such as "5 ways to kill procrastination") and makes **no LLM calls** (D16): every
+check is deterministic, instant and free. The folder will grow in later versions (D15).
 
-1. Instant checks: input size, plan quota (`subscriptions/policy.py`), empty input.
-2. One small-model structured call:
+- Input checks: empty or oversized prompt, unsupported options.
+- Limits: plan quota (`subscriptions/policy.py`), per-user rate limit.
+- Run plan built from the request itself: deliverables from the chosen platform and content
+  type; research on by default.
 
 ```python
 class RunPlan(ContractModel):
     verdict: Literal["allow", "block"]
     reason: str | None = None              # shown to the user when blocked
-    needs_research: bool                   # e.g. a motivational quote skips research
-    deliverables: list[DeliverableKey]     # e.g. ["linkedin_post"], ["x_thread", "image"]
+    needs_research: bool = True
+    deliverables: list[DeliverableKey]     # from platform + content type in the request
 ```
 
-It runs before research (not in parallel) because research spends search credits and the plan
-decides whether research runs at all.
+Content safety moves into an LLM call that happens anyway — see Open questions.
 
 ### 5.3 Research (`agents/research/`)
 
@@ -281,7 +301,7 @@ class ContentPiece(ContractModel):
 
 Built by promoting the research agent's `LLMClient` (and its tests), not written from scratch.
 
-- **Roles → provider lists** in settings: `gate`, `research`, `director`, `writer`, `judge`,
+- **Roles → provider lists** in settings: `research`, `director`, `writer`, `judge`,
   later `image`, `video`. Switching a model is a config change.
 - **One provider per role per run** (D5): chosen at run start, kept for the run, so prompt
   caches hit and voice stays consistent. Rotate across runs, never within one.
@@ -380,30 +400,34 @@ agent's provider module and become `agents/llm/errors.py`. Existing features kee
 
 Each phase ends with the whole app working, including its own small UI piece. Phases are
 ordered by dependency: new code lands in its final place (Phase 1), the gateway exists before
-research is ported onto it (Phase 2), and Phase 2's placeholder gate runs the instant checks
-until the real gate arrives (Phase 4).
+research is ported onto it (Phase 2), and Phase 2's placeholder supervisor runs basic input
+checks until the full supervisor lands (Phase 4).
 
 ### Phase 0 — Stabilize (S)
 
-- [x] Restore `models/top_content.py` (still needs its final newline → `ruff format`).
-- [x] `requirements.txt` reduced to direct runtime dependencies; `requirements-dev.txt` for
-      tools. Verified in a fresh environment: same test results as before.
-- [ ] Recreate the local `.venv` from `requirements-dev.txt`.
-- [ ] Decide on a lock file (see Open questions).
-- [ ] Tests: register `integration` and `db` markers, exclude `integration` by default, mark
-      the 3 network tests (`test_agent.py`, `test_streaming*.py`), mark the 6 keyword-supervisor
-      and 2 trends failures as expected failures with reasons.
-- [ ] Remove settings nothing reads (check both `settings.x` and `getattr(settings, "x")`);
-      remove ChromaDB from `docker-compose.yml`.
-- [ ] Tones once per language: `Tone` in `app/agents/models.py`; `TONES` exported from
-      `frontend/lib/api.ts` and used by the create page.
-- [ ] CI: Python 3.12 (matches local), install `requirements-dev.txt`, run ruff check,
-      ruff format check and pytest.
-- [ ] Make CI green: backend `ruff format` (2 files); frontend `npm run format` (17 files)
-      and the 6 ESLint errors.
-- [ ] Stop tracking `frontend/tsconfig.tsbuildinfo` (a compiler cache that changes on every
-      typecheck): add it to `.gitignore` and `git rm --cached` it.
-- [ ] Commit, tag `legacy-pipeline`, push.
+- [x] Restore `models/top_content.py`.
+- [x] Baseline commit of the old codebase (`db5fd4e`).
+- [x] Switch to uv (D17): dependencies in `pyproject.toml` (direct pins, dev group) with
+      `uv.lock`; `requirements*.txt` removed; local `.venv` synced (unused packages such as
+      torch removed). Verified: app starts, same test results as before.
+- [x] Tests: `integration` and `db` markers (strict); default run skips `integration`; the
+      3 network tests marked; 6 keyword-supervisor and 2 trends failures are strict xfails.
+      Default run: ~1 s, green.
+- [x] Removed settings nothing reads (ChromaDB, Ollama, Reddit, Resend, Anthropic, Gemini)
+      and the ChromaDB container; `.env.example` lists exactly the settings, enforced by a test.
+- [x] Request options (content type, platform, length, tone) defined once per language:
+      `app/agents/models.py` and `frontend/lib/api.ts`, kept equal by a test.
+- [x] CI backend job uses uv (`setup-uv`, `uv sync --locked`) and runs ruff and pytest.
+- [x] CI green locally: Prettier applied, 0 ESLint errors (17 warnings remain), tsc and
+      `next build` pass, `npm ci` accepts the lock file, no Linux path-case problems.
+- [x] `backend/Scripts/` tracked as `scripts/` (Linux CI is case-sensitive).
+- [x] Stopped tracking generated `next-env.d.ts` and `tsconfig.tsbuildinfo`.
+- [x] Tag `legacy-pipeline` on the baseline commit (`db5fd4e`).
+- [x] Removed pre-commit hooks (D18); pyright replaces mypy as the type checker.
+- [ ] Fix pyright errors in code that stays (35 today: ~15 in old agents/trends that are
+      deleted later, ~7 real `None`-handling gaps, ~13 library typing noise), then add
+      `uv run pyright` to CI.
+- [ ] Push the `phase-0-stabilize` branch and the tag; merge into `main` when CI is green.
 
 Done when: the app starts, `pytest` passes in seconds, CI is green on GitHub.
 
@@ -429,6 +453,7 @@ Pure moves, no behavior change. One commit per feature, using `git mv` to keep h
 - [ ] `agents/router.py` from `routers/agents.py`.
 - [ ] `alembic/env.py` imports `core/tables.py`; `tests/conftest.py` imports `Base` from `core/db.py`.
 - [ ] Delete the emptied `models/`, `schemas/`, `services/`, `routers/`, `tasks/`.
+- [ ] README: update the project tree to the new layout.
 
 Done when: the OpenAPI schema is identical, `alembic revision --autogenerate` produces an
 empty migration, test results are unchanged, and the app starts.
@@ -443,7 +468,7 @@ Test-first, on placeholder steps.
       logging; privacy options; prompt builder with determinism tests.
 - [ ] `runtime/`: Postgres checkpointer, `execute()`, events, SSE endpoint, SAQ worker,
       `resume` endpoint.
-- [ ] Placeholder gate (instant checks only) and placeholder research/studio steps.
+- [ ] Placeholder supervisor, research and studio steps.
 - [ ] UI: create page switches from polling to live events and shows step progress.
 
 Done when: a placeholder pipeline runs through the API; the crash test passes (break step 2,
@@ -460,14 +485,15 @@ resume, step 1 does not re-run); prompt-prefix tests pass.
 
 Done when: the 311 tests pass in Cupid CI and a real run shows research progress and sources live.
 
-### Phase 4 — Gate (S)
+### Phase 4 — Supervisor (S)
 
-- [ ] Instant checks plus one small-model `RunPlan` call.
-- [ ] Test set of about 40 prompts, including normal ones the keyword supervisor blocked.
-- [ ] Delete the old supervisor and its tests.
+- [ ] Deterministic supervisor: input checks, quota and rate limits, `RunPlan` from the request.
+- [ ] Content safety in the agreed place (see Open questions), tested with about 40 prompts,
+      including normal ones the keyword supervisor blocked.
+- [ ] Replace the old keyword supervisor and its tests.
 - [ ] UI: blocked-reason message.
 
-Done when: the 40-prompt test set passes.
+Done when: the 40-prompt test set passes with no extra LLM calls.
 
 ### Phase 5 — Studio, text (L)
 
@@ -478,6 +504,8 @@ Done when: the 40-prompt test set passes.
 - [ ] Delete the old composer, old `graph.py`, `state.py`, `run_store.py`; drop
       `langchain-core`, `langchain-groq` if unused.
 - [ ] UI: render blocks; edits save back to history.
+- [ ] README: rewrite the architecture section for the new pipeline (it still describes the
+      old agents and `MemoryState`).
 
 Done when: the studio beats the old composer on the test set and no old agent code remains.
 
@@ -504,9 +532,10 @@ Done when: agreed latency and token targets are met.
 - **Research fails completely:** write without research and say so in the UI, or fail the run?
 - **Launch deliverables:** which formats ship first (e.g. LinkedIn post, X thread, carousel)?
 - **Targets:** maximum time to first draft; maximum tokens per run.
-- **Lock file:** keep `requirements.txt` as direct pins only, or compile a full lock
-  (`requirements.in` → `requirements.txt` with uv or pip-tools)? A lock prevents surprise
-  breakage from sub-dependencies, like the `lxml_html_clean` case found on 2026-10-09.
+- **Content safety without a supervisor LLM call (D16):** recommended — add `allowed` and
+  `reason` fields to the structured output of an LLM call that already happens (the research
+  planner, or the director when research is off): zero extra calls. Alternative: rely only on
+  providers' built-in refusals.
 
 ---
 
@@ -516,3 +545,4 @@ Done when: agreed latency and token targets are met.
 - Frontend types generated from the OpenAPI schema instead of hand-written.
 - Tracing dashboard (e.g. Langfuse) once logged usage is not enough.
 - Consider PyJWT in place of python-jose for session tokens.
+- Clear the 17 ESLint warnings (mostly unused variables) as those files are touched.

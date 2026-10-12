@@ -9,6 +9,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal, TypedDict
 
+from app.agents.models import ContentLength, ContentType, Platform, Tone
+
 
 class PersonalizationInfo(TypedDict, total=False):
     """User personalization information passed to all agents."""
@@ -98,23 +100,10 @@ class MemoryState(TypedDict, total=False):
     created_at: datetime
     # User input
     user_prompt: str
-    content_type: Literal["Text", "Image", "Article", "Video", "Ads", "Quiz"]
-    target_platform: Literal[
-        "Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube", "Web"
-    ]
-    content_length: Literal["Short", "Medium", "Long", "Full Article"]
-    tone: Literal[
-        "Casual",
-        "Formal",
-        "Informative",
-        "GenZ",
-        "Factual",
-        "Hook First",
-        "Data Driven",
-        "Story Led",
-        "Lifestyle",
-        "Inspirational",
-    ]
+    content_type: ContentType
+    target_platform: Platform
+    content_length: ContentLength
+    tone: Tone
 
     # User profile context (from database)
     personalization: PersonalizationInfo
