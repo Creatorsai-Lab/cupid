@@ -15,8 +15,8 @@ from starlette.requests import Request
 from app.auth.models import User
 from app.connections.models import SocialConnection
 from app.core.db import async_session
+from app.history.models import CreationHistory
 from app.models.audit_log import AuditLog
-from app.models.creation_history import CreationHistory
 from app.subscriptions.models import Subscription
 
 

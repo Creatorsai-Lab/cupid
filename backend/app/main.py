@@ -12,11 +12,11 @@ from app.core.errors import AppError
 from app.core.logging_config import setup_logging
 from app.earn.router import router as earn_router
 from app.earn.scheduler import run_earn_scheduler
+from app.history.router import router as history_router
 from app.insights.scheduler import start_scheduler as start_insights_scheduler
 from app.insights.scheduler import stop_scheduler as stop_insights_scheduler
 from app.profile.router import router as profile_router
 from app.routers.agents import router as agents_router
-from app.routers.history_router import router as history_router
 from app.routers.insights_router import router as insights_router
 from app.routers.trends import router as trends_router
 from app.subscriptions.router import router as subscriptions_router

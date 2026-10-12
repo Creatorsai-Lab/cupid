@@ -24,7 +24,7 @@ from sqlalchemy import func, select
 from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.creation_history import CreationHistory
+from app.history.models import CreationHistory
 
 logger = logging.getLogger(__name__)
 

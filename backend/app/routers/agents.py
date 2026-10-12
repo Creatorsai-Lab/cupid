@@ -173,7 +173,7 @@ async def run_agent_pipeline(
             if composer_output:
                 try:
                     from app.core.db import async_session
-                    from app.services import history_service
+                    from app.history import service as history_service
 
                     async with async_session() as history_db:
                         entry = await history_service.save_creation(

@@ -13,7 +13,7 @@ from app.core.db import Base
 
 if TYPE_CHECKING:
     from app.connections.models import SocialConnection
-    from app.models.creation_history import CreationHistory
+    from app.history.models import CreationHistory
 
 
 class User(Base):
