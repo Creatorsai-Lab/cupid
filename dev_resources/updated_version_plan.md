@@ -104,11 +104,11 @@ backend/app/
   config.py          settings (unchanged)
   core/              shared infrastructure, imports no feature
     db.py            engine, session, Base, DbSession
-    tables.py        imports every models.py so Alembic and SQLAlchemy see all tables
+    tables.py        discovers every models.py so Alembic and SQLAlchemy see all tables
     errors.py        AppError family
     redis.py  logging_config.py  oauth_state.py
   auth/              models.py (User)  schemas.py  service.py  router.py  deps.py
-                     google.py (login OAuth)  tokens.py (JWT)
+                     google.py (login OAuth)  session.py (JWT + cookie)
   profile/           models.py  schemas.py  service.py  router.py
   connections/       models.py  schemas.py  router.py  youtube_oauth.py  token_crypto.py
   insights/          models.py (snapshot, top content)  schemas.py  service.py  router.py
@@ -380,9 +380,9 @@ class AppError(Exception):
     status: int = 500
     code: str = "internal_error"
 
-class NotFound(AppError):  status, code = 404, "not_found"
-class Forbidden(AppError): status, code = 403, "forbidden"
-class Conflict(AppError):  status, code = 409, "conflict"
+class NotFoundError(AppError):  status, code = 404, "not_found"
+class ForbiddenError(AppError): status, code = 403, "forbidden"
+class ConflictError(AppError):  status, code = 409, "conflict"
 
 # main.py — the only place errors become HTTP
 @app.exception_handler(AppError)
@@ -424,7 +424,7 @@ checks until the full supervisor lands (Phase 4).
 - [x] Stopped tracking generated `next-env.d.ts` and `tsconfig.tsbuildinfo`.
 - [x] Tag `legacy-pipeline` on the baseline commit (`db5fd4e`).
 - [x] Removed pre-commit hooks (D18); pyright replaces mypy as the type checker.
-- [ ] Fix pyright errors in code that stays (35 today: ~15 in old agents/trends that are
+- [ ] Fix pyright errors in code that stays (40 as of Phase 1, incl. 6 in scripts/; ~15 in old agents/trends that are
       deleted later, ~7 real `None`-handling gaps, ~13 library typing noise), then add
       `uv run pyright` to CI.
 - [ ] Push the `phase-0-stabilize` branch and the tag; merge into `main` when CI is green.
@@ -435,28 +435,30 @@ Done when: the app starts, `pytest` passes in seconds, CI is green on GitHub.
 
 Pure moves, no behavior change. One commit per feature, using `git mv` to keep history.
 
-- [ ] Before moving: save the OpenAPI schema (`openapi.json`) and record test results.
-- [ ] `core/`: `Base` and `DbSession` into `db.py`; `tables.py` and its test (every
-      `models.py` under `app/` is imported); `errors.py` and its handler; move `oauth_state.py`.
-- [ ] `auth/`: `models/user.py`, `routers/auth.py`, `routers/oauth_google.py`,
-      `services/auth.py`, `services/google_identity.py`, `core/security.py`, `schemas/auth.py`;
-      `get_current_user` and `CurrentUser` into `deps.py`.
-- [ ] `profile/`: `models/persona.py`, `schemas/persona.py`, `services/profile.py`, `routers/profile.py`.
-- [ ] `connections/`: `models/social_connection.py`, `schemas/connections.py`, `routers/connections.py`.
-- [ ] `insights/`: `models/insights_snapshot.py`, `models/top_content.py`,
-      `schemas/insights_schema.py`, `routers/insights_router.py`.
-- [ ] `history/`: `models/creation_history.py`, `schemas/history_schemas.py`,
-      `services/history_service.py`, `routers/history_router.py`.
-- [ ] `trends/`: `models/trending_article.py`, `schemas/trends.py`, `routers/trends.py`,
-      `tasks/trends_ingest.py`.
-- [ ] `admin/`: `models/audit_log.py`.
-- [ ] `agents/router.py` from `routers/agents.py`.
-- [ ] `alembic/env.py` imports `core/tables.py`; `tests/conftest.py` imports `Base` from `core/db.py`.
-- [ ] Delete the emptied `models/`, `schemas/`, `services/`, `routers/`, `tasks/`.
-- [ ] README: update the project tree to the new layout.
+- [x] Before moving: snapshot of the OpenAPI schema, every table definition and test results.
+- [x] `core/`: `Base` and `DbSession` in `db.py`; `tables.py` discovers every `models.py`
+      automatically (no list to keep in sync, so no test needed); `errors.py` with one JSON
+      handler in `main.py` (tested); `oauth_state.py` moved in.
+- [x] `auth/`: models, schemas, service, `google.py` (OAuth client), `session.py` (JWT +
+      session cookie), `deps.py` (`get_current_user`, `CurrentUser`), `router.py` (both auth
+      routers merged; URLs unchanged).
+- [x] `profile/`, `connections/`, `history/`, `admin/` (AuditLog), `agents/router.py` +
+      `agents/schemas.py`.
+- [x] `insights/`: one `models.py` for both tables (snapshot + top content).
+- [x] `trends/`: models, schemas, router; the dead Celery task (`tasks/trends_ingest.py`) deleted.
+- [x] `alembic/env.py` uses `core.tables`; `tests/conftest.py` imports `Base` from `core/db.py`.
+- [x] Emptied `models/`, `schemas/`, `services/`, `routers/`, `tasks/` deleted.
+- [x] Tests mirror the app: `tests/<feature>/`.
+- [x] Stale `pyrightconfig.json` (it silently overrode `pyproject.toml`) and an empty
+      `backend/package-lock.json` removed.
+- [x] README project tree updated.
+- [ ] Push the branch, open a PR, merge when CI is green.
 
 Done when: the OpenAPI schema is identical, `alembic revision --autogenerate` produces an
 empty migration, test results are unchanged, and the app starts.
+
+Result: OpenAPI schema and all 11 table definitions identical (compared directly, since
+Docker was off for autogenerate); tests unchanged; the app starts and serves its routes.
 
 ### Phase 2 — Agent foundations (L)
 
