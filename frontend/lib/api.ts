@@ -131,7 +131,7 @@ export const profileApi = {
 // ── Agents API ─────────────────────────────────────────────────
 
 // Request options: the only TypeScript definition. Mirrors backend
-// app/agents/models.py; backend tests/unit/test_request_options.py keeps them equal.
+// app/agents/models.py; backend tests/agents/test_request_options.py keeps them equal.
 export const CONTENT_TYPES = ["Text", "Image", "Article", "Video", "Ads", "Quiz"] as const;
 export const PLATFORMS = [
   "Twitter",

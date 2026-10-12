@@ -1,7 +1,7 @@
 """
 Unit tests for Supervisor Agent validation.
 
-Run: pytest tests/unit/test_supervisor.py -v
+Run: uv run pytest tests/agents/test_supervisor.py -v
 """
 
 import pytest
@@ -188,5 +188,5 @@ class TestSupervisorValidation:
         assert error is None
 
 
-# Run with: pytest tests/unit/test_supervisor.py -v
-# Run with coverage: pytest tests/unit/test_supervisor.py --cov=app.agents.supervisor --cov-report=html
+# Run with: uv run pytest tests/agents/test_supervisor.py -v
+# Run with coverage: uv run pytest tests/agents/test_supervisor.py --cov=app.agents.supervisor --cov-report=html

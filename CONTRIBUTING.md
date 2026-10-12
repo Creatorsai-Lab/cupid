@@ -256,8 +256,9 @@ if automated tests do not cover the full behavior.
 
 ### Backend
 
-- Every new route must have at least one integration test in `tests/integration/`
-- Every agent node must have at least one unit test with a mocked LLM response in `tests/unit/`
+- Tests mirror `app/`: a feature's tests live in `tests/<feature>/` (e.g. `tests/auth/`, `tests/agents/`)
+- Every new route needs at least one test; every agent step needs a test with a mocked LLM response
+- Tests that call real external services are marked `@pytest.mark.integration` and skipped by default
 - Every non-agent service function (analytics, scheduler, brand safety) must have unit tests with 100% branch coverage
 - Tests use `pytest` and `pytest-asyncio`. Fixtures live in `tests/conftest.py`
 

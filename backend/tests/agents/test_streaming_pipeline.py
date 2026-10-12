@@ -1,7 +1,7 @@
 """
 Integration tests for streaming agent pipeline.
 
-Run: pytest tests/integration/test_streaming_pipeline.py -v
+Run: uv run pytest -m integration tests/agents/test_streaming_pipeline.py -v
 """
 
 import pytest
@@ -130,5 +130,5 @@ class TestStreamingPipeline:
         assert queries_found, "Personalization queries not found in stream"
 
 
-# Run with: pytest tests/integration/test_streaming_pipeline.py -v
-# Run with markers: pytest tests/integration/ -v -m asyncio
+# Run with: uv run pytest -m integration tests/agents/test_streaming_pipeline.py -v
+# Run with markers: uv run pytest -m integration tests/agents/ -v
