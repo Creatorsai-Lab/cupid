@@ -518,7 +518,7 @@ class SearchPipeline:
 
                     # Exponential backoff with jitter; longer for rate limits
                     base = 3.0 if is_rate_limit else 1.0
-                    delay = base * (2**attempt) + random.uniform(0, 0.5)
+                    delay = base * (2**attempt) + random.uniform(0, 0.5)  # noqa: S311 - retry jitter, not security
                     logger.debug(
                         "[search] query=%r %s, retrying in %.1fs",
                         query,

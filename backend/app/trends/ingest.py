@@ -188,7 +188,7 @@ async def ingest_all_categories() -> dict[str, int]:
         for i, category in enumerate(categories_this_run):
             # Stagger requests: 3s base + 0-1s jitter
             if i > 0:
-                stagger = 3.0 + random.uniform(0, 1.0)
+                stagger = 3.0 + random.uniform(0, 1.0)  # noqa: S311 - request jitter, not security
                 await asyncio.sleep(stagger)
 
             try:

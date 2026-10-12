@@ -37,6 +37,8 @@ creation) is the product; every other step exists to feed it well.
 | D16 | The supervisor makes no LLM calls — every check is deterministic.                                                                                    | 2026-10-09 |
 | D17 | uv is the Python dependency manager: `pyproject.toml` + `uv.lock`, commands via `uv run` (no venv activation).                                       | 2026-10-09 |
 | D18 | No git pre-commit hooks. Quality checks are run manually with `uv run`: ruff (lint + format), pyright (types), pytest; CI runs them on pull requests. | 2026-10-12 |
+| D19 | Evals live in `backend/evals/`, separate from `tests/`: real LLMs, scored datasets, results gitignored; never run by `uv run pytest` or CI. | 2026-10-12 |
+| D20 | Test layout: folder = what is tested (mirrors `app/`, agents get one subfolder per part); marker = what it needs (`db`, `integration`). `tests/security/` holds only app-wide security rules; feature-specific security tests live with the feature. Ruff security rules (`S`) are on. | 2026-10-12 |
 
 ---
 
@@ -161,9 +163,25 @@ async def list_history(user: CurrentUser, db: DbSession) -> HistoryList: ...
 
 ### 4.4 Tests
 
-- Tests mirror the app: `tests/auth/`, `tests/history/`, `tests/agents/research/`, ...
-- Markers: `integration` (needs network or API keys), `db` (needs Postgres).
-- Default `pytest` run excludes `integration` and finishes in seconds. CI runs the default set.
+```
+backend/
+  tests/                     deterministic; `uv run pytest`
+    conftest.py  fakes.py  factories.py
+    core/ auth/ profile/ connections/ insights/ history/ trends/ earn/ subscriptions/ admin/
+    agents/  supervisor/ research/ studio/ llm/ runtime/
+    security/                app-wide rules only (e.g. every route requires login)
+  evals/                     real LLMs, scored; `uv run pytest evals` (see evals/README.md)
+```
+
+- **Folder = what is tested.** Folders mirror `app/`; a folder is created with its first test.
+- **Marker = what the test needs:** `db` (Postgres), `integration` (network + API keys).
+  The default run skips `integration` and finishes in seconds. CI runs the default set.
+- **Security:** rules for one feature (token checks, ownership, OAuth state) live in that
+  feature's folder; `tests/security/` holds rules across the whole app (route auth, no
+  secrets in errors or logs, CORS, untrusted web content, internal-address fetch guard).
+- **Fakes are passed in, not patched:** constructor arguments (`ResearchAgent(llm=FakeLLM())`)
+  and FastAPI `dependency_overrides`. HTTP to external services is faked with `respx`.
+- **Evals are not tests:** see D19 and `backend/evals/README.md`.
 
 ### 4.5 Daily commands (from `backend/`, no venv activation)
 
@@ -459,6 +477,24 @@ empty migration, test results are unchanged, and the app starts.
 
 Result: OpenAPI schema and all 11 table definitions identical (compared directly, since
 Docker was off for autogenerate); tests unchanged; the app starts and serves its routes.
+
+### Phase 1.5 — Test foundation (S)
+
+- [x] Ruff security rules (`S`) on; 6 false alarms marked inline with reasons.
+- [x] `tests/security/` with the first app-wide rule: every route requires login except an
+      allowlist of 5 deliberately public routes (verified it catches a forgotten check).
+- [x] `tests/agents/supervisor/` subfolder; `backend/evals/` skeleton with its README.
+- [ ] `conftest.py`: drop the custom `event_loop` fixture, make the DB fixtures work, move
+      feature-only fixtures (e.g. `sample_persona`) into that feature's `conftest.py`.
+- [ ] `fakes.py` (`FakeLLM`, …) and `factories.py` (`make_user()`, …); fake signed-in user
+      via `dependency_overrides`.
+- [ ] Dev tools: `respx` (fake HTTP), `pytest-cov` (coverage report).
+- [ ] CI: Postgres service, run `db` tests; `pip-audit`, `npm audit`, secret scan.
+- [ ] Tests for money- and security-critical features: auth, entitlements, history ownership.
+- [ ] More app-wide security tests: no secrets in errors/logs, CORS origin, internal-address
+      fetch guard.
+
+Done when: DB tests run in CI, and auth, entitlements and history ownership are covered.
 
 ### Phase 2 — Agent foundations (L)
 
