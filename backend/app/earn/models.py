@@ -37,7 +37,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 # IMPORTANT: import the SAME declarative Base the rest of the app uses, so
 # these tables register on the shared metadata and Alembic picks them up.
 # This is an import of shared infrastructure, not a reuse of a feature file.
-from app.models.user import Base
+from app.core.db import Base
 
 
 def _utcnow() -> datetime:

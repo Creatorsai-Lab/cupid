@@ -22,9 +22,9 @@ from uuid import UUID
 
 from sqlalchemy import select
 
+from app.connections.models import SocialConnection
 from app.core.db import async_session as async_session_factory
 from app.insights.sync import sync_connection
-from app.models.social_connection import SocialConnection
 
 logging.basicConfig(
     level=logging.INFO,

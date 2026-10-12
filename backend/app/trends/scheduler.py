@@ -63,8 +63,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import async_session as async_session_factory
-from app.models.trending_article import TrendingArticle
 from app.trends.ingest import ingest_all_categories
+from app.trends.models import TrendingArticle
 
 logger = logging.getLogger(__name__)
 

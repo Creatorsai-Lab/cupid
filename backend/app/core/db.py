@@ -10,10 +10,22 @@ Key concepts:
 """
 
 from collections.abc import AsyncGenerator
+from typing import Annotated
 
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
+
+
+class Base(DeclarativeBase):
+    """Base class for every ORM model; Alembic reads its metadata.
+
+    Every feature's models.py inherits from it. core/tables.py imports all of
+    them so Base.metadata always knows every table.
+    """
+
 
 # The engine manages a pool of database connections.
 # echo=False in production — set True temporarily to see raw SQL in logs.
@@ -60,3 +72,7 @@ async def get_db() -> AsyncGenerator[AsyncSession]:
             raise
         finally:
             await session.close()
+
+
+# Route parameter shortcut: `db: DbSession` instead of `db: AsyncSession = Depends(get_db)`.
+DbSession = Annotated[AsyncSession, Depends(get_db)]

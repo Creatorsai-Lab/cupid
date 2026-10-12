@@ -30,7 +30,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.audit_log import AuditLog
+from app.admin.models import AuditLog
 from app.subscriptions.constants import (
     DEFAULT_TIER_FOR_NEW_USERS,
     STATUS_ACTIVE,

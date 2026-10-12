@@ -2,7 +2,7 @@
 
 The request options below are the only Python definition; the router, the
 pipeline state and the agents import them from here. frontend/lib/api.ts
-mirrors them, and tests/unit/test_request_options.py keeps the two equal.
+mirrors them, and tests/agents/test_request_options.py keeps the two equal.
 """
 
 from typing import Literal

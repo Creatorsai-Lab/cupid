@@ -26,6 +26,9 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.deps import get_current_user
+from app.auth.models import User
+
 # Shared infrastructure (DB session + auth) — referenced, not modified.
 from app.core.db import get_db
 from app.earn import service
@@ -39,8 +42,6 @@ from app.earn.schemas import (
 )
 from app.earn.streams import is_valid_answer_map
 from app.earn.streams import questions as _questions
-from app.models.user import User
-from app.routers.auth import get_current_user
 
 router = APIRouter(prefix="/api/v1/earn", tags=["earn"])
 
@@ -140,7 +141,7 @@ async def _resolve_niche(db: AsyncSession, user: User) -> str | None:
     try:
         from sqlalchemy import select
 
-        from app.models.persona import UserPersonalization
+        from app.profile.models import UserPersonalization
 
         result = await db.execute(
             select(UserPersonalization.content_niche).where(

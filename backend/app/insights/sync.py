@@ -47,15 +47,14 @@ from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.connections.models import SocialConnection
 from app.insights import youtube_client
+from app.insights.models import InsightsSnapshot, TopContent
 from app.insights.token_manager import (
     TokenRefreshError,
     get_valid_access_token,
 )
 from app.insights.youtube_client import YouTubeAPIError
-from app.models.insights_snapshot import InsightsSnapshot
-from app.models.social_connection import SocialConnection
-from app.models.top_content import TopContent
 
 logger = logging.getLogger(__name__)
 

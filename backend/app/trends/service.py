@@ -30,9 +30,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import the Database Model (for SQLAlchemy) and alias it
-from app.models.trending_article import TrendingArticle as DBArticles
-from app.schemas.trends import TrendingArticle, TrendsResponse
+from app.trends.models import TrendingArticle as DBArticles
 from app.trends.ranker import rank_articles
+from app.trends.schemas import TrendingArticle, TrendsResponse
 
 logger = logging.getLogger(__name__)
 
