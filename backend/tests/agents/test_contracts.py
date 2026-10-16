@@ -3,9 +3,10 @@
 import pytest
 from pydantic import ValidationError
 
-from app.agents.models import Issue, RunEvent, RunPlan, RunRequest
+from app.agents.models import Issue, RunEvent, RunRequest
 from app.agents.research_agents.models import ResearchPack, Source
 from app.agents.studio_agents.models import ContentPiece, TextBlock
+from app.agents.supervisor_agents.models import RunPlan
 
 
 def make_request(**fields) -> RunRequest:

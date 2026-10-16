@@ -7,10 +7,11 @@ from typing import get_type_hints
 import pytest
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
-from app.agents.models import Issue, RunPlan
+from app.agents.models import Issue
 from app.agents.research_agents.models import ResearchPack, Source
 from app.agents.state import OWNERS, RunState, check_update
 from app.agents.studio_agents.models import ContentPiece, TextBlock
+from app.agents.supervisor_agents.models import RunPlan
 from tests.agents.test_contracts import make_request
 
 

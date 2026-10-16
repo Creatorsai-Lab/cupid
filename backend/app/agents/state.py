@@ -12,19 +12,20 @@ Phase 5 adds `voice` (input) and `brief` (owned by the studio director).
 """
 
 import operator
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, Required, TypedDict
 
-from app.agents.models import CreatorProfile, Issue, RunPlan, RunRequest
+from app.agents.models import CreatorProfile, Issue, RunRequest
 from app.agents.research_agents.models import ResearchPack
 from app.agents.studio_agents.models import ContentPiece
+from app.agents.supervisor_agents.models import RunPlan
 
 START = "start"  # the runtime, when it creates the run
 ANY_STEP = "*"
 
 
 class RunState(TypedDict, total=False):
-    # Inputs
-    request: RunRequest
+    # Inputs (`request` is always set when a run starts)
+    request: Required[RunRequest]
     profile: CreatorProfile
     # Shared decisions
     plan: RunPlan

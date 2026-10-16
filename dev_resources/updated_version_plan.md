@@ -524,7 +524,7 @@ Test-first, on placeholder steps. Split into small steps, each its own pull requ
       from settings, one provider per run, 429 cooldown, timeouts, retries, structured
       output, usage + cached-token logging, privacy options. `tests/fakes.py` (`FakeLLM`).
 - [x] **2.3** `llm/prompts.py`: prompt builder (most-shared first) with determinism tests.
-- [ ] **2.4** Graph with placeholder supervisor, research and studio steps; ownership test
+- [x] **2.4** Graph with placeholder supervisor, research and studio steps; ownership test
       (each step writes only its fields); full run and **crash-and-resume** test on
       `InMemorySaver`.
 - [ ] **2.5** `runtime/`: Postgres checkpointer, `execute()` (start = resume), events on a Redis

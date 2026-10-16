@@ -10,7 +10,7 @@ replaced by the step that owns it (see state.py).
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 # ── Request options ────────────────────────────────────────────
 
@@ -66,26 +66,6 @@ class CreatorProfile(ContractModel):
     target_country: str | None = None
     target_audience: str | None = None
     usp: str | None = None
-
-
-# ── Shared decisions ───────────────────────────────────────────
-
-
-class RunPlan(ContractModel):
-    """The supervisor's decision for this run (deterministic, no LLM call)."""
-
-    verdict: Literal["allow", "block"]
-    reason: str | None = None  # shown to the user when blocked
-    needs_research: bool = True
-    deliverables: tuple[str, ...] = ()  # e.g. ("linkedin_post",)
-
-    @model_validator(mode="after")
-    def _consistent(self) -> "RunPlan":
-        if self.verdict == "block" and not self.reason:
-            raise ValueError("a blocked run must give a reason")
-        if self.verdict == "allow" and not self.deliverables:
-            raise ValueError("an allowed run must have at least one deliverable")
-        return self
 
 
 # ── Outputs and progress ───────────────────────────────────────
