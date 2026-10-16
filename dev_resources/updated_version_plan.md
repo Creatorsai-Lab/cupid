@@ -507,16 +507,23 @@ Done when: DB tests run in CI, and auth, entitlements and history ownership are 
 
 ### Phase 2 — Agent foundations (L)
 
-Test-first, on placeholder steps.
+Test-first, on placeholder steps. Split into small steps, each its own pull request:
 
-- [ ] `agents/models.py` (shared contracts) and `state.py` (run pool) with the ownership test.
-- [ ] `llm/`: gateway from the research `LLMClient` and its tests; roles from settings; one
-      provider per run; 429 cooldown; timeouts; structured output; usage and cached-token
-      logging; privacy options; prompt builder with determinism tests.
-- [ ] `runtime/`: Postgres checkpointer, `execute()`, events, SSE endpoint, SAQ worker,
-      `resume` endpoint.
-- [ ] Placeholder supervisor, research and studio steps.
-- [ ] UI: create page switches from polling to live events and shows step progress.
+- [x] **2.0** Move the old pipeline into `app/agents/legacy/` (pure move) so the new code can
+      use the planned names; each old part is deleted when its replacement lands.
+- [x] **2.1** Contracts in `agents/models.py` (`RunRequest`, `RunPlan`, `Issue`, `RunEvent`, …)
+      and the run pool in `agents/state.py` (inputs / shared decisions / outputs, reducers).
+- [ ] **2.2** `llm/` gateway built from the research agent's `LLMClient` and its tests: roles
+      from settings, one provider per run, 429 cooldown, timeouts, retries, structured
+      output, usage + cached-token logging, privacy options. `tests/fakes.py` (`FakeLLM`).
+- [ ] **2.3** `llm/prompts.py`: prompt builder (most-shared first) with determinism tests.
+- [ ] **2.4** Graph with placeholder supervisor, research and studio steps; ownership test
+      (each step writes only its fields); full run and **crash-and-resume** test on
+      `InMemorySaver`.
+- [ ] **2.5** `runtime/`: Postgres checkpointer, `execute()` (start = resume), events on a Redis
+      stream, SSE endpoint, `resume` endpoint, SAQ worker.
+- [ ] **2.6** Router switches to the new runtime; create page switches from polling to live
+      events and shows step progress.
 
 Done when: a placeholder pipeline runs through the API; the crash test passes (break step 2,
 resume, step 1 does not re-run); prompt-prefix tests pass.

@@ -3,12 +3,12 @@ Personalization Agent — generates tailored search queries from user profile + 
 
 Public API::
 
-    from app.agents.personalization import personalization_node
+    from app.agents.legacy.personalization import personalization_node
 
     graph.add_node("personalization", personalization_node)
 """
 
-from app.agents.personalization.agent import (
+from app.agents.legacy.personalization.agent import (
     build_personalization_graph,
     personalization_node,
 )

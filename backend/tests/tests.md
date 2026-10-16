@@ -54,9 +54,9 @@ backend/tests/
   history/                 ownership of saved creations
   subscriptions/           entitlement rules (what each plan grants)
   trends/                  trending articles (+ its own conftest.py)
-  agents/                  request options, old pipeline (integration)
-    supervisor/            one subfolder per agent part:
-                           later research/, studio/, llm/, runtime/
+  agents/                  request options; one subfolder per agent part
+                           (supervisor/, research/, studio/, llm/, runtime/ as they land)
+    legacy/                old pipeline's tests; deleted with the old pipeline
   security/                rules that apply across the whole app
 ```
 
@@ -207,7 +207,7 @@ As of 2026-10-12: **110 passed** (10 of them against Postgres), **8 expected fai
 (`uv run pytest --cov=app`).
 
 Known expected failures (strict `xfail`):
-- 6 in `agents/supervisor/` — the keyword supervisor misjudges intent; it is replaced in
+- 6 in `agents/legacy/supervisor/` — the keyword supervisor misjudges intent; it is replaced in
   Phase 4.
 - 2 in `trends/` — authority scores drifted; trends is rebuilt later.
 

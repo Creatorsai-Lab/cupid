@@ -15,7 +15,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from app.agents.state import MemoryState
+from app.agents.legacy.state import MemoryState
 from app.core.logging_config import get_agent_logger
 
 logger = get_agent_logger("supervisor")

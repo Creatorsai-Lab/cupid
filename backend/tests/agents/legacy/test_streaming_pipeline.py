@@ -1,12 +1,12 @@
 """
 Integration tests for streaming agent pipeline.
 
-Run: uv run pytest -m integration tests/agents/test_streaming_pipeline.py -v
+Run: uv run pytest -m integration tests/agents/legacy/test_streaming_pipeline.py -v
 """
 
 import pytest
 
-from app.agents.graph import get_orchestrator
+from app.agents.legacy.graph import get_orchestrator
 
 # Calls real LLM and search APIs; run with `uv run pytest -m integration`.
 pytestmark = pytest.mark.integration
@@ -130,5 +130,5 @@ class TestStreamingPipeline:
         assert queries_found, "Personalization queries not found in stream"
 
 
-# Run with: uv run pytest -m integration tests/agents/test_streaming_pipeline.py -v
-# Run with markers: uv run pytest -m integration tests/agents/ -v
+# Run with: uv run pytest -m integration tests/agents/legacy/test_streaming_pipeline.py -v
+# Run with markers: uv run pytest -m integration tests/agents/legacy/ -v

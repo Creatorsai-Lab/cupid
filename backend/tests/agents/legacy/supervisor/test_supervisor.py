@@ -1,12 +1,12 @@
 """
 Unit tests for Supervisor Agent validation.
 
-Run: uv run pytest tests/agents/supervisor/test_supervisor.py -v
+Run: uv run pytest tests/agents/legacy/supervisor/test_supervisor.py -v
 """
 
 import pytest
 
-from app.agents.supervisor.agent import validate_prompt
+from app.agents.legacy.supervisor.agent import validate_prompt
 
 # Keyword matching can't judge intent; the keyword supervisor is replaced in Phase 4.
 # These cases document its known mistakes; strict=True flags any change in behavior.
@@ -188,5 +188,5 @@ class TestSupervisorValidation:
         assert error is None
 
 
-# Run with: uv run pytest tests/agents/supervisor/test_supervisor.py -v
-# Run with coverage: uv run pytest tests/agents/supervisor/test_supervisor.py --cov=app.agents.supervisor --cov-report=html
+# Run with: uv run pytest tests/agents/legacy/supervisor/test_supervisor.py -v
+# Run with coverage: uv run pytest tests/agents/legacy/supervisor/test_supervisor.py --cov=app.agents.legacy.supervisor --cov-report=html

@@ -21,8 +21,8 @@ from typing import Any, TypeVar, cast
 
 from langgraph.graph import END, StateGraph
 
-from app.agents.research.search import SearchPipeline
-from app.agents.state import MemoryState, ResearchData
+from app.agents.legacy.research.search import SearchPipeline
+from app.agents.legacy.state import MemoryState, ResearchData
 from app.core.logging_config import get_agent_logger
 
 try:
