@@ -55,7 +55,8 @@ backend/tests/
   subscriptions/           entitlement rules (what each plan grants)
   trends/                  trending articles (+ its own conftest.py)
   agents/                  request options; one subfolder per agent part
-                           (supervisor/, research/, studio/, llm/, runtime/ as they land)
+                           (supervisor_agents/, research_agents/, studio_agents/, llm/, runtime/
+                           as they land)
     legacy/                old pipeline's tests; deleted with the old pipeline
   security/                rules that apply across the whole app
 ```
@@ -66,7 +67,7 @@ Not yet tested (folders appear with their first test): `profile/`, `insights/`,
 ### The two rules
 
 1. **Folder = what is tested.** Folders mirror `app/`: a test for `app/history/service.py`
-   goes in `tests/history/`. Agents get one subfolder per part (`tests/agents/studio/`).
+   goes in `tests/history/`. Agents get one subfolder per part (`tests/agents/studio_agents/`).
 2. **Marker = what the test needs.** Never make a folder for a kind of test.
 
 | Marker               | Needs                    | Runs by default?                      |
@@ -154,7 +155,7 @@ answers. Quality of real output belongs in `evals/`.
   did not run again; the first part of every prompt is identical between calls (needed
   for prompt caching); each step writes only the state fields it owns.
 - The research agent arrives with 311 tests using `FakeLLM` (Phase 3); they move to
-  `tests/agents/research/`.
+  `tests/agents/research_agents/`.
 
 ---
 

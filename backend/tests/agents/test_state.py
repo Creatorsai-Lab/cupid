@@ -8,9 +8,9 @@ import pytest
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
 from app.agents.models import Issue, RunPlan
-from app.agents.research.models import ResearchPack, Source
+from app.agents.research_agents.models import ResearchPack, Source
 from app.agents.state import OWNERS, RunState, check_update
-from app.agents.studio.models import ContentPiece, TextBlock
+from app.agents.studio_agents.models import ContentPiece, TextBlock
 from tests.agents.test_contracts import make_request
 
 

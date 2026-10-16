@@ -15,8 +15,8 @@ import operator
 from typing import Annotated, Any, TypedDict
 
 from app.agents.models import CreatorProfile, Issue, RunPlan, RunRequest
-from app.agents.research.models import ResearchPack
-from app.agents.studio.models import ContentPiece
+from app.agents.research_agents.models import ResearchPack
+from app.agents.studio_agents.models import ContentPiece
 
 START = "start"  # the runtime, when it creates the run
 ANY_STEP = "*"
