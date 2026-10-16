@@ -16,7 +16,7 @@ deliberately separate from `tests/`:
 
 ```powershell
 uv run pytest evals                 # all evals
-uv run pytest evals/studio          # one agent
+uv run pytest evals/studio_agents   # one area
 ```
 
 ## Layout
@@ -26,8 +26,8 @@ evals/
   conftest.py        real providers, result recording   (added with the first eval)
   datasets/          golden inputs, one *.jsonl per eval (versioned in git)
   results/           scored outputs per run             (gitignored)
-  research/          research agent evals
-  studio/            studio evals (director, specialists)
+  research_agents/   research agent evals
+  studio_agents/     studio evals (director, specialists)
 ```
 
 ## Rules

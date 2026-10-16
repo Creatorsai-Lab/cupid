@@ -3,7 +3,7 @@
 > Living plan for rebuilding Cupid's agent system. Edit freely: tick tasks as they land,
 > add decisions to the log, and keep "Open questions" current.
 >
-> Last updated: 2026-10-12
+> Last updated: 2026-10-16
 
 ---
 
@@ -20,7 +20,7 @@ creation) is the product; every other step exists to feed it well.
 | #   | Decision                                                                                                                                              | Date       |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
 | D1  | Agent endpoints stay under `/api/v1/agents`. New routes are added there (pre-launch, no v2).                                                         | 2026-10-06 |
-| D2  | Keep `_TONE_TO_VOICE`: one copy in `studio/voices.py`, every tone mapped, actually read by the studio.                                               | 2026-10-06 |
+| D2  | Keep `_TONE_TO_VOICE`: one copy in `studio_agents/voices.py`, every tone mapped, actually read by the studio.                                               | 2026-10-06 |
 | D3  | The new research agent (`D:\cupid_agents\web-search-agent`) replaces both the personalization and research agents.                                    | 2026-10-06 |
 | D4  | Workflow outside, agents inside: a fixed LangGraph pipeline with intelligence inside each step. No swarm.                                            | 2026-10-06 |
 | D5  | Free LLM APIs only until a working MVP. Each role has an ordered provider list; one provider per role for a whole run; skip a provider while it is rate-limited. | 2026-10-09 |
@@ -33,12 +33,13 @@ creation) is the product; every other step exists to feed it well.
 | D12 | Feature folders: every feature and every agent owns its `models.py`. No top-level `models/`, `schemas/`, `services/`, `routers/`.                    | 2026-10-09 |
 | D13 | Folder depth is `app/<feature>/<file>`; only agents go one level deeper.                                                                             | 2026-10-09 |
 | D14 | Trends ingestion is rebuilt from scratch later; no piecemeal fixes until then.                                                                       | 2026-10-09 |
-| D15 | The first pipeline step keeps the name **supervisor** (`agents/supervisor/`); it will gain more files in later versions.                             | 2026-10-09 |
+| D15 | The first pipeline step keeps the name **supervisor** (`agents/supervisor_agents/`); it will gain more files in later versions.                             | 2026-10-09 |
 | D16 | The supervisor makes no LLM calls — every check is deterministic.                                                                                    | 2026-10-09 |
 | D17 | uv is the Python dependency manager: `pyproject.toml` + `uv.lock`, commands via `uv run` (no venv activation).                                       | 2026-10-09 |
 | D18 | No git pre-commit hooks. Quality checks are run manually with `uv run`: ruff (lint + format), pyright (types), pytest; CI runs them on pull requests. | 2026-10-12 |
 | D19 | Evals live in `backend/evals/`, separate from `tests/`: real LLMs, scored datasets, results gitignored; never run by `uv run pytest` or CI. | 2026-10-12 |
 | D20 | Test layout: folder = what is tested (mirrors `app/`, agents get one subfolder per part); marker = what it needs (`db`, `integration`). `tests/security/` holds only app-wide security rules; feature-specific security tests live with the feature. Ruff security rules (`S`) are on. | 2026-10-12 |
+| D21 | Agent folders are named `<area>_agents/` (`supervisor_agents/`, `research_agents/`, `studio_agents/`): each holds one or more agents for that area, and the name makes clear the folder contains agents. Their tests mirror the names. | 2026-10-16 |
 
 ---
 
@@ -128,15 +129,15 @@ backend/app/
     graph.py         wiring only
     runtime/         runner.py  events.py  worker.py  checkpoint.py
     llm/             gateway.py  roles.py  prompts.py  errors.py
-    supervisor/      models.py  agent.py
-    research/        models.py  agent.py  planning.py  filters.py  providers.py  config.py  adapter.py
-    studio/          models.py  director.py  registry.py  reviewer.py  voices.py
+    supervisor_agents/  models.py  rules.py  agent.py
+    research_agents/ models.py  agent.py  planning.py  filters.py  providers.py  config.py  adapter.py
+    studio_agents/   models.py  director.py  registry.py  reviewer.py  voices.py
                      specialists/writer.py   (later: designer, infographic, animator, video)
                      editor.py               (later)
 ```
 
 A specialist gets its own folder only when it outgrows one file. Content types shared by all
-specialists and the editor live in `studio/models.py`.
+specialists and the editor live in `studio_agents/models.py`.
 
 ### 4.3 Shared building blocks
 
@@ -168,7 +169,7 @@ backend/
   tests/                     deterministic; `uv run pytest`
     conftest.py  fakes.py  factories.py
     core/ auth/ profile/ connections/ insights/ history/ trends/ earn/ subscriptions/ admin/
-    agents/  supervisor/ research/ studio/ llm/ runtime/
+    agents/  supervisor_agents/ research_agents/ studio_agents/ llm/ runtime/
     security/                app-wide rules only (e.g. every route requires login)
   evals/                     real LLMs, scored; `uv run pytest evals` (see evals/README.md)
 ```
@@ -238,7 +239,7 @@ def assign(state: RunState) -> list[Send]:
     ]
 ```
 
-### 5.2 Supervisor (`agents/supervisor/`)
+### 5.2 Supervisor (`agents/supervisor_agents/`)
 
 The first step of every run. It replaces the old keyword supervisor (which blocks normal
 prompts such as "5 ways to kill procrastination") and makes **no LLM calls** (D16): every
@@ -259,7 +260,7 @@ class RunPlan(ContractModel):
 
 Content safety moves into an LLM call that happens anyway — see Open questions.
 
-### 5.3 Research (`agents/research/`)
+### 5.3 Research (`agents/research_agents/`)
 
 - Ported from `D:\cupid_agents\web-search-agent` with its test suite (311 tests).
 - API keys come from Cupid `settings`; tuning values stay in its own frozen `config.py`.
@@ -270,7 +271,7 @@ Content safety moves into an LLM call that happens anyway — see Open questions
 - Status handling: `COMPLETE` → continue. `LOW_COVERAGE` / `TIMEOUT` with sources → continue,
   marked degraded for the user. `FAILED` → see Open questions.
 
-### 5.4 Studio (`agents/studio/`)
+### 5.4 Studio (`agents/studio_agents/`)
 
 Typed, addressable content (D10), so the editor can later target "paragraph 2" or "the image
 on slide 3":
@@ -530,7 +531,7 @@ resume, step 1 does not re-run); prompt-prefix tests pass.
 
 ### Phase 3 — Research (M)
 
-- [ ] Port the agent and its 311 tests into `agents/research/` and `tests/agents/research/`,
+- [ ] Port the agent and its 311 tests into `agents/research_agents/` and `tests/agents/research_agents/`,
       using the gateway and Cupid settings.
 - [ ] `adapter.py`: profile → `PersonaContext`; result → `ResearchPack`.
 - [ ] Delete the old personalization and research packages and their tests; drop `ddgs`,
@@ -551,7 +552,7 @@ Done when: the 40-prompt test set passes with no extra LLM calls.
 
 ### Phase 5 — Studio, text (L)
 
-- [ ] `studio/models.py` (blocks, `ContentPiece`, `CreativeBrief`), `voices.py`, `registry.py`,
+- [ ] `studio_agents/models.py` (blocks, `ContentPiece`, `CreativeBrief`), `voices.py`, `registry.py`,
       `director.py`, `specialists/writer.py`, `reviewer.py`.
 - [ ] History stores `ContentPiece`s (migration from the old variants shape).
 - [ ] Test set of 20–30 real prompts with a judge rubric.
