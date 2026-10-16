@@ -54,7 +54,7 @@ class Usage:
     model: str
     prompt_tokens: int
     completion_tokens: int
-    cached_tokens: int
+    cached_tokens: int | None  # None: the provider doesn't report prompt caching
     latency_s: float
 
 
@@ -204,17 +204,20 @@ class LLMSession:
             return result
         raise last_error or NoProviderAvailableError(f"no provider served {role!r}")
 
-    def totals(self) -> dict[str, int]:
+    def totals(self) -> dict[str, int | None]:
+        reported = [u.cached_tokens for u in self.usage if u.cached_tokens is not None]
         return {
             "prompt_tokens": sum(u.prompt_tokens for u in self.usage),
             "completion_tokens": sum(u.completion_tokens for u in self.usage),
-            "cached_tokens": sum(u.cached_tokens for u in self.usage),
+            # Unknown (None) unless at least one call reported cache usage.
+            "cached_tokens": sum(reported) if reported else None,
         }
 
     def _record(
         self, role: str, provider: ProviderSpec, raw: dict[str, Any], latency_s: float
     ) -> None:
-        details = raw.get("prompt_tokens_details") or {}
+        details = raw.get("prompt_tokens_details")
+        cached = details.get("cached_tokens") if isinstance(details, dict) else None
         usage = Usage(
             run_id=self.run_id,
             role=role,
@@ -222,12 +225,12 @@ class LLMSession:
             model=provider.model,
             prompt_tokens=int(raw.get("prompt_tokens") or 0),
             completion_tokens=int(raw.get("completion_tokens") or 0),
-            cached_tokens=int(details.get("cached_tokens") or 0),
+            cached_tokens=int(cached) if cached is not None else None,
             latency_s=latency_s,
         )
         self.usage.append(usage)
         logger.info(
-            "llm run=%s role=%s provider=%s model=%s in=%d cached=%d out=%d %.2fs",
+            "llm run=%s role=%s provider=%s model=%s in=%d cached=%s out=%d %.2fs",
             usage.run_id,
             usage.role,
             usage.provider,

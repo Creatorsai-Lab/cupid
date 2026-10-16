@@ -36,18 +36,13 @@ def provider(name: str, url: str, **fields) -> ProviderSpec:
 
 
 def completion(
-    content: str, *, prompt=10, completion_tokens=5, cached=0
+    content: str, *, prompt=10, completion_tokens=5, cached: int | None = 0
 ) -> httpx.Response:
+    usage: dict = {"prompt_tokens": prompt, "completion_tokens": completion_tokens}
+    if cached is not None:  # None: the provider doesn't report caching at all
+        usage["prompt_tokens_details"] = {"cached_tokens": cached}
     return httpx.Response(
-        200,
-        json={
-            "choices": [{"message": {"content": content}}],
-            "usage": {
-                "prompt_tokens": prompt,
-                "completion_tokens": completion_tokens,
-                "prompt_tokens_details": {"cached_tokens": cached},
-            },
-        },
+        200, json={"choices": [{"message": {"content": content}}], "usage": usage}
     )
 
 
@@ -319,3 +314,15 @@ def test_every_role_uses_known_providers():
 
 def test_providers_without_an_api_key_are_skipped():
     assert configured_providers(settings_with(groq_api_key="")) == {}
+
+
+@respx.mock
+async def test_unreported_caching_is_unknown_not_zero(gateway):
+    """Groq's free tier reports no cache data; that must not look like a 0% hit rate."""
+    respx.post(PRIMARY).mock(return_value=completion('{"text": "hi"}', cached=None))
+    session = gateway.session("run-1")
+
+    await ask(session)
+
+    assert session.usage[0].cached_tokens is None
+    assert session.totals()["cached_tokens"] is None

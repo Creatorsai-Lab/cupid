@@ -41,5 +41,5 @@ class FakeLLM:
             return answer
         return response_model.model_validate(answer)
 
-    def totals(self) -> dict[str, int]:
-        return {"prompt_tokens": 0, "completion_tokens": 0, "cached_tokens": 0}
+    def totals(self) -> dict[str, int | None]:
+        return {"prompt_tokens": 0, "completion_tokens": 0, "cached_tokens": None}

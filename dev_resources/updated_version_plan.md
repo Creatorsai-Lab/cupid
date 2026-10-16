@@ -341,6 +341,12 @@ Built by promoting the research agent's `LLMClient` (and its tests), not written
   Tests: rendering twice gives identical text; two tasks share the same prefix.
 - **Measure:** log tokens per call, including `usage.prompt_tokens_details.cached_tokens`;
   report cache hit rate per role.
+- **Observed 2026-10-16 (Groq free tier):** responses carry no cache data at all, even for
+  byte-identical requests, so caching saves nothing there today; the gateway records
+  `cached_tokens=None` (unknown, not 0). The prompt order is kept: it costs nothing and
+  pays off on providers that cache (OpenAI, DeepSeek, many via OpenRouter, possibly Groq
+  paid tiers). `tests/agents/llm/test_prompts_live.py` starts asserting cache hits
+  automatically once a provider reports them.
 
 ### 5.6 Runtime (`agents/runtime/`)
 
@@ -517,7 +523,7 @@ Test-first, on placeholder steps. Split into small steps, each its own pull requ
 - [x] **2.2** `llm/` gateway built from the research agent's `LLMClient` and its tests: roles
       from settings, one provider per run, 429 cooldown, timeouts, retries, structured
       output, usage + cached-token logging, privacy options. `tests/fakes.py` (`FakeLLM`).
-- [ ] **2.3** `llm/prompts.py`: prompt builder (most-shared first) with determinism tests.
+- [x] **2.3** `llm/prompts.py`: prompt builder (most-shared first) with determinism tests.
 - [ ] **2.4** Graph with placeholder supervisor, research and studio steps; ownership test
       (each step writes only its fields); full run and **crash-and-resume** test on
       `InMemorySaver`.
@@ -584,6 +590,19 @@ Done when: agreed latency and token targets are met.
 
 ## 7. Open questions
 
+- **⚠ Groq free tier gives no prompt caching (found 2026-10-16) — decide before Phase 5.**
+  Real calls showed Groq returns no cache data, even for byte-identical requests, and
+  they are not faster. So D7 (caching) saves nothing on our only provider today, and the
+  8k tokens/minute free limit was hit after three ~2.7k-token calls. A full run (research
+  + studio with several drafts) will exceed one minute's quota. Options to weigh:
+  1. Keep Groq free and accept slower runs (gateway cooldown spreads calls out).
+  2. Add a provider that caches and reports it (OpenRouter → DeepSeek/others, OpenAI,
+     DeepSeek direct) for the roles with the largest shared prompts (director, writer).
+  3. Groq paid tier: check whether caching applies there before paying.
+  4. Spend fewer tokens per run regardless: research compression (Phase 6), fewer/shorter
+     drafts, smaller research context for the writer.
+  Evidence: `tests/agents/llm/test_prompts_live.py` (skips with the reason today; asserts
+  cache hits once a provider reports them). See also section 5.5 "Observed".
 - **Research fails completely:** write without research and say so in the UI, or fail the run?
 - **Launch deliverables:** which formats ship first (e.g. LinkedIn post, X thread, carousel)?
 - **Targets:** maximum time to first draft; maximum tokens per run.
