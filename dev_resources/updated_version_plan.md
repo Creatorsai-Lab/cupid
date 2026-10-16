@@ -514,7 +514,7 @@ Test-first, on placeholder steps. Split into small steps, each its own pull requ
       use the planned names; each old part is deleted when its replacement lands.
 - [x] **2.1** Contracts in `agents/models.py` (`RunRequest`, `RunPlan`, `Issue`, `RunEvent`, …)
       and the run pool in `agents/state.py` (inputs / shared decisions / outputs, reducers).
-- [ ] **2.2** `llm/` gateway built from the research agent's `LLMClient` and its tests: roles
+- [x] **2.2** `llm/` gateway built from the research agent's `LLMClient` and its tests: roles
       from settings, one provider per run, 429 cooldown, timeouts, retries, structured
       output, usage + cached-token logging, privacy options. `tests/fakes.py` (`FakeLLM`).
 - [ ] **2.3** `llm/prompts.py`: prompt builder (most-shared first) with determinism tests.

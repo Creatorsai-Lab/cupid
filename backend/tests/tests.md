@@ -47,6 +47,7 @@ only tests the fake. Keep them apart.
 backend/tests/
   conftest.py              shared fixtures (see section 6)
   factories.py             make_user(), make_history(), make_subscription(), save()
+  fakes.py                 FakeLLM (stands in for an LLM session)
   tests.md                 this file
   core/                    settings, errors
   auth/                    sign-in, session token and cookie, current user
@@ -169,6 +170,7 @@ answers. Quality of real output belongs in `evals/`.
 | `sign_in(user)`        | requests act as `user` (skips the cookie check)                   |
 | `engine`               | session-wide engine; creates the schema once per run from the models |
 | `tests/factories.py`   | `make_user()`, `make_history(user)`, `make_subscription()` — defaults, override any field; `save(session, *objs)` adds and flushes |
+| `tests/fakes.py`       | `FakeLLM(*answers)`: same `structured()` signature as the real LLM session (a test checks this); answers are model instances, dicts or exceptions; `calls` records every prompt |
 
 Dependency overrides (`sign_in`, `db_client`) are reset after every test automatically.
 
@@ -213,8 +215,7 @@ Known expected failures (strict `xfail`):
 - 2 in `trends/` — authority scores drifted; trends is rebuilt later.
 
 Next:
-- `FakeLLM` in a shared `fakes.py` arrives with the LLM gateway (Phase 2), so it matches
-  the gateway's interface; the research agent's 311 tests come in Phase 3.
+- The research agent's 311 tests come in Phase 3 (`tests/agents/research_agents/`).
 - Security tests for fetched web content and internal-address fetching come with the
   research agent (Phase 3).
 - `profile/`, `insights/`, `earn/`, `admin/` get tests when their code is next touched.

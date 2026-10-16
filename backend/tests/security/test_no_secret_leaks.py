@@ -17,7 +17,7 @@ VALID_KEY = "k" * 40 + SECRET
 
 
 def settings_without_env_file(**values) -> Settings:
-    return Settings(_env_file=None, **values)
+    return Settings.model_validate(values)  # never reads backend/.env
 
 
 def test_settings_repr_hides_secret_values():
