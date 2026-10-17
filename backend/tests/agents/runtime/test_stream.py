@@ -1,7 +1,9 @@
-"""The live event stream (SSE): events in order with ids, a clean end after the
-final event, continuing after a reconnect, keep-alives while waiting, and a
-final event from the run record when the Redis stream has expired."""
+"""The live event stream (SSE): events in order with ids, an explicit end once
+the run is finished, continuing after a reconnect, keep-alives while waiting, a
+final event from the run record when the Redis stream has expired, and replays
+of resumed runs that don't stop at an earlier failure."""
 
+import asyncio
 from dataclasses import dataclass
 
 import pytest
@@ -21,11 +23,15 @@ class FakeRun:
 
 
 class FakeRuns:
-    def __init__(self, status: str = "running", error: str | None = None) -> None:
-        self.run = FakeRun(status, error)
+    """Returns the given statuses in turn, then keeps the last one."""
+
+    def __init__(self, *statuses: str, error: str | None = None) -> None:
+        self.statuses = list(statuses or ["running"])
+        self.error = error
 
     async def get(self, run_id):
-        return self.run
+        status = self.statuses.pop(0) if len(self.statuses) > 1 else self.statuses[0]
+        return FakeRun(status, self.error)
 
 
 @pytest.fixture
@@ -60,26 +66,30 @@ async def publish(events, type_: str, **data) -> str:
     )
 
 
-async def test_events_stream_in_order_and_end_after_the_final_event(events):
+async def test_events_stream_in_order_then_end_once_the_run_is_finished(events):
     first = await publish(events, "run.started")
     await publish(events, "step.started")
     last = await publish(events, "run.completed", pieces=1)
 
-    frames = await collect(events, FakeRuns())
+    frames = await collect(events, FakeRuns("completed"))
 
-    assert len(frames) == 3
+    assert len(frames) == 4
     assert frames[0].startswith(f"id: {first}\nevent: run.started\ndata: ")
-    assert frames[-1].startswith(f"id: {last}\nevent: run.completed\n")
-    assert frames[-1].endswith("\n\n")
+    assert frames[2].startswith(f"id: {last}\nevent: run.completed\n")
+    assert frames[2].endswith("\n\n")
+    assert frames[3] == stream.END  # the browser closes on this, not on run events
 
 
 async def test_reconnect_continues_after_the_last_seen_event(events):
     first = await publish(events, "run.started")
     await publish(events, "run.completed")
 
-    frames = await collect(events, FakeRuns(), after=stream.start_after(first))
+    frames = await collect(
+        events, FakeRuns("completed"), after=stream.start_after(first)
+    )
 
-    assert [f.split("\n")[1] for f in frames] == ["event: run.completed"]
+    assert [f.split("\n")[1] for f in frames[:-1]] == ["event: run.completed"]
+    assert frames[-1] == stream.END
 
 
 @pytest.mark.parametrize("header", [None, "", "garbage", "1-2-3", "$"])
@@ -96,9 +106,69 @@ async def test_waiting_sends_keep_alives(events, monkeypatch):
 async def test_expired_stream_of_a_finished_run_ends_with_its_recorded_outcome(events):
     frames = await collect(events, FakeRuns("failed", error="Something went wrong."))
 
-    assert len(frames) == 1
+    assert len(frames) == 2
     assert frames[0].startswith("event: run.failed\n")
     assert '"message":"Something went wrong."' in frames[0]
+    assert frames[1] == stream.END
+
+
+async def test_replay_of_a_resumed_run_continues_past_the_earlier_failure(
+    events, monkeypatch
+):
+    """A page reload after a resume replays the old failure; the stream must go on."""
+    monkeypatch.setattr(stream, "SSE_BLOCK_MS", 10)
+    await publish(events, "run.started")
+    await publish(events, "run.failed", message="quota")
+    await publish(events, "run.started", resumed=True)
+
+    frames = await collect(events, FakeRuns("running"), limit=4)
+
+    assert [f.split("\n")[1] for f in frames[:3]] == [
+        "event: run.started",
+        "event: run.failed",
+        "event: run.started",
+    ]
+    assert frames[3] == stream.KEEP_ALIVE
+
+
+async def test_failed_run_waiting_for_its_resume_keeps_the_stream_open(
+    events, monkeypatch
+):
+    monkeypatch.setattr(stream, "SSE_BLOCK_MS", 10)
+    await publish(events, "run.started")
+    await publish(events, "run.failed", message="quota")
+
+    frames = await collect(events, FakeRuns("queued"), limit=3)
+
+    assert frames[2] == stream.KEEP_ALIVE  # no end: the resume is coming
+
+
+async def test_final_event_is_sent_once_when_the_record_lags_behind(
+    events, monkeypatch
+):
+    """The runner publishes the final event first, then updates the record."""
+    monkeypatch.setattr(stream, "SSE_BLOCK_MS", 10)
+    await publish(events, "run.started")
+    await publish(events, "run.completed")
+
+    frames = await collect(events, FakeRuns("running", "completed"))
+
+    assert [f.split("\n")[1] for f in frames[:2]] == [
+        "event: run.started",
+        "event: run.completed",
+    ]
+    assert frames[2:] == [stream.END]
+
+
+async def test_after_a_final_event_the_record_is_rechecked_soon(events, monkeypatch):
+    """The browser shows Retry on `end`, so it must not wait a full keep-alive."""
+    monkeypatch.setattr(stream, "SSE_BLOCK_MS", 5_000)
+    monkeypatch.setattr(stream, "RECHECK_MS", 10)
+    await publish(events, "run.failed", message="boom")
+
+    frames = await asyncio.wait_for(collect(events, FakeRuns("running", "failed")), 2)
+
+    assert frames[-1] == stream.END
 
 
 async def test_stream_stops_when_the_client_disconnects(events):

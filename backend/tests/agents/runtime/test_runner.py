@@ -11,7 +11,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from app.agents.graph import PLACEHOLDER_STEPS, build_graph
 from app.agents.llm.errors import RateLimitedError
-from app.agents.models import Issue
+from app.agents.models import CreatorProfile, Issue
 from app.agents.runtime.checkpoint import checkpoint_serde
 from app.agents.runtime.events import EventStream
 from app.agents.runtime.runner import USER_ERROR, Runtime, execute
@@ -174,6 +174,16 @@ async def test_a_run_over_its_time_limit_fails_and_stays_resumable(redis):
     assert calls.count["research"] == 1  # not retried
     assert runs_of(rt).history[-1] == ("failed", USER_ERROR)
     assert (await rt.events.read(RUN_ID))[-1][1].type == "run.failed"
+
+
+async def test_the_creator_profile_is_a_run_input(redis):
+    rt = runtime(redis)
+    profile = CreatorProfile(name="Ada", content_niche="AI")
+
+    await execute(rt, RUN_ID, make_request(run_id=RUN_ID), profile)
+
+    state = await rt.graph.aget_state({"configurable": {"thread_id": RUN_ID}})
+    assert state.values["profile"] == profile
 
 
 async def test_resuming_an_unknown_run_fails_cleanly(redis):

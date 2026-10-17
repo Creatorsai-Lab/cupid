@@ -35,7 +35,7 @@ from saq.types import Context
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.agents.graph import PLACEHOLDER_STEPS, Steps, build_graph
-from app.agents.models import RunRequest
+from app.agents.models import CreatorProfile, RunRequest
 from app.agents.runtime.checkpoint import open_checkpointer
 from app.agents.runtime.events import EventStream
 from app.agents.runtime.queue import enqueue_run, make_queue
@@ -69,13 +69,17 @@ async def run_pipeline(
     *,
     run_id: str,
     request: dict[str, Any] | None = None,
+    profile: dict[str, Any] | None = None,
     auto_resumes: int = 0,
 ) -> str:
     """The SAQ job: run (or resume) the pipeline; schedule a resume after quota errors."""
     runtime: Runtime = ctx["runtime"]
     runs: RunStore = ctx["runs"]
     outcome = await execute(
-        runtime, run_id, RunRequest.model_validate(request) if request else None
+        runtime,
+        run_id,
+        RunRequest.model_validate(request) if request else None,
+        CreatorProfile.model_validate(profile) if profile else None,
     )
     if outcome.resume_later and auto_resumes < len(AUTO_RESUME_DELAYS_S):
         if await runs.claim_for_resume(run_id, None):

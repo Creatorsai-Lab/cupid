@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ComposerResults } from "@/components/ComposerResults";
 import { useAuthStore } from "@/lib/store";
 import {
   agentsApi,
@@ -14,10 +13,18 @@ import {
   type Platform,
   type ContentLength,
   type Tone,
-  type ResearchData,
-  type PageContent,
-  type SearchResult,
 } from "@/lib/api";
+import {
+  applyEvent,
+  initialRunView,
+  subscribeToRun,
+  STEPS,
+  type ContentPiece,
+  type RunView,
+  type Source,
+  type StepName,
+  type StepState,
+} from "@/lib/runEvents";
 import {
   Send,
   Loader2,
@@ -26,8 +33,10 @@ import {
   Upload,
   Link,
   ChevronDown,
-  UserRoundPen,
-  Heart,
+  Check,
+  X,
+  Circle,
+  RotateCcw,
 } from "lucide-react";
 
 // Welcome lines — one is picked at random and locked for 24h (see effect below).
@@ -39,20 +48,13 @@ const GREETINGS = [
   "How can I help you {name}?",
 ];
 
-// ── Agent status label ────────────────────────────────────────
+// ── Run progress ──────────────────────────────────────────────
 
-// Driven by cumulative milestones, not the transient current_agent / completed
-// list. Streaming emits a node's update only AFTER it finishes, and the 2s poll
-// can skip the brief composer-running window — so instead we advance the label
-// by what data has ARRIVED (queries → research → cards). Each milestone, once
-// seen, persists, so the label moves forward monotonically and "Crafting your
-// post…" reliably shows for the whole composition step.
-function agentStatusLabel(status: string, hasQueries: boolean, hasResearch: boolean): string {
-  if (status === "pending") return "Assembling plan...";
-  if (hasResearch) return "Crafting your post…"; // research done → composer running
-  if (hasQueries) return "Research agent is searching…"; // personalization done → research running
-  return "Personalization agent is thinking…";
-}
+const STEP_LABELS: Record<StepName, string> = {
+  supervisor: "Checking your request",
+  research: "Researching",
+  studio: "Writing drafts",
+};
 
 // MAIN PAGE
 
@@ -65,23 +67,20 @@ export default function CreatePage() {
   const [tone, setTone] = useState<Tone>("Formal");
   const [nickname, setNickname] = useState<string | null>(null);
   const [greetIdx, setGreetIdx] = useState(0);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [runId, setRunId] = useState<string | null>(null);
-  const [agentStatus, setAgentStatus] = useState<string>("");
-  const [currentAgent, setCurrentAgent] = useState<string | null>(null);
-  const [agentsCompleted, setAgentsCompleted] = useState<string[]>([]);
-  const [personalizationQueries, setPersonalizationQueries] = useState<string[]>([]);
-  const [researchData, setResearchData] = useState<ResearchData | null>(null);
-  const [composerOutput, setComposerOutput] = useState<any[]>([]);
-  const [composerEvidence, setComposerEvidence] = useState<any[]>([]);
-  const [composerSources, setComposerSources] = useState<any[]>([]);
+  const [view, setView] = useState<RunView>(initialRunView);
+  // Bumped to follow the same run again (after a resume).
+  const [subscription, setSubscription] = useState(0);
+  // The server ended the stream: the run is finished, nothing more will happen.
+  const [ended, setEnded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const firstName = user?.full_name?.split(" ")[0] || "Creator";
   const displayName = nickname || firstName;
 
-  // Smart UX State Flag: Detects if any asynchronous output exists below the workspace
-  const hasActiveResults = researchData || composerOutput.length > 0 || error;
+  const isGenerating = runId !== null && (view.status === "queued" || view.status === "running");
+  // Moves the workspace up once there is something to show below it.
+  const hasActiveResults = runId !== null || error !== null;
 
   // Fetch nickname once on mount
   useEffect(() => {
@@ -139,61 +138,23 @@ export default function CreatePage() {
     } catch {}
   }, []);
 
-  // Poll run status every 2 seconds until complete or failed
+  // Follow the run live. Events replay from the start, so a re-subscribe
+  // (after a resume) rebuilds the same view and then continues.
   useEffect(() => {
     if (!runId) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await agentsApi.getRunStatus(runId);
-        setAgentStatus(res.status);
-        setCurrentAgent(res.current_agent);
-        setAgentsCompleted(res.agents_completed);
-
-        // Milestones arrive mid-run via streaming. Capture them as soon
-        // as they appear so the status label advances reliably (instead of
-        // depending on catching a transient between 2s polls).
-        if (res.personalization_queries?.length > 0) {
-          setPersonalizationQueries(res.personalization_queries);
-        }
-        if (res.research_data) {
-          setResearchData(res.research_data);
-        }
-
-        if (res.status === "completed") {
-          setResearchData(res.research_data);
-          setIsGenerating(false);
-          setComposerOutput(res.composer_output || []);
-          setComposerEvidence(res.composer_evidence || []);
-          setComposerSources(res.composer_sources || []);
-          clearInterval(interval);
-        } else if (res.status === "failed") {
-          setError(res.error || "Agent execution failed");
-          setIsGenerating(false);
-          clearInterval(interval);
-        }
-      } catch (e: any) {
-        setError(e.message);
-        setIsGenerating(false);
-        clearInterval(interval);
-      }
-    }, 1200);
-
-    return () => clearInterval(interval);
-  }, [runId]);
+    return subscribeToRun(runId, {
+      onEvent: (event) => setView((v) => applyEvent(v, event)),
+      onEnd: () => setEnded(true),
+      onError: () => setError("Lost the connection to this run. Refresh the page to try again."),
+    });
+  }, [runId, subscription]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
-    setIsGenerating(true);
     setError(null);
-    setResearchData(null);
-    setPersonalizationQueries([]);
-    setComposerOutput([]);
-    setComposerEvidence([]);
-    setComposerSources([]);
-    setAgentsCompleted([]);
-    setCurrentAgent(null);
-    setAgentStatus("pending");
+    setView(initialRunView());
+    setEnded(false);
+    setRunId(null);
 
     try {
       const res = await agentsApi.generate({
@@ -204,14 +165,25 @@ export default function CreatePage() {
         tone,
       });
       setRunId(res.run_id);
-      setAgentStatus(res.status);
       // Sent successfully → the draft is no longer needed.
       try {
         localStorage.removeItem("cupid-prompt-draft");
       } catch {}
     } catch (e: any) {
       setError(e.message);
-      setIsGenerating(false);
+    }
+  };
+
+  const handleResume = async () => {
+    if (!runId) return;
+    setError(null);
+    try {
+      await agentsApi.resume(runId);
+      setView(initialRunView());
+      setEnded(false);
+      setSubscription((n) => n + 1);
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
@@ -303,41 +275,57 @@ export default function CreatePage() {
         </div>
       )}
 
-      {/* Personalization Queries */}
-      {personalizationQueries.length > 0 && (
-        <PersonalizationQueriesItems queries={personalizationQueries} />
-      )}
+      {/* Live progress */}
+      {runId &&
+        (view.status === "queued" || view.status === "running" || view.status === "failed") && (
+          <RunProgress steps={view.steps} queued={view.status === "queued"} />
+        )}
 
-      {/* Agent Progress Banner */}
-      {isGenerating && (
-        <div className="mb-5 flex items-center gap-3 rounded-lg bg-(--inline-bg) p-3 px-5 py-2">
-          <Heart
-            size={14}
-            className="animate-heartbeat flex-shrink-0 fill-[var(--color-primary)] text-[var(--color-primary)]"
-          />
-          <span className="text-sm font-bold text-(--color-input)">
-            {agentStatusLabel(agentStatus, personalizationQueries.length > 0, !!researchData)}
-          </span>
+      {/* Paused on the AI provider's limit: the worker continues it by itself */}
+      {view.status === "failed" && view.autoResume && !ended && (
+        <div className="mb-5 rounded-lg bg-(--color-inline-bg) p-4">
+          <p className="text-sm text-(--color-input)">
+            Paused: the AI provider&apos;s limit was reached. Cupid continues automatically in a
+            minute or two.
+          </p>
         </div>
       )}
 
-      {/* Research Results — shows as a milestone as soon as research
-                        finishes, then stays (even while the composer runs) */}
-      {researchData && <ResearchResults data={researchData} />}
-
-      {/* Composer Output Variants */}
-      {composerOutput.length > 0 && !isGenerating && (
-        <ComposerResults
-          variants={composerOutput}
-          evidence={composerEvidence}
-          sources={composerSources}
-          userName={user?.full_name || "Creator"}
-          platform={platform}
-          researchImages={(researchData?.fetched_pages ?? [])
-            .map((p) => p.image_url)
-            .filter((u): u is string => !!u)}
-        />
+      {/* Failed for good: the user can continue it from where it stopped */}
+      {view.status === "failed" && ended && (
+        <div className="mb-5 flex items-center justify-between gap-4 rounded-lg border-1 border-[var(--color-destructive)] bg-[color-mix(in_srgb,var(--color-destructive)_20%,transparent)] p-4">
+          <p className="text-sm text-(--color-destructive)">
+            {view.message || "Something went wrong while creating your content."}
+          </p>
+          <button
+            onClick={handleResume}
+            className="btn-primary flex shrink-0 items-center gap-1.5"
+            style={{ padding: "0.4rem 1rem" }}
+          >
+            <RotateCcw size={14} /> Retry
+          </button>
+        </div>
       )}
+
+      {/* Blocked: tell the user why */}
+      {view.status === "blocked" && view.message && (
+        <div className="mb-5 rounded-lg bg-(--color-inline-bg) p-4">
+          <p className="text-sm text-(--color-input)">{view.message}</p>
+        </div>
+      )}
+
+      {view.sources.length > 0 && <SourcesPanel sources={view.sources} />}
+
+      {view.status === "degraded" && (
+        <p className="mb-3 px-1 text-sm text-(--color-grayish-red)">
+          Some parts were limited
+          {view.issues.length > 0 ? `: ${view.issues.map((i) => i.message).join("; ")}` : "."}
+        </p>
+      )}
+
+      {view.pieces.map((piece) => (
+        <PieceCard key={piece.id} piece={piece} />
+      ))}
 
       <footer className="bg-red fixed right-0 bottom-0 left-0 py-3 text-center text-sm not-italic">
         Cupid can make mistakes, please review post before publishing
@@ -379,45 +367,37 @@ function SelectDropdown<T extends string>({
   );
 }
 
-// Generated Personalization Queries Span
-function PersonalizationQueriesItems({ queries }: { queries: string[] }) {
-  const [open, setOpen] = useState(false);
-
+// RUN PROGRESS
+function RunProgress({ steps, queued }: { steps: Record<StepName, StepState>; queued: boolean }) {
   return (
-    <div className="mb-2 overflow-hidden">
-      <button
-        onClick={() => setOpen((p) => !p)}
-        className="mb-1.5 flex w-full items-center gap-3 rounded-2xl bg-(--color-inline-bg) px-4 py-1.5"
-      >
-        <UserRoundPen size={14} className="flex-shrink-0 text-[var(--color-primary)]" />
-        <span className="flex-1 text-left text-sm font-medium tracking-wide text-(--color-input)">
-          Personalized queries generated ✓
-        </span>
-        <ChevronDown size={14} className="flex-shrink-0 text-[var(--color-primary)]" />
-      </button>
-      {open && (
-        <div className="space-y-2 space-x-2 px-5 py-3">
-          {queries.map((q, i) => (
-            <span
-              key={i}
-              className="inline-table rounded-2xl bg-(--color-inline-bg)/50 px-3 py-1 text-sm text-(--color-input)"
-            >
-              {q}
+    <div className="mb-5 rounded-lg bg-(--inline-bg) px-5 py-3">
+      {queued && <p className="mb-2 text-sm text-(--color-input)">Waiting for a free worker…</p>}
+      <ol className="flex flex-col gap-1.5 md:flex-row md:gap-6">
+        {STEPS.map((step) => (
+          <li key={step} className="flex items-center gap-2 text-sm text-(--color-input)">
+            <StepIcon state={steps[step]} />
+            <span className={steps[step] === "pending" ? "opacity-50" : "font-medium"}>
+              {STEP_LABELS[step]}
             </span>
-          ))}
-        </div>
-      )}
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
 
-// RESEARCH RESULTS
-function ResearchResults({ data }: { data: ResearchData }) {
-  const [open, setOpen] = useState(false);
-  const results = data.top_search_results ?? [];
-  const pages = data.fetched_pages ?? [];
-  const hasResults = results.length > 0 || pages.length > 0;
+function StepIcon({ state }: { state: StepState }) {
+  const className = "flex-shrink-0 text-[var(--color-primary)]";
+  if (state === "running") return <Loader2 size={14} className={`animate-spin ${className}`} />;
+  if (state === "done") return <Check size={14} className={className} />;
+  if (state === "failed")
+    return <X size={14} className="flex-shrink-0 text-(--color-destructive)" />;
+  return <Circle size={14} className={`opacity-40 ${className}`} />;
+}
 
+// RESEARCH SOURCES
+function SourcesPanel({ sources }: { sources: Source[] }) {
+  const [open, setOpen] = useState(false);
   return (
     <div className="mb-2 overflow-hidden">
       <button
@@ -426,70 +406,49 @@ function ResearchResults({ data }: { data: ResearchData }) {
       >
         <Compass size={14} className="flex-shrink-0 text-[var(--color-primary)]" />
         <span className="flex-1 text-left text-sm font-medium tracking-wide text-(--color-input)">
-          Research completed: {results.length} Sources ✓
+          Research: {sources.length} {sources.length === 1 ? "source" : "sources"}
         </span>
         <ChevronDown size={14} className="flex-shrink-0 text-[var(--color-primary)]" />
       </button>
-
-      {!hasResults && (
-        <div className="flex items-center gap-2 px-4">
-          <Compass size={14} className="flex-shrink-0 text-[var(--color-primary)]" />
-          <span className="flex-1 text-left text-sm font-medium tracking-wide text-(--color-grayish-red)">
-            No results found ✗ (Try a more specific topic)
-          </span>
-        </div>
-      )}
-
-      {open && pages.length > 0 && (
-        <div className="mx-5 overflow-hidden rounded-4xl border border-[var(--color-border)]">
-          <div className="divide-y divide-[var(--color-border)]">
-            {pages.map((p, i) => (
-              <div key={i} className="border-b border-[var(--color-border)] last:border-b-0">
-                <SourceCard page={p} />
-              </div>
-            ))}
-          </div>
-        </div>
+      {open && (
+        <ul className="mx-5 divide-y divide-[var(--color-border)] rounded-2xl border border-[var(--color-border)]">
+          {sources.map((s) => (
+            <li key={s.id} className="px-4 py-2 text-sm">
+              <a href={s.url} target="_blank" rel="noopener noreferrer" className="flex gap-3">
+                <span className="font-medium text-[var(--color-text)]">{s.title}</span>
+                <span className="truncate text-[var(--color-muted)]">{hostname(s.url)}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
 }
 
-// RESEARCH SOURCE CARD
+function hostname(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
 
-function SourceCard({ page }: { page: PageContent }) {
+// DRAFTED PIECE
+function PieceCard({ piece }: { piece: ContentPiece }) {
   return (
-    <div className="overflow-hidden bg-[color-mix(in_srgb,var(--color-inline-bg)_30%,transparent)]">
-      <a
-        href={page.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex w-full items-center gap-4 p-1"
-      >
-        {page.image_url && (
-          <div className="h-[30px] w-[60px] flex-shrink-0 overflow-hidden rounded-xs bg-[var(--color-inline-bg)]">
-            <img
-              src={page.image_url}
-              alt={page.title}
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                const parent = (e.target as HTMLImageElement).parentElement;
-                if (parent) parent.style.display = "none";
-              }}
-            />
-          </div>
-        )}
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <span className="flex-shrink-0 text-sm font-medium text-[var(--color-text)]">
-            {page.title.split(" ").length > 10
-              ? page.title.split(" ").slice(0, 10).join(" ") + "..."
-              : page.title}
-          </span>
-          <span className="flex-1 truncate text-sm font-[var(--font-body)] font-medium text-[var(--color-muted)]">
-            {page.domain}
-          </span>
-        </div>
-      </a>
-    </div>
+    <article className="mb-4 rounded-2xl border border-[var(--color-border)] p-5">
+      <p className="mb-2 text-xs tracking-wide text-[var(--color-muted)] uppercase">
+        {piece.deliverable.replace(/_/g, " ")} · variant {piece.variant}
+      </p>
+      {piece.blocks.map((block, i) => (
+        <p
+          key={i}
+          className="mb-2 text-base leading-relaxed whitespace-pre-wrap text-[var(--color-text)]"
+        >
+          {block.text}
+        </p>
+      ))}
+    </article>
   );
 }

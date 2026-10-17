@@ -556,8 +556,16 @@ Test-first, on placeholder steps. Split into small steps, each its own pull requ
       - Run time limit (15 min) fails the run, resumable; the queue's timeout is a backstop.
       - Graceful deploys (5 min grace), tested by stopping a worker mid-step.
       - API connects the queue at startup (fails fast with a hint on Windows' default loop).
-- [ ] **2.6** Router switches to the new runtime; create page switches from polling to live
-      events and shows step progress.
+- [x] **2.6** Router and create page on the new runtime. Drafts are placeholders until
+      Phases 3–5 (decided 2026-10-17; Cupid isn't launched, `production` is untouched).
+      - `POST /generate` records the run and queues its start job with a snapshot of the
+        creator's profile; `GET /runs/{id}` returns the run record. The old background
+        pipeline and its Redis run store are gone; `_TONE_TO_VOICE` moved to
+        `studio_agents/voices.py` (D2).
+      - The live stream ends with an explicit `end` once the run record is final, so
+        reloading a resumed run doesn't stop at its earlier failure.
+      - Create page follows live events: step progress, sources, drafts; Retry (resume)
+        once the run has ended; a note while an automatic resume is pending.
 
 Done when: a placeholder pipeline runs through the API; the crash test passes (break step 2,
 resume, step 1 does not re-run); prompt-prefix tests pass.
@@ -589,7 +597,8 @@ Done when: the 40-prompt test set passes with no extra LLM calls.
       `director.py`, `specialists/writer.py`, `reviewer.py`.
 - [ ] History stores `ContentPiece`s (migration from the old variants shape).
 - [ ] Test set of 20–30 real prompts with a judge rubric.
-- [ ] Delete the old composer, old `graph.py`, `state.py`, `run_store.py`; drop
+- [ ] Delete the old composer, old `graph.py`, `state.py`, and the frontend's
+      `ComposerResults.tsx` (unused since 2.6); drop
       `langchain-core`, `langchain-groq` if unused.
 - [ ] UI: render blocks; edits save back to history.
 - [ ] README: rewrite the architecture section for the new pipeline (it still describes the

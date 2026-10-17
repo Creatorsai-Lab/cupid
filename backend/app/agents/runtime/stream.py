@@ -2,7 +2,11 @@
 
 - Each frame carries its stream id, so the browser's automatic reconnect
   (Last-Event-ID) continues exactly where it stopped.
-- The stream ends after the run's final event.
+- The stream ends with an explicit `end` event, sent once the run record says
+  the run is finished. A final event alone doesn't end it: a resumed run's
+  stream holds an earlier run.failed, and a page reload replays it.
+  (EventSource reconnects whenever a response ends, so the browser closes on
+  `end`.)
 - While waiting it sends keep-alive comments, so proxies don't close it.
 - If the Redis stream has expired (runs older than 24 h), the final event is
   rebuilt from the run record instead of waiting forever.
@@ -17,6 +21,10 @@ from app.agents.runtime.events import EventStream
 
 SSE_BLOCK_MS = 15_000  # wait per read; also the keep-alive interval
 KEEP_ALIVE = ": keep-alive\n\n"
+END = "event: end\ndata: {}\n\n"
+# After a final event the record is usually updated within milliseconds (the
+# runner publishes first), so look again soon rather than after a keep-alive.
+RECHECK_MS = 1_000
 _STREAM_ID = re.compile(r"\d+-\d+")
 _FINAL_EVENT: dict[str, EventType] = {
     "completed": "run.completed",
@@ -51,19 +59,26 @@ async def event_stream(
     is_disconnected: Callable[[], Awaitable[bool]],
 ) -> AsyncIterator[str]:
     block_ms: int | None = None  # first read returns at once; then wait for news
+    ended_with_final = False  # the last event sent was a run's final event
     while not await is_disconnected():
         batch = await events.read(run_id, after, block_ms=block_ms)
         block_ms = SSE_BLOCK_MS
         for entry_id, event in batch:
             after = entry_id
+            ended_with_final = event.type in TERMINAL_EVENTS
             yield sse(event, entry_id)
-            if event.type in TERMINAL_EVENTS:
-                return
-        if batch:
+        if batch and not ended_with_final:
             continue
         run = await runs.get(run_id)
         if run is not None and run.status in _FINAL_EVENT:
-            data = {"message": run.error} if run.error else {}
-            yield sse(RunEvent(run_id=run_id, type=_FINAL_EVENT[run.status], data=data))
+            if not ended_with_final:  # e.g. the Redis stream expired
+                data = {"message": run.error} if run.error else {}
+                yield sse(
+                    RunEvent(run_id=run_id, type=_FINAL_EVENT[run.status], data=data)
+                )
+            yield END
             return
-        yield KEEP_ALIVE
+        if batch:  # ended with a final event, but the record isn't final yet
+            block_ms = RECHECK_MS
+        else:
+            yield KEEP_ALIVE

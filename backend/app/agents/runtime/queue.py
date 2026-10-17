@@ -13,7 +13,7 @@ import time
 from saq import Job, Queue
 from saq.queue.postgres import PostgresQueue
 
-from app.agents.models import RunRequest
+from app.agents.models import CreatorProfile, RunRequest
 from app.agents.runtime.runner import RUN_TIMEOUT_S
 from app.config import settings
 from app.core.db import psycopg_url
@@ -42,6 +42,7 @@ async def enqueue_run(
     run_id: str,
     request: RunRequest | None = None,
     *,
+    profile: CreatorProfile | None = None,
     attempt: str = "start",
     delay_s: float = 0,
     auto_resumes: int = 0,
@@ -52,6 +53,7 @@ async def enqueue_run(
         kwargs={
             "run_id": run_id,
             "request": request.model_dump(mode="json") if request else None,
+            "profile": profile.model_dump(mode="json") if profile else None,
             "auto_resumes": auto_resumes,
         },
         key=f"{run_id}:{attempt}",

@@ -11,6 +11,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from app.agents.graph import PLACEHOLDER_STEPS, build_graph
 from app.agents.llm.errors import RateLimitedError
+from app.agents.models import CreatorProfile
 from app.agents.runtime import queue as run_queue
 from app.agents.runtime import worker
 from app.agents.runtime.checkpoint import checkpoint_serde
@@ -67,8 +68,9 @@ def throttled_research():
 async def test_enqueue_builds_one_keyed_attempt():
     queue = FakeQueue()
     request = make_request(run_id=RUN_ID)
+    profile = CreatorProfile(name="Ada", content_niche="AI")
 
-    assert await run_queue.enqueue_run(queue, RUN_ID, request)  # type: ignore[arg-type]
+    assert await run_queue.enqueue_run(queue, RUN_ID, request, profile=profile)  # type: ignore[arg-type]
 
     job = queue.jobs[0]
     assert job.function == "run_pipeline"
@@ -76,6 +78,7 @@ async def test_enqueue_builds_one_keyed_attempt():
     assert job.kwargs == {
         "run_id": RUN_ID,
         "request": request.model_dump(mode="json"),
+        "profile": profile.model_dump(mode="json"),  # snapshot taken at the start
         "auto_resumes": 0,
     }
     assert (job.timeout, job.retries, job.scheduled) == (
@@ -109,7 +112,12 @@ async def test_quota_failure_schedules_an_automatic_resume(redis):
     assert status == "failed"
     job = queue.jobs[0]
     assert job.key == f"{RUN_ID}:auto-1"
-    assert job.kwargs == {"run_id": RUN_ID, "request": None, "auto_resumes": 1}
+    assert job.kwargs == {  # a resume continues from the checkpoint: no inputs
+        "run_id": RUN_ID,
+        "request": None,
+        "profile": None,
+        "auto_resumes": 1,
+    }
     assert job.scheduled > 0  # delayed until the quota recovers
 
 

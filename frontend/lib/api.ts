@@ -8,7 +8,9 @@
 
 // Why NEXT_PUBLIC_? Next.js only exposes env variables to the browser if they start with NEXT_PUBLIC_. Without this prefix, the variable only works on the server.
 // If the env variable is undefined/empty, use "http://localhost:8000" as fallback
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import type { RunStatus } from "@/lib/runEvents";
+
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 //  interface is a blueprint (template), it describes the SHAPE of an object but doesn't create one
 // any object claiming to be this type MUST have these fields.
@@ -41,7 +43,8 @@ class ApiError extends Error {
 function parseErrorMessage(json: any): string {
   if (typeof json.detail === "string") return json.detail;
   if (Array.isArray(json.detail)) return json.detail.map((e: { msg: string }) => e.msg).join(", ");
-  if (json.error) return json.error;
+  if (typeof json.error === "string") return json.error;
+  if (typeof json.error?.message === "string") return json.error.message; // AppError shape
   return "Something went wrong";
 }
 
@@ -170,50 +173,17 @@ interface GenerateRequest {
 
 interface GenerateResponse {
   run_id: string;
-  status: string;
+  status: RunStatus;
   message: string;
 }
 
-interface SearchResult {
-  query: string;
-  title: string;
-  url: string;
-  snippet: string;
-  domain: string;
-  score: number;
-}
-
-interface PageContent {
-  url: string;
-  title: string;
-  domain: string;
-  text_content: string;
-  text_length: number;
-  image_url: string | null;
-}
-
-interface ResearchData {
-  generated_keywords: string[];
-  queries_used: string[];
-  top_search_results: SearchResult[];
-  fetched_pages: PageContent[];
-  research_summary: string;
-}
-
-interface RunStatusResponse {
+/** A run's record; progress and results come from its live events (lib/runEvents.ts). */
+interface RunSnapshot {
   run_id: string;
-  status: "pending" | "running" | "completed" | "failed";
-  created_at: string;
-  current_agent: string | null;
-  agents_completed: string[];
+  status: RunStatus;
   error: string | null;
-  personalization_queries: string[];
-  research_data: ResearchData | null;
-  trend_data: any | null;
-  composer_output: any | null;
-  composer_evidence: any | null;
-  composer_sources: any | null;
-  history_id: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export const agentsApi = {
@@ -223,8 +193,12 @@ export const agentsApi = {
       body: JSON.stringify(body),
     }),
 
-  getRunStatus: (runId: string): Promise<RunStatusResponse> =>
-    requestRaw<RunStatusResponse>(`/api/v1/agents/runs/${runId}`),
+  getRun: (runId: string): Promise<RunSnapshot> =>
+    requestRaw<RunSnapshot>(`/api/v1/agents/runs/${runId}`),
+
+  /** Continue a failed run from where it stopped. */
+  resume: (runId: string): Promise<{ run_id: string; status: RunStatus }> =>
+    requestRaw(`/api/v1/agents/runs/${runId}/resume`, { method: "POST" }),
 };
 
 // ── Trends API ───────────────────────────────────────────────
@@ -574,14 +548,6 @@ export type {
   HistoryListResponse,
 };
 export type { TrendArticle, TrendsResponse };
-export type {
-  ProfileData,
-  GenerateRequest,
-  GenerateResponse,
-  RunStatusResponse,
-  ResearchData,
-  SearchResult,
-  PageContent,
-};
+export type { ProfileData, GenerateRequest, GenerateResponse, RunSnapshot };
 export { ApiError };
 export type { UserData, ApiResponse };

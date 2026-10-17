@@ -21,7 +21,13 @@ from typing import Any, Literal, Protocol, cast
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
 
-from app.agents.models import EventType, RunEvent, RunRequest, RunStatus
+from app.agents.models import (
+    CreatorProfile,
+    EventType,
+    RunEvent,
+    RunRequest,
+    RunStatus,
+)
 from app.agents.runtime.events import EventStream
 from app.agents.runtime.retry import resume_later
 from app.agents.state import RunState
@@ -64,17 +70,28 @@ class Runtime:
 
 
 async def execute(
-    rt: Runtime, run_id: str, request: RunRequest | None = None
+    rt: Runtime,
+    run_id: str,
+    request: RunRequest | None = None,
+    profile: CreatorProfile | None = None,
 ) -> RunOutcome:
+    """`request` and `profile` (the creator's profile when the run was created)
+    start a run; without them it resumes. Both are inputs saved in the first
+    checkpoint, so a resume never needs them again."""
     async with rt.runs.exclusive(run_id) as mine:
         run = await rt.runs.get(run_id) if mine else None
         if run is None or run.status not in RUNNABLE:
             logger.warning("run %s: duplicate job skipped", run_id)
             return RunOutcome("skipped")
-        return await _execute(rt, run_id, request)
+        return await _execute(rt, run_id, request, profile)
 
 
-async def _execute(rt: Runtime, run_id: str, request: RunRequest | None) -> RunOutcome:
+async def _execute(
+    rt: Runtime,
+    run_id: str,
+    request: RunRequest | None,
+    profile: CreatorProfile | None,
+) -> RunOutcome:
     config: RunnableConfig = {"configurable": {"thread_id": run_id}}
 
     async def publish(type_: EventType, step: str | None = None, **data: Any) -> None:
@@ -93,7 +110,9 @@ async def _execute(rt: Runtime, run_id: str, request: RunRequest | None) -> RunO
 
     await rt.runs.set_status(run_id, "running")
     await publish("run.started", resumed=request is None)
-    payload = {"request": request} if request is not None else None
+    payload: dict[str, Any] | None = None  # None: continue from the last checkpoint
+    if request is not None:
+        payload = {"request": request} | ({"profile": profile} if profile else {})
 
     try:
         async with asyncio.timeout(rt.timeout_s):  # TimeoutError: failed, resumable
