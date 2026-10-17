@@ -112,7 +112,8 @@ If you add a deliberately **public** route, add it to `PUBLIC_ROUTES` in
    environment variables.
 3. **Fakes record what they received,** so tests can check the prompt or request that
    was sent, not only the result (e.g. `fake_llm.calls[-1]["user"]`).
-4. **No real network.** External HTTP goes through `httpx`; fake it with `respx`
+4. **No real network.** Redis: use `fakeredis.FakeAsyncRedis(decode_responses=True)`.
+   External HTTP goes through `httpx`; fake it with `respx`
    (`respx.mock` + a route per URL). A test that reaches the internet must be marked
    `integration`.
 5. **Time is an input.** Pass `now=` / a clock function instead of patching the clock
@@ -165,12 +166,14 @@ answers. Quality of real output belongs in `evals/`.
 | Name                   | What it gives                                                     |
 | ---------------------- | ----------------------------------------------------------------- |
 | `client`               | `httpx.AsyncClient` talking to the app in-process (no DB)         |
-| `db_session`           | Postgres session inside a transaction rolled back after the test; the code's own `commit()` calls become savepoints. Using it marks the test `db`. |
+| `db_session`           | Postgres session inside a transaction rolled back after the test; the code's own `commit()` calls become savepoints. Using it (or `engine`) marks the test `db`. |
 | `db_client`            | `client` whose requests use `db_session`                          |
 | `sign_in(user)`        | requests act as `user` (skips the cookie check)                   |
 | `engine`               | session-wide engine; creates the schema once per run from the models |
 | `tests/factories.py`   | `make_user()`, `make_history(user)`, `make_subscription()` — defaults, override any field; `save(session, *objs)` adds and flushes |
 | `tests/fakes.py`       | `FakeLLM(*answers)`: same `structured()` signature as the real LLM session (a test checks this); answers are model instances, dicts or exceptions; `calls` records every prompt |
+| `event_loop_policy`    | session-wide; on Windows selects the selector event loop, which psycopg (the Postgres checkpointer) needs |
+| `test_database_url`    | the Postgres test database URL, for code that opens its own connections (e.g. the checkpointer) |
 
 Dependency overrides (`sign_in`, `db_client`) are reset after every test automatically.
 

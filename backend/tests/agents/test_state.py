@@ -5,10 +5,10 @@ import operator
 from typing import get_type_hints
 
 import pytest
-from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
 from app.agents.models import Issue
 from app.agents.research_agents.models import ResearchPack, Source
+from app.agents.runtime.checkpoint import checkpoint_serde
 from app.agents.state import OWNERS, RunState, check_update
 from app.agents.studio_agents.models import ContentPiece, TextBlock
 from app.agents.supervisor_agents.models import RunPlan
@@ -71,6 +71,6 @@ def test_state_survives_the_checkpoint_serializer():
         "pieces": [piece(1), piece(2)],
         "issues": [Issue(step="research", severity="warning", message="One source")],
     }
-    serde = JsonPlusSerializer()
+    serde = checkpoint_serde()  # the strict serializer the runtime uses
     restored = serde.loads_typed(serde.dumps_typed(state))
     assert restored == state

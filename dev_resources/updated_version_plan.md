@@ -527,8 +527,14 @@ Test-first, on placeholder steps. Split into small steps, each its own pull requ
 - [x] **2.4** Graph with placeholder supervisor, research and studio steps; ownership test
       (each step writes only its fields); full run and **crash-and-resume** test on
       `InMemorySaver`.
-- [ ] **2.5** `runtime/`: Postgres checkpointer, `execute()` (start = resume), events on a Redis
-      stream, SSE endpoint, `resume` endpoint, SAQ worker.
+- [x] **2.5a** Runtime core: our own step retry rule (`runtime/retry.py`: transient errors
+      only; quota errors resumed later; bugs never retried), strict checkpoint
+      serialization (allowlist derived from `RunState`), Postgres checkpointer (crash and
+      resume verified on real Postgres), Alembic guard for the checkpointer's tables,
+      `agent_runs` table + migration, run events on Redis streams, `execute()` runner.
+- [ ] **2.5b** SAQ worker (selects the Windows-compatible event loop; resumes quota-failed
+      runs automatically after cooldown; LLM cooldowns shared via Redis), SSE events
+      endpoint (`Last-Event-ID`), `resume` endpoint.
 - [ ] **2.6** Router switches to the new runtime; create page switches from polling to live
       events and shows step progress.
 

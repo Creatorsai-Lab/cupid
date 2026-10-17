@@ -11,7 +11,9 @@ data and code under test may still call `commit()`.
 
 from __future__ import annotations
 
+import asyncio
 import os
+import sys
 from collections.abc import AsyncGenerator, Callable
 
 import pytest
@@ -31,11 +33,22 @@ TEST_DATABASE_URL = os.environ.get(
 )
 
 
+DB_FIXTURES = {"engine", "db_session"}
+
+
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     """Mark every test that uses the database as `db`, so it can't be forgotten."""
     for item in items:
-        if "db_session" in getattr(item, "fixturenames", ()):
+        if DB_FIXTURES & set(getattr(item, "fixturenames", ())):
             item.add_marker(pytest.mark.db)
+
+
+@pytest.fixture(scope="session")
+def event_loop_policy() -> asyncio.AbstractEventLoopPolicy:
+    """psycopg (Postgres checkpoints) can't use Windows' default Proactor loop."""
+    if sys.platform == "win32":
+        return asyncio.WindowsSelectorEventLoopPolicy()
+    return asyncio.DefaultEventLoopPolicy()
 
 
 @pytest.fixture(autouse=True)
@@ -46,6 +59,11 @@ def _reset_dependency_overrides():
 
 
 # ── Database ───────────────────────────────────────────────────
+
+
+@pytest.fixture(scope="session")
+def test_database_url() -> str:
+    return TEST_DATABASE_URL
 
 
 @pytest.fixture(scope="session")

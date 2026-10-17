@@ -18,8 +18,8 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import RetryPolicy
 
-from app.agents.llm.errors import RetryableProviderError
 from app.agents.research_agents.agent import research
+from app.agents.runtime.retry import STEP_RETRY
 from app.agents.state import RunState, check_update
 from app.agents.studio_agents.agent import create
 from app.agents.supervisor_agents.agent import supervise
@@ -39,12 +39,6 @@ class Steps:
 
 
 PLACEHOLDER_STEPS = Steps(supervisor=supervise, research=research, studio=create)
-
-# Retry a step once on a transient provider failure. LangGraph's default rule
-# never retries RuntimeError subclasses, which our provider errors are.
-STEP_RETRY = RetryPolicy(
-    max_attempts=2, retry_on=lambda error: isinstance(error, RetryableProviderError)
-)
 
 
 def build_graph(

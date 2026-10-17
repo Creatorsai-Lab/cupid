@@ -5,9 +5,11 @@ import pytest
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import InMemorySaver
 
-from app.agents.graph import PLACEHOLDER_STEPS, STEP_RETRY, Steps, build_graph
+from app.agents.graph import PLACEHOLDER_STEPS, Steps, build_graph
 from app.agents.llm.errors import RetryableProviderError
 from app.agents.research_agents.models import ResearchPack
+from app.agents.runtime.checkpoint import checkpoint_serde
+from app.agents.runtime.retry import STEP_RETRY
 from app.agents.supervisor_agents.models import RunPlan
 from tests.agents.test_contracts import make_request
 
@@ -119,7 +121,10 @@ async def test_crashed_run_resumes_from_the_failed_step():
     """The core runtime promise: finished steps never run twice."""
     calls = Calls()
     crashing = calls.track("research", PLACEHOLDER_STEPS.research, fail_times=1)
-    graph = build_graph(steps(calls, research=crashing), checkpointer=InMemorySaver())
+    graph = build_graph(
+        steps(calls, research=crashing),
+        checkpointer=InMemorySaver(serde=checkpoint_serde()),
+    )
     config: RunnableConfig = {"configurable": {"thread_id": "run-1"}}
 
     with pytest.raises(RuntimeError, match="research crashed"):

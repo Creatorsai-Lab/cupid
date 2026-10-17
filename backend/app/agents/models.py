@@ -89,8 +89,14 @@ EventType = Literal[
     "piece.ready",
     "run.degraded",
     "run.failed",
+    "run.blocked",
     "run.completed",
 ]
+
+# A run's last event: the live stream ends after one of these.
+TERMINAL_EVENTS: frozenset[str] = frozenset(
+    {"run.completed", "run.degraded", "run.failed", "run.blocked"}
+)
 
 
 class RunEvent(ContractModel):
