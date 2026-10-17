@@ -55,3 +55,28 @@ class RunStore:
             return await session.scalar(
                 select(AgentRun).where(AgentRun.id == key, AgentRun.user_id == user_id)
             )
+
+    async def claim_for_resume(self, run_id: str, user_id: uuid.UUID | None) -> bool:
+        """Atomically move a failed run back to queued; True for exactly one caller.
+
+        One UPDATE ... WHERE status = 'failed': if two resume requests race, the
+        database lets only one of them match, so a run is never queued twice.
+        user_id=None is for the worker's own automatic resume.
+        """
+        try:
+            key = uuid.UUID(run_id)
+        except ValueError:
+            return False
+        conditions = [AgentRun.id == key, AgentRun.status == "failed"]
+        if user_id is not None:
+            conditions.append(AgentRun.user_id == user_id)
+        async with self._sessions() as session:
+            result = await session.execute(
+                update(AgentRun)
+                .where(*conditions)
+                .values(status="queued", error=None)
+                .returning(AgentRun.id)
+            )
+            claimed = result.scalar_one_or_none() is not None
+            await session.commit()
+        return claimed

@@ -17,14 +17,23 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi.responses import StreamingResponse
+from saq import Queue
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.deps import get_event_stream, get_run_queue, get_run_store
 from app.agents.legacy.run_store import load_run, save_run
+from app.agents.runtime.events import EventStream
+from app.agents.runtime.queue import enqueue_run
+from app.agents.runtime.runner import USER_ERROR
+from app.agents.runtime.runs import RunStore
+from app.agents.runtime.stream import event_stream, start_after
 from app.agents.schemas import GenerateRequest, GenerateResponse, RunStatusResponse
-from app.auth.deps import get_current_user
+from app.auth.deps import CurrentUser, get_current_user
 from app.auth.models import User
 from app.core.db import get_db
+from app.core.errors import ConflictError, NotFoundError, ServiceUnavailableError
 from app.core.logging_config import get_agent_logger
 from app.profile.models import UserPersonalization
 
@@ -282,3 +291,51 @@ async def get_run_status(
         composer_sources=state.get("composer_sources", []),
         history_id=state.get("history_id"),
     )
+
+
+# ── Runs on the new runtime (Phase 2.5b) ──────────────────────
+# Live progress and resume. /generate switches to the new runtime in step 2.6;
+# until then these serve runs created by the new pipeline only.
+
+
+@router.get("/runs/{run_id}/events")
+async def stream_run_events(
+    run_id: str,
+    request: Request,
+    user: CurrentUser,
+    runs: RunStore = Depends(get_run_store),
+    events: EventStream = Depends(get_event_stream),
+    last_event_id: str | None = Header(default=None),
+) -> StreamingResponse:
+    """Live run progress as Server-Sent Events; reconnects continue via Last-Event-ID."""
+    if await runs.get_for_user(run_id, user.id) is None:
+        raise NotFoundError("Run not found")
+    return StreamingResponse(
+        event_stream(
+            run_id,
+            events=events,
+            runs=runs,
+            after=start_after(last_event_id),
+            is_disconnected=request.is_disconnected,
+        ),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.post("/runs/{run_id}/resume", status_code=202)
+async def resume_run(
+    run_id: str,
+    user: CurrentUser,
+    runs: RunStore = Depends(get_run_store),
+    queue: Queue = Depends(get_run_queue),
+) -> dict[str, str]:
+    """Continue a failed run from its last checkpoint."""
+    if await runs.get_for_user(run_id, user.id) is None:
+        raise NotFoundError("Run not found")
+    if not await runs.claim_for_resume(run_id, user.id):
+        raise ConflictError("Only a failed run can be resumed.")
+    if not await enqueue_run(queue, run_id, attempt=f"manual-{uuid.uuid4().hex[:12]}"):
+        await runs.set_status(run_id, "failed", error=USER_ERROR)
+        raise ServiceUnavailableError("The run could not be queued. Please try again.")
+    return {"run_id": run_id, "status": "queued"}

@@ -31,9 +31,11 @@ TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL",
     "postgresql+asyncpg://cupid:cupid@localhost:5432/cupid_test_db",
 )
+TEST_REDIS_URL = os.environ.get("TEST_REDIS_URL", "redis://localhost:6380/15")
 
 
-DB_FIXTURES = {"engine", "db_session"}
+# Tests using any of these need the docker compose services (Postgres, Redis).
+DB_FIXTURES = {"engine", "db_session", "real_redis_url"}
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
@@ -113,6 +115,29 @@ async def db_session(engine: AsyncEngine) -> AsyncGenerator[AsyncSession]:
         finally:
             await session.close()
             await transaction.rollback()
+
+
+@pytest.fixture(scope="session")
+async def real_redis_url() -> str:
+    """A real Redis (docker compose; db 15 to stay apart from dev data).
+
+    Skipped locally with a hint if Redis isn't running; fails in CI.
+    """
+    from redis.asyncio import Redis
+    from redis.exceptions import ConnectionError as RedisConnectionError
+
+    client = Redis.from_url(TEST_REDIS_URL)
+    try:
+        await client.ping()
+    except (OSError, RedisConnectionError) as exc:  # redis has its own ConnectionError
+        if os.environ.get("CI"):
+            raise
+        pytest.skip(
+            f"Redis unreachable ({type(exc).__name__}); run: docker compose up -d"
+        )
+    finally:
+        await client.aclose()
+    return TEST_REDIS_URL
 
 
 # ── HTTP ───────────────────────────────────────────────────────

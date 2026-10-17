@@ -6,6 +6,7 @@ import json
 import httpx
 import pytest
 import respx
+from fakeredis import FakeAsyncRedis
 from pydantic import BaseModel
 
 from app.agents.llm.errors import (
@@ -13,7 +14,7 @@ from app.agents.llm.errors import (
     PermanentProviderError,
     StructuredOutputError,
 )
-from app.agents.llm.gateway import LLMGateway
+from app.agents.llm.gateway import LLMGateway, RedisCooldowns
 from app.agents.llm.roles import ROLES, ProviderSpec, RoleSpec, configured_providers
 from app.config import Settings
 
@@ -326,3 +327,33 @@ async def test_unreported_caching_is_unknown_not_zero(gateway):
 
     assert session.usage[0].cached_tokens is None
     assert session.totals()["cached_tokens"] is None
+
+
+# ── Cooldowns shared across worker processes ───────────────────
+
+
+@respx.mock
+async def test_redis_cooldown_is_shared_by_every_worker():
+    redis = FakeAsyncRedis(decode_responses=True)
+    roles = {"writer": RoleSpec(("primary", "backup"))}
+    providers = {
+        "primary": provider("primary", PRIMARY),
+        "backup": provider("backup", BACKUP),
+    }
+    worker_a = LLMGateway(
+        providers, roles, cooldowns=RedisCooldowns(redis), sleep=no_sleep
+    )
+    worker_b = LLMGateway(
+        providers, roles, cooldowns=RedisCooldowns(redis), sleep=no_sleep
+    )
+    primary = respx.post(PRIMARY).mock(
+        return_value=httpx.Response(429, headers={"Retry-After": "20"})
+    )
+    respx.post(BACKUP).mock(return_value=OK)
+
+    await ask(worker_a.session("run-1"))  # A hits the rate limit
+    await ask(worker_b.session("run-2"))  # B skips the cooling provider
+
+    assert primary.call_count == 1
+    assert 0 < await redis.pttl("llm:cooldown:primary") <= 20_000
+    await redis.aclose()

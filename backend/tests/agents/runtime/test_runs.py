@@ -69,3 +69,28 @@ async def test_database_refuses_unknown_statuses(db_session, store):
     with pytest.raises(IntegrityError, match="ck_agent_runs_status"):
         run.status = "exploded"
         await db_session.flush()
+
+
+async def test_only_one_resume_claim_wins(db_session, store):
+    owner, request = await owned_run(db_session, store)
+    await store.set_status(request.run_id, "failed", error="boom")
+
+    first = await store.claim_for_resume(request.run_id, owner.id)
+    second = await store.claim_for_resume(request.run_id, owner.id)
+
+    assert (first, second) == (True, False)
+    run = await store.get(request.run_id)
+    await db_session.refresh(run)
+    assert (run.status, run.error) == ("queued", None)
+
+
+async def test_resume_claims_need_a_failed_run_owned_by_the_caller(db_session, store):
+    owner, request = await owned_run(db_session, store)
+    stranger = make_user()
+    await save(db_session, stranger)
+
+    assert await store.claim_for_resume(request.run_id, owner.id) is False  # queued
+    await store.set_status(request.run_id, "failed")
+    assert await store.claim_for_resume(request.run_id, stranger.id) is False
+    assert await store.claim_for_resume("not-a-uuid", owner.id) is False
+    assert await store.claim_for_resume(request.run_id, None) is True  # worker

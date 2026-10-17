@@ -532,9 +532,18 @@ Test-first, on placeholder steps. Split into small steps, each its own pull requ
       serialization (allowlist derived from `RunState`), Postgres checkpointer (crash and
       resume verified on real Postgres), Alembic guard for the checkpointer's tables,
       `agent_runs` table + migration, run events on Redis streams, `execute()` runner.
-- [ ] **2.5b** SAQ worker (selects the Windows-compatible event loop; resumes quota-failed
-      runs automatically after cooldown; LLM cooldowns shared via Redis), SSE events
-      endpoint (`Last-Event-ID`), `resume` endpoint.
+- [x] **2.5b** Worker and endpoints, verified against Docker (Postgres + Redis):
+      - `runtime/worker.py` (SAQ; Windows event loop; automatic resume after quota
+        errors, bounded, keyed per attempt), `runtime/queue.py` (no import side effects).
+      - Idempotent start: a re-delivered start job resumes instead of restarting.
+      - `RunStore.claim_for_resume`: one atomic UPDATE, so a run is never queued twice.
+      - Gateway cooldowns pluggable; `RedisCooldowns` shares them across workers.
+      - `GET /runs/{id}/events` (SSE, owner only, Last-Event-ID, keep-alives, final event
+        from the run record if the stream expired) and `POST /runs/{id}/resume`
+        (202 / 404 / 409 / 503).
+      - CI gets a Redis service; end-to-end test with a real SAQ worker: quota failure →
+        automatic resume → done (waits for the run's outcome, not a timer).
+      - Run the worker: `uv run saq app.agents.runtime.worker.worker_settings`.
 - [ ] **2.6** Router switches to the new runtime; create page switches from polling to live
       events and shows step progress.
 

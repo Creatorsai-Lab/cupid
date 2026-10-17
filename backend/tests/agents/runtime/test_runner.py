@@ -55,7 +55,7 @@ async def event_types(rt: Runtime) -> list[str]:
 async def test_completed_run_reports_every_step_in_order(redis):
     rt = runtime(redis)
 
-    status = await execute(rt, RUN_ID, make_request(run_id=RUN_ID))
+    status = (await execute(rt, RUN_ID, make_request(run_id=RUN_ID))).status
 
     assert status == "completed"
     assert await event_types(rt) == [
@@ -86,7 +86,9 @@ async def test_piece_events_carry_the_content(redis):
 async def test_blocked_run_tells_the_user_why(redis):
     rt = runtime(redis)
 
-    status = await execute(rt, RUN_ID, make_request(run_id=RUN_ID, prompt="  "))
+    status = (
+        await execute(rt, RUN_ID, make_request(run_id=RUN_ID, prompt="  "))
+    ).status
 
     assert status == "blocked"
     last = (await rt.events.read(RUN_ID))[-1][1]
@@ -105,7 +107,7 @@ async def test_issues_make_a_degraded_run(redis):
 
     rt = runtime(redis, research=research_with_issue)
 
-    status = await execute(rt, RUN_ID, make_request(run_id=RUN_ID))
+    status = (await execute(rt, RUN_ID, make_request(run_id=RUN_ID))).status
 
     assert status == "degraded"
     last = (await rt.events.read(RUN_ID))[-1][1]
@@ -121,7 +123,7 @@ async def test_failure_shows_a_safe_message_and_resume_finishes_the_run(redis):
     crashing = calls.track("research", PLACEHOLDER_STEPS.research, fail_times=1)
     rt = runtime(redis, calls, research=crashing)
 
-    assert await execute(rt, RUN_ID, make_request(run_id=RUN_ID)) == "failed"
+    assert (await execute(rt, RUN_ID, make_request(run_id=RUN_ID))).status == "failed"
     failed = (await rt.events.read(RUN_ID))[-1][1]
     assert failed.type == "run.failed"
     assert failed.data == {"message": USER_ERROR, "resume_later": False}
@@ -129,7 +131,7 @@ async def test_failure_shows_a_safe_message_and_resume_finishes_the_run(redis):
         runs_of(rt).history
     )  # internal details stay in the logs
 
-    assert await execute(rt, RUN_ID) == "completed"  # resume: no request
+    assert (await execute(rt, RUN_ID)).status == "completed"  # resume: no request
     assert calls.count == {"supervisor": 1, "research": 2, "studio": 1}
     assert (await rt.events.read(RUN_ID))[-1][1].type == "run.completed"
 
@@ -141,12 +143,27 @@ async def test_quota_failures_are_flagged_for_automatic_resume(redis):
     )
     rt = runtime(redis, calls, research=throttled)
 
-    assert await execute(rt, RUN_ID, make_request(run_id=RUN_ID)) == "failed"
+    outcome = await execute(rt, RUN_ID, make_request(run_id=RUN_ID))
+    assert (outcome.status, outcome.resume_later) == ("failed", True)
     assert (await rt.events.read(RUN_ID))[-1][1].data["resume_later"] is True
 
 
 async def test_resuming_an_unknown_run_fails_cleanly(redis):
     rt = runtime(redis)
 
-    assert await execute(rt, RUN_ID) == "failed"
+    assert (await execute(rt, RUN_ID)).status == "failed"
     assert (await rt.events.read(RUN_ID))[-1][1].type == "run.failed"
+
+
+async def test_starting_a_run_twice_resumes_instead_of_restarting(redis):
+    """A re-delivered start job (worker crash) must not repeat finished steps."""
+    calls = Calls()
+    crashing = calls.track("research", PLACEHOLDER_STEPS.research, fail_times=1)
+    rt = runtime(redis, calls, research=crashing)
+    request = make_request(run_id=RUN_ID)
+
+    await execute(rt, RUN_ID, request)  # fails in research
+    outcome = await execute(rt, RUN_ID, request)  # same start job delivered again
+
+    assert outcome.status == "completed"
+    assert calls.count == {"supervisor": 1, "research": 2, "studio": 1}

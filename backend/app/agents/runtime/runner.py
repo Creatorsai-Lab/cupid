@@ -33,6 +33,12 @@ class RunStatusStore(Protocol):
 
 
 @dataclass(frozen=True)
+class RunOutcome:
+    status: RunStatus
+    resume_later: bool = False  # failed on provider quota: resume once it recovers
+
+
+@dataclass(frozen=True)
 class Runtime:
     """What a run needs: the compiled graph (with its checkpointer), events, records."""
 
@@ -43,7 +49,7 @@ class Runtime:
 
 async def execute(
     rt: Runtime, run_id: str, request: RunRequest | None = None
-) -> RunStatus:
+) -> RunOutcome:
     config: RunnableConfig = {"configurable": {"thread_id": run_id}}
 
     async def publish(type_: EventType, step: str | None = None, **data: Any) -> None:
@@ -51,10 +57,14 @@ async def execute(
             RunEvent(run_id=run_id, type=type_, step=step, data=data)
         )
 
-    if request is None and not (await rt.graph.aget_state(config)).values:
-        await rt.runs.set_status(run_id, "failed", error=NOTHING_TO_RESUME)
+    if (await rt.graph.aget_state(config)).values:
+        # Resume. A start job delivered twice (e.g. after a worker crash) must not
+        # restart the run from scratch on top of its own checkpoints.
+        request = None
+    elif request is None:
         await publish("run.failed", message=NOTHING_TO_RESUME, resume_later=False)
-        return "failed"
+        await rt.runs.set_status(run_id, "failed", error=NOTHING_TO_RESUME)
+        return RunOutcome("failed")
 
     await rt.runs.set_status(run_id, "running")
     await publish("run.started", resumed=request is None)
@@ -76,17 +86,18 @@ async def execute(
                     await _publish_outputs(publish, step, update or {})
     except Exception as error:  # every failure ends here; the run stays resumable
         logger.exception("run %s failed", run_id)
+        later = resume_later(error)
+        await publish("run.failed", message=USER_ERROR, resume_later=later)
         await rt.runs.set_status(run_id, "failed", error=USER_ERROR)
-        await publish(
-            "run.failed", message=USER_ERROR, resume_later=resume_later(error)
-        )
-        return "failed"
+        return RunOutcome("failed", resume_later=later)
 
     state = cast(RunState, (await rt.graph.aget_state(config)).values)
     status, event_type, data = _outcome(state)
-    await rt.runs.set_status(run_id, status)
+    # Final event before the final status: a live stream that sees the run finished
+    # in the database can then rely on the final event already being in Redis.
     await publish(event_type, **data)
-    return status
+    await rt.runs.set_status(run_id, status)
+    return RunOutcome(status)
 
 
 async def _publish_outputs(publish, step: str, update: dict[str, Any]) -> None:

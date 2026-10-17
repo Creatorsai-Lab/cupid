@@ -18,3 +18,7 @@ class ForbiddenError(AppError):
 
 class ConflictError(AppError):
     status, code = 409, "conflict"
+
+
+class ServiceUnavailableError(AppError):
+    status, code = 503, "service_unavailable"

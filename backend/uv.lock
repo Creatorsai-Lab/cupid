@@ -215,6 +215,18 @@ wheels = [
 ]
 
 [[package]]
+name = "croniter"
+version = "6.2.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dateutil" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/37/57/2e2a65aee2a70483cb28e2b7e15a072d00a523207593b44400d4717bb100/croniter-6.2.4.tar.gz", hash = "sha256:fc124f751b1b04805c2a04b061898b436b45ab2320b045e1e052ea895de65189", size = 166267, upload-time = "2026-07-10T09:52:59.955Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cd/ba/d678e5bd329646ca51d3c92addbc77804e86d21f4b6b6a027218e6abb010/croniter-6.2.4-py3-none-any.whl", hash = "sha256:8ef3d544107a5c05a150a2d78f8bf5a8eb9c5c4d93405a736b824109574e3f4d", size = 46677, upload-time = "2026-07-10T09:52:58.425Z" },
+]
+
+[[package]]
 name = "cryptography"
 version = "50.0.2"
 source = { registry = "https://pypi.org/simple" }
@@ -290,6 +302,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pyjwt" },
     { name = "redis" },
+    { name = "saq", extra = ["redis"] },
     { name = "sqladmin" },
     { name = "sqlalchemy" },
     { name = "trafilatura" },
@@ -330,6 +343,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = "==2.14.2" },
     { name = "pyjwt", specifier = "==2.15.1" },
     { name = "redis", specifier = "==6.4.0" },
+    { name = "saq", extras = ["redis"], specifier = "==0.26.4" },
     { name = "sqladmin", specifier = "==0.27.2" },
     { name = "sqlalchemy", specifier = "==2.0.48" },
     { name = "trafilatura", specifier = "==2.0.0" },
@@ -1294,6 +1308,23 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/26/6b/8786ba5736562220d588a2f6653e6c17e90c59ced34a2d7b512ef8956103/ruff-0.15.7-py3-none-win32.whl", hash = "sha256:6d39e2d3505b082323352f733599f28169d12e891f7dd407f2d4f54b4c2886de", size = 10582538, upload-time = "2026-03-19T16:26:15.992Z" },
     { url = "https://files.pythonhosted.org/packages/2b/e9/346d4d3fffc6871125e877dae8d9a1966b254fbd92a50f8561078b88b099/ruff-0.15.7-py3-none-win_amd64.whl", hash = "sha256:4d53d712ddebcd7dace1bc395367aec12c057aacfe9adbb6d832302575f4d3a1", size = 11755839, upload-time = "2026-03-19T16:26:19.897Z" },
     { url = "https://files.pythonhosted.org/packages/8f/e8/726643a3ea68c727da31570bde48c7a10f1aa60eddd628d94078fec586ff/ruff-0.15.7-py3-none-win_arm64.whl", hash = "sha256:18e8d73f1c3fdf27931497972250340f92e8c861722161a9caeb89a58ead6ed2", size = 11023304, upload-time = "2026-03-19T16:26:51.669Z" },
+]
+
+[[package]]
+name = "saq"
+version = "0.26.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "croniter" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/da/b3/38c164b8766e6ac92e9faf961f4dd1103580227edbd95da18f08c07233de/saq-0.26.4.tar.gz", hash = "sha256:e29a3c8b7df722c28f6b8db9566571fc0bbdb32d0fcccbaa3af9517f46a6011c", size = 75417, upload-time = "2026-05-21T15:00:55.144Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7e/82/cf178bee890a1b7e17950c778c752b7dc342c93f254bc3143a4375378a52/saq-0.26.4-py3-none-any.whl", hash = "sha256:7a1f81ae2a95b6c34b170bc9b8cf84423052d9612f62cf0ec426c1fd27e35b2c", size = 63222, upload-time = "2026-05-21T15:00:53.503Z" },
+]
+
+[package.optional-dependencies]
+redis = [
+    { name = "redis" },
 ]
 
 [[package]]
