@@ -20,9 +20,10 @@ for _path in sorted(_APP_DIR.rglob("models.py")):
 metadata = Base.metadata
 
 # Tables that exist in the database but are owned by a library, not our models
-# (LangGraph's Postgres checkpointer creates and migrates these itself).
+# (LangGraph's checkpointer and SAQ's run queue create and migrate their own).
 EXTERNAL_TABLES = frozenset(
     {"checkpoints", "checkpoint_blobs", "checkpoint_writes", "checkpoint_migrations"}
+    | {"saq_jobs", "saq_stats", "saq_versions"}  # the run queue (SAQ)
 )
 
 

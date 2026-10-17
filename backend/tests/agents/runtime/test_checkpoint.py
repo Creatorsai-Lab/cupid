@@ -15,10 +15,10 @@ from app.agents.research_agents.models import ResearchPack, Source, SourceDocume
 from app.agents.runtime.checkpoint import (
     checkpoint_serde,
     checkpoint_types,
-    checkpoint_url,
 )
 from app.agents.studio_agents.models import ContentPiece, TextBlock
 from app.agents.supervisor_agents.models import RunPlan
+from app.core.db import psycopg_url
 from tests.agents.test_contracts import make_request
 
 
@@ -59,9 +59,9 @@ def test_types_outside_the_allowlist_are_not_rebuilt():
     assert not isinstance(restored["x"], Intruder)
 
 
-def test_checkpoint_url_uses_the_psycopg_scheme():
+def test_psycopg_url_uses_the_plain_scheme():
     assert (
-        checkpoint_url("postgresql+asyncpg://u:p@db:5432/cupid")
+        psycopg_url("postgresql+asyncpg://u:p@db:5432/cupid")
         == "postgresql://u:p@db:5432/cupid"
     )
     assert os.environ.get("LANGGRAPH_STRICT_MSGPACK") in (None, "", "true", "false")

@@ -12,6 +12,7 @@ queued, or still "running" because its worker died. Any other job is a
 duplicate and does nothing.
 """
 
+import asyncio
 import logging
 from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
@@ -30,6 +31,9 @@ logger = logging.getLogger("app.agents.runtime")
 USER_ERROR = "Something went wrong while creating your content. You can retry this run."
 NOTHING_TO_RESUME = "This run can't be resumed: it was never started."
 DEGRADED_RESEARCH = {"low_coverage", "timeout", "failed"}
+RUN_TIMEOUT_S = (
+    15 * 60
+)  # then the run fails, resumable; a hung step can't hold a worker
 RUNNABLE: set[str] = {"queued", "running"}  # running: its worker died mid-run
 
 
@@ -56,6 +60,7 @@ class Runtime:
     graph: CompiledStateGraph
     events: EventStream
     runs: RunStatusStore
+    timeout_s: float = RUN_TIMEOUT_S
 
 
 async def execute(
@@ -91,19 +96,20 @@ async def _execute(rt: Runtime, run_id: str, request: RunRequest | None) -> RunO
     payload = {"request": request} if request is not None else None
 
     try:
-        async for mode, chunk in rt.graph.astream(
-            payload, config, stream_mode=["tasks", "updates"], durability="sync"
-        ):
-            if not isinstance(chunk, dict):  # both stream modes yield dicts
-                continue
-            if mode == "tasks":
-                if "input" in chunk:
-                    await publish("step.started", chunk["name"])
-                elif chunk.get("error") is None:
-                    await publish("step.finished", chunk["name"])
-            else:
-                for step, update in chunk.items():
-                    await _publish_outputs(publish, step, update or {})
+        async with asyncio.timeout(rt.timeout_s):  # TimeoutError: failed, resumable
+            async for mode, chunk in rt.graph.astream(
+                payload, config, stream_mode=["tasks", "updates"], durability="sync"
+            ):
+                if not isinstance(chunk, dict):  # both stream modes yield dicts
+                    continue
+                if mode == "tasks":
+                    if "input" in chunk:
+                        await publish("step.started", chunk["name"])
+                    elif chunk.get("error") is None:
+                        await publish("step.finished", chunk["name"])
+                else:
+                    for step, update in chunk.items():
+                        await _publish_outputs(publish, step, update or {})
     except Exception as error:  # every failure ends here; the run stays resumable
         logger.exception("run %s failed", run_id)
         later = resume_later(error)

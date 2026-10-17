@@ -19,6 +19,12 @@ from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
 
 
+def psycopg_url(database_url: str) -> str:
+    """Our URL names the asyncpg driver; psycopg-based libraries (LangGraph's
+    checkpointer, the run queue) take a plain postgresql:// URL."""
+    return database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+
+
 class Base(DeclarativeBase):
     """Base class for every ORM model; Alembic reads its metadata.
 

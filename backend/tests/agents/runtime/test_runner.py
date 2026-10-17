@@ -30,13 +30,22 @@ async def redis():
 
 
 def runtime(
-    redis, calls: Calls | None = None, runs: FakeRuns | None = None, **step_overrides
+    redis,
+    calls: Calls | None = None,
+    runs: FakeRuns | None = None,
+    timeout_s: float = 30,
+    **step_overrides,
 ) -> Runtime:
     graph = build_graph(
         steps(calls or Calls(), **step_overrides),
         checkpointer=InMemorySaver(serde=checkpoint_serde()),
     )
-    return Runtime(graph=graph, events=EventStream(redis), runs=runs or FakeRuns())
+    return Runtime(
+        graph=graph,
+        events=EventStream(redis),
+        runs=runs or FakeRuns(),
+        timeout_s=timeout_s,
+    )
 
 
 def runs_of(rt: Runtime) -> FakeRuns:
@@ -145,6 +154,26 @@ async def test_quota_failures_are_flagged_for_automatic_resume(redis):
     outcome = await execute(rt, RUN_ID, make_request(run_id=RUN_ID))
     assert (outcome.status, outcome.resume_later) == ("failed", True)
     assert (await rt.events.read(RUN_ID))[-1][1].data["resume_later"] is True
+
+
+async def test_a_run_over_its_time_limit_fails_and_stays_resumable(redis):
+    """A hung step must not hold a worker forever, and the queue must not retry it
+    on its own (each retry could pay for the step again): the user decides."""
+
+    async def hangs(state):
+        await asyncio.Event().wait()
+
+    calls = Calls()
+    rt = runtime(redis, calls, timeout_s=0.2, research=calls.track("research", hangs))
+
+    outcome = await asyncio.wait_for(
+        execute(rt, RUN_ID, make_request(run_id=RUN_ID)), 5
+    )
+
+    assert (outcome.status, outcome.resume_later) == ("failed", False)
+    assert calls.count["research"] == 1  # not retried
+    assert runs_of(rt).history[-1] == ("failed", USER_ERROR)
+    assert (await rt.events.read(RUN_ID))[-1][1].type == "run.failed"
 
 
 async def test_resuming_an_unknown_run_fails_cleanly(redis):

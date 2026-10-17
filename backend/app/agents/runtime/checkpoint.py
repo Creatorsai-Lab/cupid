@@ -20,6 +20,7 @@ from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from pydantic import BaseModel
 
 from app.agents.state import RunState
+from app.core.db import psycopg_url
 
 
 def checkpoint_types() -> set[type[BaseModel]]:
@@ -50,16 +51,11 @@ def checkpoint_serde() -> JsonPlusSerializer:
     return JsonPlusSerializer(allowed_msgpack_modules=checkpoint_types())
 
 
-def checkpoint_url(database_url: str) -> str:
-    """psycopg takes a plain postgresql:// URL; the app's URL names the asyncpg driver."""
-    return database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
-
-
 @asynccontextmanager
 async def open_checkpointer(database_url: str) -> AsyncIterator[AsyncPostgresSaver]:
     """A Postgres checkpointer; creates its tables on first use (idempotent)."""
     async with AsyncPostgresSaver.from_conn_string(
-        checkpoint_url(database_url), serde=checkpoint_serde()
+        psycopg_url(database_url), serde=checkpoint_serde()
     ) as saver:
         await saver.setup()
         yield saver

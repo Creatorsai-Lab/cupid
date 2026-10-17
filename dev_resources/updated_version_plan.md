@@ -40,6 +40,7 @@ creation) is the product; every other step exists to feed it well.
 | D19 | Evals live in `backend/evals/`, separate from `tests/`: real LLMs, scored datasets, results gitignored; never run by `uv run pytest` or CI. | 2026-10-12 |
 | D20 | Test layout: folder = what is tested (mirrors `app/`, agents get one subfolder per part); marker = what it needs (`db`, `integration`). `tests/security/` holds only app-wide security rules; feature-specific security tests live with the feature. Ruff security rules (`S`) are on. | 2026-10-12 |
 | D21 | Agent folders are named `<area>_agents/` (`supervisor_agents/`, `research_agents/`, `studio_agents/`): each holds one or more agents for that area, and the name makes clear the folder contains agents. Their tests mirror the names. | 2026-10-16 |
+| D22 | No duplicate pipeline work. The run queue is SAQ on **Postgres**, not Redis: SAQ's Redis sweep can re-queue a job caught mid-dequeue (seen in CI); on Postgres a job is taken and marked active in one statement, and `group_key` = run id allows one active job per run. Defence in depth: `execute()` holds a per-run Postgres lock and runs only queued runs (or runs whose worker died). A run over its time limit fails (resumable) instead of being retried by the queue; deploys let running jobs finish. Redis keeps events and LLM cooldowns. | 2026-10-17 |
 
 ---
 
@@ -364,8 +365,9 @@ Built by promoting the research agent's `LLMClient` (and its tests), not written
           await events.publish(run_id, to_event(mode, chunk))
   ```
 
-- **Worker:** runs execute outside the API process (SAQ on Redis), so deploys and restarts
-  do not kill runs; the worker's concurrency limit protects provider rate limits.
+- **Worker:** runs execute outside the API process (SAQ; the queue lives in Postgres, D22),
+  so deploys and restarts do not kill runs; the worker's concurrency limit protects
+  provider rate limits.
 - **Events:** Redis stream per run → SSE. Reconnects resume from `Last-Event-ID`.
   Types: `run.started`, `step.started`, `step.finished`, `research.sources`, `piece.ready`,
   `run.degraded`, `run.failed`, `run.completed`.
@@ -384,7 +386,10 @@ Built by promoting the research agent's `LLMClient` (and its tests), not written
   | ------------------------------------ | ----------------------------------------------------------- |
   | Rate limit, timeout, 5xx on a call   | Gateway retries, then the next provider for that role       |
   | A step keeps failing                 | `RetryPolicy(max_attempts=2)`, then run marked failed, resumable |
-  | Worker crash or deploy               | Queue hands the job out again → `execute(run_id)` resumes   |
+  | Deploy                               | Worker lets running jobs finish (up to 5 min), then stops   |
+  | Worker crash                         | Queue hands the job out again → `execute(run_id)` resumes   |
+  | Run exceeds its time limit (15 min)  | Run marked failed, resumable; never retried automatically   |
+  | Same job delivered twice             | One active job per run; `execute()` lock + status check     |
   | User clicks Retry                    | `POST .../resume` → `execute(run_id)`                       |
   | Weaker result                        | Run completes with a visible "degraded" label               |
 
@@ -544,6 +549,13 @@ Test-first, on placeholder steps. Split into small steps, each its own pull requ
       - CI gets a Redis service; end-to-end test with a real SAQ worker: quota failure →
         automatic resume → done (waits for the run's outcome, not a timer).
       - Run the worker: `uv run saq app.agents.runtime.worker.worker_settings`.
+- [x] **2.5c** No duplicate work (D22), after CI caught a job delivered twice:
+      - `execute()`: per-run Postgres lock; runs only queued runs (or whose worker died).
+      - Queue moved to SAQ on Postgres with `group_key` = run id; tests prove a job being
+        run is never handed out again and a run has one active job at a time.
+      - Run time limit (15 min) fails the run, resumable; the queue's timeout is a backstop.
+      - Graceful deploys (5 min grace), tested by stopping a worker mid-step.
+      - API connects the queue at startup (fails fast with a hint on Windows' default loop).
 - [ ] **2.6** Router switches to the new runtime; create page switches from polling to live
       events and shows step progress.
 
@@ -631,6 +643,11 @@ Done when: agreed latency and token targets are met.
 ## 8. Later
 
 - Paid provider tiers at launch (free tiers cap throughput).
+- Stale-run sweeper: a run left "running" with no lock holder (its worker died after its
+  last re-delivery) is marked failed, so the user can resume it. The per-run lock tells
+  live runs from dead ones exactly.
+- Faster crash recovery: a job heartbeat would re-deliver a dead worker's job within about
+  a minute instead of after the 16-minute job timeout.
 - Frontend types generated from the OpenAPI schema instead of hand-written.
 - Tracing dashboard (e.g. Langfuse) once logged usage is not enough.
 - Consider PyJWT in place of python-jose for session tokens.

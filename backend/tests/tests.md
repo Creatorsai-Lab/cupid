@@ -175,7 +175,7 @@ answers. Quality of real output belongs in `evals/`.
 | `tests/fakes.py`       | `FakeRuns(status=..., held_elsewhere=...)`: one run's status history, resume claims and execution lock, in memory |
 | `event_loop_policy`    | session-wide; on Windows selects the selector event loop, which psycopg (the Postgres checkpointer) needs |
 | `test_database_url`    | the Postgres test database URL, for code that opens its own connections (e.g. the checkpointer) |
-| `real_redis_url`       | a real Redis (docker compose, database 15); skips locally if down, fails in CI. Prefer `fakeredis` unless the test needs real Redis behavior (e.g. SAQ's Lua scripts) |
+| `real_redis_url`       | a real Redis (docker compose, database 15); skips locally if down, fails in CI. Prefer `fakeredis` unless the code under test connects by URL itself (e.g. the worker) |
 
 Dependency overrides (`sign_in`, `db_client`) are reset after every test automatically.
 

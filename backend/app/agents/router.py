@@ -19,7 +19,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from saq import Queue
+from saq.queue.postgres import PostgresQueue
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.deps import get_event_stream, get_run_queue, get_run_store
@@ -328,7 +328,7 @@ async def resume_run(
     run_id: str,
     user: CurrentUser,
     runs: RunStore = Depends(get_run_store),
-    queue: Queue = Depends(get_run_queue),
+    queue: PostgresQueue = Depends(get_run_queue),
 ) -> dict[str, str]:
     """Continue a failed run from its last checkpoint."""
     if await runs.get_for_user(run_id, user.id) is None:

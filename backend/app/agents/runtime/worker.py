@@ -1,12 +1,15 @@
-"""Background worker: runs agent pipelines outside the API process (SAQ on Redis).
+"""Background worker: runs agent pipelines outside the API process (SAQ; the
+queue lives in Postgres, see queue.py).
 
 Start it from backend/ (one terminal per worker):
 
     uv run saq app.agents.runtime.worker.worker_settings
 
-A deploy or crash never loses a run: SAQ re-delivers the job and execute()
-resumes from the last checkpoint. Runs that failed on provider quota are
-resumed automatically after a delay, a limited number of times.
+A deploy lets running jobs finish (up to SHUTDOWN_GRACE_S); the hosting
+platform's stop timeout must be longer. A crash never loses a run: SAQ
+re-delivers the job and execute() resumes from the last checkpoint. Runs that
+failed on provider quota are resumed automatically after a delay, a limited
+number of times.
 
 Duplicate jobs are harmless: SAQ can deliver a job twice, so execute() runs a
 run only while holding its database lock, and only if it's queued (runner.py).
@@ -52,6 +55,12 @@ class WorkerContext(Context, total=False):
 
 
 CONCURRENCY = 2  # free-tier LLM quota is the bottleneck, not CPU
+SHUTDOWN_GRACE_S = 300  # on stop, running jobs get this long to finish
+# A stopping worker waits for its idle job slots (they wake this often; a job that
+# arrives meanwhile still runs, within the grace period) and for its upkeep loops'
+# sleeps, so both stay short.
+DEQUEUE_TIMEOUT_S = 5
+TIMERS = {"sweep": 10, "worker_info": 10}
 AUTO_RESUME_DELAYS_S: Sequence[float] = (60, 120, 300)  # one per automatic resume
 
 
@@ -119,4 +128,7 @@ worker_settings = {
     "concurrency": CONCURRENCY,
     "startup": startup,
     "shutdown": shutdown,
+    "shutdown_grace_period_s": SHUTDOWN_GRACE_S,
+    "dequeue_timeout": DEQUEUE_TIMEOUT_S,
+    "timers": TIMERS,
 }

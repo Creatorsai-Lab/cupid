@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.agents.deps import get_run_queue
 from app.agents.router import router as agents_router
 from app.auth.router import router as auth_router
 from app.config import settings
@@ -47,6 +48,23 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.error("✗ Redis unreachable at startup: %s", exc)
 
+    # The agent run queue (SAQ on Postgres, via psycopg). psycopg can't use
+    # Windows' default Proactor loop: it would retry and stall startup instead.
+    run_queue = get_run_queue()
+    if isinstance(
+        asyncio.get_running_loop(), getattr(asyncio, "ProactorEventLoop", ())
+    ):
+        logger.error(
+            "✗ Run queue disabled: on Windows start uvicorn with --reload "
+            "or --loop asyncio:SelectorEventLoop"
+        )
+    else:
+        try:
+            await run_queue.connect()
+            logger.info("✓ Run queue connected")
+        except Exception as exc:
+            logger.error("✗ Run queue unavailable at startup: %s", exc)
+
     # Promote env-allowlisted emails to is_admin (idempotent).
     try:
         from app.admin.security import bootstrap_admins
@@ -74,6 +92,7 @@ async def lifespan(app: FastAPI):
         if earn_task is not None:
             earn_task.cancel()
 
+    await run_queue.disconnect()
     logger.info("⊘ Cupid API Shutting Down")
     logger.info("-" * 20)
 

@@ -1,20 +1,40 @@
 """Queuing runs for the worker. Imported by the API and the worker; no side
-effects on import (unlike worker.py, which selects the event loop)."""
+effects on import (unlike worker.py, which selects the event loop).
+
+The queue is SAQ on Postgres, not Redis. SAQ's Redis backend can hand a job out
+twice: its sweep re-queues a job caught between being taken off the queue and
+being marked active. On Postgres, taking a job and marking it active is one
+statement, the sweep only touches jobs past their timeout, and group_key = run
+id means a run never has two active jobs.
+"""
 
 import time
 
 from saq import Job, Queue
+from saq.queue.postgres import PostgresQueue
 
 from app.agents.models import RunRequest
+from app.agents.runtime.runner import RUN_TIMEOUT_S
 from app.config import settings
+from app.core.db import psycopg_url
 
 QUEUE_NAME = "agent-runs"
-JOB_TIMEOUT_S = 15 * 60  # a stuck run is aborted and re-delivered after this
-JOB_RETRIES = 2  # re-deliveries after a crash or timeout; execute() resumes
+# Backstop only: execute() fails the run at RUN_TIMEOUT_S itself. SAQ's own timeout
+# retries the job, which could pay for the stuck step again.
+JOB_TIMEOUT_S = RUN_TIMEOUT_S + 60
+# Attempts in total, the first included. A crashed worker's job is re-delivered
+# after JOB_TIMEOUT_S, and execute() resumes it from its last checkpoint.
+JOB_RETRIES = 3
+POOL_MAX = 5  # connections per process (API or worker); hosted Postgres limits them
 
 
-def make_queue(redis_url: str = settings.redis_url, name: str = QUEUE_NAME) -> Queue:
-    return Queue.from_url(redis_url, name=name)
+def make_queue(
+    database_url: str = settings.database_url, name: str = QUEUE_NAME
+) -> PostgresQueue:
+    """Not connected yet: the worker's CLI and the API's startup call connect()."""
+    return PostgresQueue.from_url(
+        psycopg_url(database_url), name=name, min_size=1, max_size=POOL_MAX
+    )
 
 
 async def enqueue_run(
@@ -35,6 +55,7 @@ async def enqueue_run(
             "auto_resumes": auto_resumes,
         },
         key=f"{run_id}:{attempt}",
+        group_key=run_id,  # one active job per run
         timeout=JOB_TIMEOUT_S,
         retries=JOB_RETRIES,
         scheduled=int(time.time() + delay_s) if delay_s > 0 else 0,

@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from saq import Queue
+from saq.queue.postgres import PostgresQueue
 
 from app.agents.runtime.events import EventStream
 from app.agents.runtime.queue import make_queue
@@ -20,6 +20,6 @@ def get_event_stream() -> EventStream:
 
 
 @lru_cache(maxsize=1)
-def get_run_queue() -> Queue:
-    """One queue client per API process."""
+def get_run_queue() -> PostgresQueue:
+    """One queue client per API process; the app's lifespan connects it."""
     return make_queue()

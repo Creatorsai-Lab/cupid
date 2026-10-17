@@ -83,6 +83,7 @@ async def test_enqueue_builds_one_keyed_attempt():
         run_queue.JOB_RETRIES,
         0,
     )
+    assert job.group_key == RUN_ID  # the queue runs one job per run at a time
 
 
 async def test_completed_run_queues_nothing(redis):

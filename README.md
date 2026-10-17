@@ -130,6 +130,15 @@ Start the API server:
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
+On Windows, keep `--reload` (or pass `--loop asyncio:SelectorEventLoop`): the agent run
+queue uses psycopg, which can't run on Windows' default event loop.
+
+Start the agent worker (runs content pipelines; a second backend window):
+
+```powershell
+uv run saq app.agents.runtime.worker.worker_settings
+```
+
 Verify the backend is live:
 
 ```
@@ -157,13 +166,14 @@ http://localhost:3000
 
 ## Running the Full System
 
-To run the complete local stack you need three things active simultaneously:
+To run the complete local stack you need four things active simultaneously:
 
 | Process | Command | Window |
 |---|---|---|
 | Infrastructure | `docker compose up -d` | Background |
 | Backend API | `uv run uvicorn app.main:app --reload --port 8000` | Terminal 1 |
-| Frontend | `npm run dev` | Terminal 2 |
+| Agent worker | `uv run saq app.agents.runtime.worker.worker_settings` | Terminal 2 |
+| Frontend | `npm run dev` | Terminal 3 |
 
 ---
 
