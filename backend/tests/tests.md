@@ -47,7 +47,7 @@ only tests the fake. Keep them apart.
 backend/tests/
   conftest.py              shared fixtures (see section 6)
   factories.py             make_user(), make_history(), make_subscription(), save()
-  fakes.py                 FakeLLM (stands in for an LLM session)
+  fakes.py                 FakeLLM (an LLM session), FakeRuns (a run store)
   tests.md                 this file
   core/                    settings, errors
   auth/                    sign-in, session token and cookie, current user
@@ -172,6 +172,7 @@ answers. Quality of real output belongs in `evals/`.
 | `engine`               | session-wide engine; creates the schema once per run from the models |
 | `tests/factories.py`   | `make_user()`, `make_history(user)`, `make_subscription()` — defaults, override any field; `save(session, *objs)` adds and flushes |
 | `tests/fakes.py`       | `FakeLLM(*answers)`: same `structured()` signature as the real LLM session (a test checks this); answers are model instances, dicts or exceptions; `calls` records every prompt |
+| `tests/fakes.py`       | `FakeRuns(status=..., held_elsewhere=...)`: one run's status history, resume claims and execution lock, in memory |
 | `event_loop_policy`    | session-wide; on Windows selects the selector event loop, which psycopg (the Postgres checkpointer) needs |
 | `test_database_url`    | the Postgres test database URL, for code that opens its own connections (e.g. the checkpointer) |
 | `real_redis_url`       | a real Redis (docker compose, database 15); skips locally if down, fails in CI. Prefer `fakeredis` unless the test needs real Redis behavior (e.g. SAQ's Lua scripts) |

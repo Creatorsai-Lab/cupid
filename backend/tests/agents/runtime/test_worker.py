@@ -18,6 +18,7 @@ from app.agents.runtime.events import EventStream
 from app.agents.runtime.runner import Runtime
 from tests.agents.test_contracts import make_request
 from tests.agents.test_graph import Calls, steps
+from tests.fakes import FakeRuns
 
 RUN_ID = "22222222-2222-2222-2222-222222222222"
 
@@ -32,20 +33,6 @@ class FakeQueue:
             return None
         self.jobs.append(job)
         return job
-
-
-@dataclass
-class FakeRuns:
-    statuses: list[str] = field(default_factory=list)
-    claimable: bool = True
-    claims: int = 0
-
-    async def set_status(self, run_id, status, *, error=None):
-        self.statuses.append(status)
-
-    async def claim_for_resume(self, run_id, user_id):
-        self.claims += 1
-        return self.claimable
 
 
 @pytest.fixture

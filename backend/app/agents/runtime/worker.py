@@ -8,9 +8,11 @@ A deploy or crash never loses a run: SAQ re-delivers the job and execute()
 resumes from the last checkpoint. Runs that failed on provider quota are
 resumed automatically after a delay, a limited number of times.
 
-One live job per run is guaranteed by the database (RunStore.claim_for_resume),
-not by SAQ keys: SAQ refuses a key while a job with it is in flight, and the
-automatic resume is enqueued from inside the run's own job.
+Duplicate jobs are harmless: SAQ can deliver a job twice, so execute() runs a
+run only while holding its database lock, and only if it's queued (runner.py).
+Resumes are claimed in the database (RunStore.claim_for_resume), not by SAQ
+keys: SAQ refuses a key while a job with it is in flight, and the automatic
+resume is enqueued from inside the run's own job.
 """
 
 import asyncio

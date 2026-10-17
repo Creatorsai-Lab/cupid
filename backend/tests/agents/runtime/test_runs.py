@@ -1,11 +1,12 @@
-"""Run records: created queued, status updates, ownership, and the database
-refusing statuses that don't exist."""
+"""Run records: created queued, status updates, ownership, the database
+refusing statuses that don't exist, and the per-run execution lock."""
 
 import uuid
 from contextlib import asynccontextmanager
 
 import pytest
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.agents.runtime.models import AgentRun
 from app.agents.runtime.runs import RunStore
@@ -94,3 +95,21 @@ async def test_resume_claims_need_a_failed_run_owned_by_the_caller(db_session, s
     assert await store.claim_for_resume(request.run_id, stranger.id) is False
     assert await store.claim_for_resume("not-a-uuid", owner.id) is False
     assert await store.claim_for_resume(request.run_id, None) is True  # worker
+
+
+async def test_only_one_execution_holds_a_run_at_a_time(engine):
+    store = RunStore(async_sessionmaker(engine))  # each lock: its own connection
+    run_id, other_run = str(uuid.uuid4()), str(uuid.uuid4())
+
+    async with store.exclusive(run_id) as first:
+        async with (
+            store.exclusive(run_id) as second,
+            store.exclusive(other_run) as third,
+        ):
+            assert (first, second, third) == (True, False, True)
+
+    with pytest.raises(RuntimeError):
+        async with store.exclusive(run_id):
+            raise RuntimeError("step crashed")
+    async with store.exclusive(run_id) as again:
+        assert again  # released when the block ends, even after an error

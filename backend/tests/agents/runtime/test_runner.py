@@ -1,8 +1,9 @@
 """The runner: one function that starts or resumes a run, reports progress as
-events, and records the outcome. Uses the placeholder pipeline, an in-memory
-checkpointer, an in-memory Redis and an in-memory run store."""
+events, and records the outcome, and ignores duplicate jobs (SAQ can deliver a
+job twice). Uses the placeholder pipeline, an in-memory checkpointer, an
+in-memory Redis and an in-memory run store."""
 
-from dataclasses import dataclass, field
+import asyncio
 
 import pytest
 from fakeredis import FakeAsyncRedis
@@ -16,16 +17,9 @@ from app.agents.runtime.events import EventStream
 from app.agents.runtime.runner import USER_ERROR, Runtime, execute
 from tests.agents.test_contracts import make_request
 from tests.agents.test_graph import Calls, steps
+from tests.fakes import FakeRuns
 
 RUN_ID = "11111111-1111-1111-1111-111111111111"
-
-
-@dataclass
-class FakeRuns:
-    history: list[tuple[str, str | None]] = field(default_factory=list)
-
-    async def set_status(self, run_id, status, *, error=None):
-        self.history.append((status, error))
 
 
 @pytest.fixture
@@ -35,12 +29,14 @@ async def redis():
     await client.aclose()
 
 
-def runtime(redis, calls: Calls | None = None, **step_overrides) -> Runtime:
+def runtime(
+    redis, calls: Calls | None = None, runs: FakeRuns | None = None, **step_overrides
+) -> Runtime:
     graph = build_graph(
         steps(calls or Calls(), **step_overrides),
         checkpointer=InMemorySaver(serde=checkpoint_serde()),
     )
-    return Runtime(graph=graph, events=EventStream(redis), runs=FakeRuns())
+    return Runtime(graph=graph, events=EventStream(redis), runs=runs or FakeRuns())
 
 
 def runs_of(rt: Runtime) -> FakeRuns:
@@ -131,6 +127,9 @@ async def test_failure_shows_a_safe_message_and_resume_finishes_the_run(redis):
         runs_of(rt).history
     )  # internal details stay in the logs
 
+    assert await runs_of(rt).claim_for_resume(
+        RUN_ID, None
+    )  # as the resume endpoint does
     assert (await execute(rt, RUN_ID)).status == "completed"  # resume: no request
     assert calls.count == {"supervisor": 1, "research": 2, "studio": 1}
     assert (await rt.events.read(RUN_ID))[-1][1].type == "run.completed"
@@ -155,15 +154,52 @@ async def test_resuming_an_unknown_run_fails_cleanly(redis):
     assert (await rt.events.read(RUN_ID))[-1][1].type == "run.failed"
 
 
-async def test_starting_a_run_twice_resumes_instead_of_restarting(redis):
-    """A re-delivered start job (worker crash) must not repeat finished steps."""
+async def test_job_redelivered_after_the_worker_died_resumes_where_it_stopped(redis):
+    """The worker dies mid-step (its task is cancelled): the run stays "running"
+    with its checkpoints; SAQ delivers the start job again; done steps don't repeat."""
+    in_research = asyncio.Event()
+
+    async def hangs_once(state):
+        if not in_research.is_set():
+            in_research.set()
+            await asyncio.Event().wait()  # until the worker dies
+        return await PLACEHOLDER_STEPS.research(state)
+
     calls = Calls()
-    crashing = calls.track("research", PLACEHOLDER_STEPS.research, fail_times=1)
-    rt = runtime(redis, calls, research=crashing)
+    rt = runtime(redis, calls, research=calls.track("research", hangs_once))
     request = make_request(run_id=RUN_ID)
 
-    await execute(rt, RUN_ID, request)  # fails in research
+    job = asyncio.create_task(execute(rt, RUN_ID, request))
+    await in_research.wait()
+    job.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await job
+    assert runs_of(rt).status == "running"
+
     outcome = await execute(rt, RUN_ID, request)  # same start job delivered again
 
     assert outcome.status == "completed"
     assert calls.count == {"supervisor": 1, "research": 2, "studio": 1}
+
+
+async def test_duplicate_job_does_nothing_while_the_run_executes_elsewhere(redis):
+    calls = Calls()
+    rt = runtime(redis, calls, runs=FakeRuns(held_elsewhere=True))
+
+    outcome = await execute(rt, RUN_ID, make_request(run_id=RUN_ID))
+
+    assert outcome.status == "skipped"
+    assert (calls.count, await event_types(rt), runs_of(rt).history) == ({}, [], [])
+
+
+@pytest.mark.parametrize("status", ["completed", "degraded", "blocked", "failed"])
+async def test_stale_job_for_a_finished_run_does_nothing(redis, status):
+    """Only queued runs (or runs whose worker died) execute; a failed run must be
+    claimed for resume first, so a leftover job can't resume it behind the user."""
+    calls = Calls()
+    rt = runtime(redis, calls, runs=FakeRuns(status=status))
+
+    outcome = await execute(rt, RUN_ID, make_request(run_id=RUN_ID))
+
+    assert outcome.status == "skipped"
+    assert (calls.count, await event_types(rt), runs_of(rt).history) == ({}, [], [])

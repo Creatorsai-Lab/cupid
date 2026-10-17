@@ -1,11 +1,11 @@
-"""Reading and writing run records. Each call uses its own short session, so the
-worker never holds a database connection open for the length of a run."""
+"""Reading and writing run records. Each call uses its own short session; only
+the execution lock keeps one connection for the length of a run."""
 
 import uuid
-from collections.abc import Callable
-from contextlib import AbstractAsyncContextManager
+from collections.abc import AsyncIterator, Callable
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.models import RunRequest, RunStatus
@@ -80,3 +80,17 @@ class RunStore:
             claimed = result.scalar_one_or_none() is not None
             await session.commit()
         return claimed
+
+    @asynccontextmanager
+    async def exclusive(self, run_id: str) -> AsyncIterator[bool]:
+        """Hold the run's execution lock inside the block; False if another
+        execution holds it (the queue can deliver a job twice).
+
+        A Postgres advisory lock tied to this transaction: released when the block
+        ends, or by the database itself if the worker dies, so it never leaks.
+        """
+        key = int.from_bytes(uuid.UUID(run_id).bytes[:8], "big", signed=True)
+        async with self._sessions() as session:
+            yield bool(
+                await session.scalar(select(func.pg_try_advisory_xact_lock(key)))
+            )

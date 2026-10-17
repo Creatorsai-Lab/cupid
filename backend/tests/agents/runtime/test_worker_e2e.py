@@ -2,6 +2,7 @@
 
 A run hits a provider rate limit, the worker queues its own automatic resume
 from inside the running job, and the run completes without repeating steps.
+The start job is also delivered twice (SAQ can do that): the copy does nothing.
 """
 
 import asyncio
@@ -10,7 +11,7 @@ import uuid
 from contextlib import AsyncExitStack
 
 from redis.asyncio import Redis
-from saq import Worker
+from saq import Queue, Worker
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
@@ -27,17 +28,17 @@ from tests.agents.test_graph import Calls, steps
 from tests.factories import make_user
 
 
-async def wait_for_status(store: RunStore, run_id: str, status: str, timeout_s: float):
-    deadline = time.monotonic() + timeout_s
+async def wait_until_settled(store: RunStore, queue: Queue, run_id: str):
+    """Wait for the outcome, not a timer: the run finished and no job is left."""
+    deadline = time.monotonic() + 30
     while time.monotonic() < deadline:
         run = await store.get(run_id)
-        if run is not None and run.status == status:
-            return
+        if run is not None and run.status == "completed":
+            if await queue.count("incomplete") == 0:
+                return
         await asyncio.sleep(0.1)
     run = await store.get(run_id)
-    raise AssertionError(
-        f"run never reached {status!r}; last status: {run and run.status}"
-    )
+    raise AssertionError(f"not settled; run status: {run and run.status}")
 
 
 async def test_quota_failure_resumes_automatically_and_completes(
@@ -73,14 +74,13 @@ async def test_quota_failure_resumes_automatically_and_completes(
     redis = Redis.from_url(real_redis_url, decode_responses=True)
     try:
         assert await enqueue_run(queue, run_id, request)
-        # Wait for the outcome, not a timer: a burst worker stops when no job arrives
-        # within its timeout and cancels anything still running (flaky when slow).
+        assert await enqueue_run(queue, run_id, request, attempt="delivered-twice")
         saq_worker = Worker(
-            queue, [worker.run_pipeline], startup=startup, concurrency=1
+            queue, [worker.run_pipeline], startup=startup, concurrency=2
         )
         running = asyncio.create_task(saq_worker.start())
         try:
-            await wait_for_status(store, run_id, "completed", timeout_s=30)
+            await wait_until_settled(store, queue, run_id)
         finally:
             await saq_worker.stop()
             await running
@@ -88,7 +88,7 @@ async def test_quota_failure_resumes_automatically_and_completes(
 
         assert calls.count == {"supervisor": 1, "research": 2, "studio": 1}
         types = [e.type for _, e in await EventStream(redis).read(run_id)]
-        assert types.count("run.started") == 2  # first attempt + automatic resume
+        assert types.count("run.started") == 2  # first attempt + one resume, no copies
         assert "run.failed" in types and types[-1] == "run.completed"
     finally:
         await redis.delete(stream_key(run_id))

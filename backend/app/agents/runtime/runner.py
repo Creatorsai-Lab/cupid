@@ -5,11 +5,17 @@
 
 Progress goes to the run's event stream as it happens; the outcome goes to the
 run record. Failures show the user a safe message; details go to the logs only.
+
+The queue can deliver a job twice (SAQ's sweep can retry a job it sees mid-
+dequeue), so a run executes only while holding its lock, and only if it is
+queued, or still "running" because its worker died. Any other job is a
+duplicate and does nothing.
 """
 
 import logging
+from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
-from typing import Any, Protocol, cast
+from typing import Any, Literal, Protocol, cast
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
@@ -24,9 +30,14 @@ logger = logging.getLogger("app.agents.runtime")
 USER_ERROR = "Something went wrong while creating your content. You can retry this run."
 NOTHING_TO_RESUME = "This run can't be resumed: it was never started."
 DEGRADED_RESEARCH = {"low_coverage", "timeout", "failed"}
+RUNNABLE: set[str] = {"queued", "running"}  # running: its worker died mid-run
 
 
 class RunStatusStore(Protocol):
+    def exclusive(self, run_id: str) -> AbstractAsyncContextManager[bool]: ...
+
+    async def get(self, run_id: str) -> Any: ...  # the run record, or None
+
     async def set_status(
         self, run_id: str, status: RunStatus, *, error: str | None = None
     ) -> None: ...
@@ -34,7 +45,7 @@ class RunStatusStore(Protocol):
 
 @dataclass(frozen=True)
 class RunOutcome:
-    status: RunStatus
+    status: RunStatus | Literal["skipped"]  # skipped: a duplicate job, nothing done
     resume_later: bool = False  # failed on provider quota: resume once it recovers
 
 
@@ -50,6 +61,15 @@ class Runtime:
 async def execute(
     rt: Runtime, run_id: str, request: RunRequest | None = None
 ) -> RunOutcome:
+    async with rt.runs.exclusive(run_id) as mine:
+        run = await rt.runs.get(run_id) if mine else None
+        if run is None or run.status not in RUNNABLE:
+            logger.warning("run %s: duplicate job skipped", run_id)
+            return RunOutcome("skipped")
+        return await _execute(rt, run_id, request)
+
+
+async def _execute(rt: Runtime, run_id: str, request: RunRequest | None) -> RunOutcome:
     config: RunnableConfig = {"configurable": {"thread_id": run_id}}
 
     async def publish(type_: EventType, step: str | None = None, **data: Any) -> None:
