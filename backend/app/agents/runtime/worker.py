@@ -21,9 +21,12 @@ resume is enqueued from inside the run's own job.
 import asyncio
 import logging
 import sys
-from collections.abc import Sequence
+from collections.abc import Callable, Mapping, Sequence
 from contextlib import AsyncExitStack
+from dataclasses import dataclass
 from typing import Any, Required
+
+import httpx
 
 if sys.platform == "win32":
     # psycopg (Postgres checkpoints) can't use Windows' default Proactor loop.
@@ -35,6 +38,8 @@ from saq.types import Context
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.agents.graph import PLACEHOLDER_STEPS, Steps, build_graph
+from app.agents.llm.gateway import LLMGateway, RedisCooldowns
+from app.agents.llm.roles import ProviderSpec, configured_providers
 from app.agents.models import CreatorProfile, RunRequest
 from app.agents.runtime.checkpoint import open_checkpointer
 from app.agents.runtime.events import EventStream
@@ -44,6 +49,22 @@ from app.agents.runtime.runs import RunStore
 from app.config import settings
 
 logger = logging.getLogger("app.agents.worker")
+
+
+@dataclass(frozen=True)
+class Services:
+    """Shared by everyone run this worker executes; steps take what they need"""
+
+    llm: LLMGateway
+    http: httpx.AsyncClient
+
+
+StepsFactory = Callable[[Services], Steps]
+
+
+def placeholder_steps(services: Services) -> Steps:
+    """Until real agents arrive: steps that need no services."""
+    return PLACEHOLDER_STEPS
 
 
 class WorkerContext(Context, total=False):
@@ -101,23 +122,32 @@ async def create_runtime(
     *,
     database_url: str,
     redis_url: str,
-    steps: Steps = PLACEHOLDER_STEPS,
+    providers: Mapping[str, ProviderSpec],
+    build_steps: StepsFactory = placeholder_steps,
 ) -> tuple[Runtime, RunStore]:
     """Everything a worker needs; closed by `stack` on shutdown."""
     redis = Redis.from_url(redis_url, decode_responses=True)
     stack.push_async_callback(redis.aclose)
+    http = httpx.AsyncClient()
+    stack.push_async_callback(http.aclose)
+    services = Services(
+        llm=LLMGateway(providers, http=http, cooldowns=RedisCooldowns(redis)), http=http
+    )
     engine = create_async_engine(database_url, pool_pre_ping=True)
     stack.push_async_callback(engine.dispose)
     runs = RunStore(async_sessionmaker(engine, expire_on_commit=False))
     saver = await stack.enter_async_context(open_checkpointer(database_url))
-    graph = build_graph(steps, checkpointer=saver)
+    graph = build_graph(build_steps(services), checkpointer=saver)
     return Runtime(graph=graph, events=EventStream(redis), runs=runs), runs
 
 
 async def startup(ctx: WorkerContext) -> None:
     stack = AsyncExitStack()
     runtime, runs = await create_runtime(
-        stack, database_url=settings.database_url, redis_url=settings.redis_url
+        stack,
+        database_url=settings.database_url,
+        redis_url=settings.redis_url,
+        providers=configured_providers(settings),
     )
     ctx.update(stack=stack, runtime=runtime, runs=runs)
 

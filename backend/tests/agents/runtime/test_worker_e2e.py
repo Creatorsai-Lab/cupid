@@ -24,6 +24,8 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.agents.graph import PLACEHOLDER_STEPS, Steps
 from app.agents.llm.errors import RateLimitedError
+from app.agents.llm.gateway import RedisCooldowns
+from app.agents.llm.roles import ProviderSpec
 from app.agents.models import RunRequest
 from app.agents.runtime import worker
 from app.agents.runtime.checkpoint import open_checkpointer
@@ -98,7 +100,8 @@ async def running_worker(svc: Services, pipeline: Steps) -> AsyncIterator[Worker
             stack,
             database_url=svc.database_url,
             redis_url=svc.redis_url,
-            steps=pipeline,
+            providers={},
+            build_steps=lambda _: pipeline,
         )
         ctx.update(runtime=runtime, runs=runs, stack=stack)
 
@@ -165,3 +168,36 @@ async def test_deploy_lets_the_running_job_finish(services):
     assert run is not None and run.status == "completed"
     assert calls.count == {"supervisor": 1, "research": 1, "studio": 1}
     assert (await services.event_types(run_id)).count("run.started") == 1
+
+
+async def test_steps_share_the_workers_llm_gateway_and_http_client(services):
+    built: list[worker.Services] = []
+
+    def build_steps(shared: worker.Services) -> Steps:
+        built.append(shared)
+        return PLACEHOLDER_STEPS
+
+    # A provider that is listed but never called: this test makes no LLM requests.
+    providers = {"groq": ProviderSpec("groq", "https://llm.invalid", "model", "key")}
+    try:
+        async with AsyncExitStack() as stack:
+            await worker.create_runtime(
+                stack,
+                database_url=services.database_url,
+                redis_url=services.redis_url,
+                providers=providers,
+                build_steps=build_steps,
+            )
+            [shared] = built  # built exactly once, at startup
+            assert [
+                p.name for p in await shared.llm.candidates("research_planning", None)
+            ] == ["groq"]
+
+            # A rate limit seen by any worker pauses the provider for all of them.
+            await RedisCooldowns(services.redis).start("groq", 30)
+            assert await shared.llm.candidates("research_planning", None) == []
+            assert not shared.http.is_closed
+
+        assert shared.http.is_closed  # closed when the worker shuts down
+    finally:
+        await services.redis.delete(RedisCooldowns.key("groq"))
