@@ -311,7 +311,7 @@ function Field({
     </div>
   );
 }
-function PersonalizationTab({ userName, userEmail }: { userName?: string; userEmail?: string }) {
+function PersonalizationTab({ userName, userEmail }: { userName?: string; userEmail?: string | null }) {
   const [form, setForm] = useState<PersonalizationForm>({ ...EMPTY, name: userName ?? "" });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);

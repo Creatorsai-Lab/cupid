@@ -114,7 +114,7 @@ Open `.env` in your editor and set at minimum:
 
 ```env
 SECRET_KEY=your-secret-key-here
-database_url=postgresql+asyncpg://cupid:cupid@localhost:5432/cupid_db
+database_url=postgresql+asyncpg://cupid:cupid@localhost:5433/cupid_db
 REDIS_URL=redis://localhost:6379/0
 ```
 

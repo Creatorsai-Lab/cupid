@@ -23,7 +23,9 @@ interface ApiResponse<T> {
 interface UserData {
   id: string;
   full_name: string;
-  email: string;
+  // Google accounts have an email, phone-login accounts a phone; one may be null.
+  email: string | null;
+  phone: string | null;
   is_active: boolean;
   created_at: string;
 }

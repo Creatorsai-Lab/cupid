@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = Field(
-        "postgresql+asyncpg://cupid:cupid@localhost:5432/cupid_db", repr=False
+        "postgresql+asyncpg://cupid:cupid@localhost:5433/cupid_db", repr=False
     )
 
     # FRONTEND
@@ -56,6 +56,13 @@ class Settings(BaseSettings):
     # YouTube-connect callback above). Add this exact URI to the same Google
     # OAuth client's "Authorized redirect URIs".
     google_login_redirect_uri: str = "http://localhost:8000/api/v1/auth/google/callback"
+
+    # APITxT SMS OTP (phone login). Blank authkey = phone login disabled.
+    apitxt_authkey: str = Field("", repr=False)
+    apitxt_base_url: str = "https://apitxt.com"
+    # Dashboard SMS template id (DLT-approved, contains {otp}). None = the
+    # account's default OTP template.
+    apitxt_sms_template_id: str = ""
 
     # ── Admin ─────────────────────────────────────────────────────────────
     # Emails promoted to is_admin=True automatically at startup (the env

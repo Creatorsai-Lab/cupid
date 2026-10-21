@@ -1,8 +1,8 @@
 """
 Authentication service — user lookups for the auth layer.
 
-Sign-in is Google-only (see routers/oauth_google.py), so password helpers were
-removed. This keeps the one lookup the login flow needs.
+Sign-in is Google or phone OTP (see app/auth/router.py); there are no password
+helpers. These are the lookups those login flows need.
 """
 
 from typing import Any
@@ -16,6 +16,12 @@ from app.auth.models import User
 async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     """Look up a user by email. Returns None if not found."""
     result = await db.execute(select(User).where(User.email == email))
+    return result.scalar_one_or_none()
+
+
+async def get_user_by_phone(db: AsyncSession, phone: str) -> User | None:
+    """Look up a user by normalized phone (see app/auth/otp.normalize_phone)."""
+    result = await db.execute(select(User).where(User.phone == phone))
     return result.scalar_one_or_none()
 
 

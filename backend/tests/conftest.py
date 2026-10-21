@@ -29,7 +29,7 @@ from app.main import app
 
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL",
-    "postgresql+asyncpg://cupid:cupid@localhost:5432/cupid_test_db",
+    "postgresql+asyncpg://cupid:cupid@localhost:5433/cupid_test_db",
 )
 TEST_REDIS_URL = os.environ.get("TEST_REDIS_URL", "redis://localhost:6380/15")
 
