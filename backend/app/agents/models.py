@@ -1,5 +1,4 @@
 """Shared contracts for the agent pipeline.
-
 The request options below are the only Python definition; the router, the
 pipeline state and the agents import them from here. frontend/lib/api.ts
 mirrors them, and tests/agents/test_request_options.py keeps the two equal.
@@ -12,13 +11,11 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-# ── Request options ────────────────────────────────────────────
+# User request (prompt) options
 
-ContentType = Literal["Text", "Image", "Article", "Video", "Ads", "Quiz"]
-
-Platform = Literal["Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube", "Web"]
-
-ContentLength = Literal["Short", "Medium", "Long", "Full Article"]
+ContentType = Literal["Text", "Image", "Video", "Ads", "Quiz"]
+Platform = Literal["Twitter", "LinkedIn", "Instagram", "Facebook", "YouTube"]
+ContentLength = Literal["Short", "Medium", "Long"]
 
 Tone = Literal[
     "Casual",
@@ -40,9 +37,7 @@ class ContractModel(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
 
-# ── Run inputs (written once when the run starts) ──────────────
-
-
+# Run inputs (written once when the run starts)
 class RunRequest(ContractModel):
     run_id: str = Field(min_length=1)
     user_id: str = Field(min_length=1)
@@ -68,9 +63,7 @@ class CreatorProfile(ContractModel):
     usp: str | None = None
 
 
-# ── Outputs and progress ───────────────────────────────────────
-
-
+# Outputs and progress
 class Issue(ContractModel):
     """Something a step wants the user or the logs to know; never hidden."""
 

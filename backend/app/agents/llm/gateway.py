@@ -125,7 +125,7 @@ class LLMGateway:
     async def close(self) -> None:
         await self._http.aclose()
 
-    # ── Provider selection ──
+    #  PROVIDER SELECTION
 
     async def candidates(self, role: str, preferred: str | None) -> list[ProviderSpec]:
         """Configured providers for the role that aren't cooling down, run's choice first."""

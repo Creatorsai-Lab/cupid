@@ -1,3 +1,4 @@
+
 # Cupid — Updated Version Plan
 
 > Living plan for rebuilding Cupid's agent system. Edit freely: tick tasks as they land,
@@ -17,29 +18,29 @@ creation) is the product; every other step exists to feed it well.
 
 ## 2. Decision log
 
-| #   | Decision                                                                                                                                              | Date       |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| D1  | Agent endpoints stay under `/api/v1/agents`. New routes are added there (pre-launch, no v2).                                                         | 2026-10-06 |
-| D2  | Keep `_TONE_TO_VOICE`: one copy in `studio_agents/voices.py`, every tone mapped, actually read by the studio.                                               | 2026-10-06 |
-| D3  | The new research agent (`D:\cupid_agents\web-search-agent`) replaces both the personalization and research agents.                                    | 2026-10-06 |
-| D4  | Workflow outside, agents inside: a fixed LangGraph pipeline with intelligence inside each step. No swarm.                                            | 2026-10-06 |
-| D5  | Free LLM APIs only until a working MVP. Each role has an ordered provider list; one provider per role for a whole run; skip a provider while it is rate-limited. | 2026-10-09 |
-| D6  | Send as little user data to LLMs as possible; use provider settings and request options that disable logging and training.                          | 2026-10-09 |
-| D7  | Prompt caching from the first step (see 5.5).                                                                                                        | 2026-10-09 |
-| D8  | No research-output compression until the optimization phase (Phase 6).                                                                              | 2026-10-09 |
-| D9  | Composer renamed **studio**: head agent **director**, sub-agents **specialists**, later a lightweight **editor**. Not "creator" — that is our user.  | 2026-10-09 |
-| D10 | Studio output is stored as typed, addressable blocks — never plain text.                                                                             | 2026-10-09 |
-| D11 | Tones are defined once per language (one Python type, one TypeScript constant).                                                                      | 2026-10-09 |
-| D12 | Feature folders: every feature and every agent owns its `models.py`. No top-level `models/`, `schemas/`, `services/`, `routers/`.                    | 2026-10-09 |
-| D13 | Folder depth is `app/<feature>/<file>`; only agents go one level deeper.                                                                             | 2026-10-09 |
-| D14 | Trends ingestion is rebuilt from scratch later; no piecemeal fixes until then.                                                                       | 2026-10-09 |
-| D15 | The first pipeline step keeps the name **supervisor** (`agents/supervisor_agents/`); it will gain more files in later versions.                             | 2026-10-09 |
-| D16 | The supervisor makes no LLM calls — every check is deterministic.                                                                                    | 2026-10-09 |
-| D17 | uv is the Python dependency manager: `pyproject.toml` + `uv.lock`, commands via `uv run` (no venv activation).                                       | 2026-10-09 |
-| D18 | No git pre-commit hooks. Quality checks are run manually with `uv run`: ruff (lint + format), pyright (types), pytest; CI runs them on pull requests. | 2026-10-12 |
-| D19 | Evals live in `backend/evals/`, separate from `tests/`: real LLMs, scored datasets, results gitignored; never run by `uv run pytest` or CI. | 2026-10-12 |
-| D20 | Test layout: folder = what is tested (mirrors `app/`, agents get one subfolder per part); marker = what it needs (`db`, `integration`). `tests/security/` holds only app-wide security rules; feature-specific security tests live with the feature. Ruff security rules (`S`) are on. | 2026-10-12 |
-| D21 | Agent folders are named `<area>_agents/` (`supervisor_agents/`, `research_agents/`, `studio_agents/`): each holds one or more agents for that area, and the name makes clear the folder contains agents. Their tests mirror the names. | 2026-10-16 |
+| #   | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Date       |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| D1  | Agent endpoints stay under `/api/v1/agents`. New routes are added there (pre-launch, no v2).                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | 2026-10-06 |
+| D2  | Keep `_TONE_TO_VOICE`: one copy in `studio_agents/voices.py`, every tone mapped, actually read by the studio.                                                                                                                                                                                                                                                                                                                                                                                                                                                | 2026-10-06 |
+| D3  | The new research agent (`D:\cupid_agents\web-search-agent`) replaces both the personalization and research agents.                                                                                                                                                                                                                                                                                                                                                                                                                                             | 2026-10-06 |
+| D4  | Workflow outside, agents inside: a fixed LangGraph pipeline with intelligence inside each step. No swarm.                                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2026-10-06 |
+| D5  | Free LLM APIs only until a working MVP. Each role has an ordered provider list; one provider per role for a whole run; skip a provider while it is rate-limited.                                                                                                                                                                                                                                                                                                                                                                                                 | 2026-10-09 |
+| D6  | Send as little user data to LLMs as possible; use provider settings and request options that disable logging and training.                                                                                                                                                                                                                                                                                                                                                                                                                                       | 2026-10-09 |
+| D7  | Prompt caching from the first step (see 5.5).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 2026-10-09 |
+| D8  | No research-output compression until the optimization phase (Phase 6).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | 2026-10-09 |
+| D9  | Composer renamed **studio**: head agent **director**, sub-agents **specialists**, later a lightweight **editor**. Not "creator" — that is our user.                                                                                                                                                                                                                                                                                                                                                                                     | 2026-10-09 |
+| D10 | Studio output is stored as typed, addressable blocks — never plain text.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2026-10-09 |
+| D11 | Tones are defined once per language (one Python type, one TypeScript constant).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | 2026-10-09 |
+| D12 | Feature folders: every feature and every agent owns its `models.py`. No top-level `models/`, `schemas/`, `services/`, `routers/`.                                                                                                                                                                                                                                                                                                                                                                                                                      | 2026-10-09 |
+| D13 | Folder depth is `app/<feature>/<file>`; only agents go one level deeper.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 2026-10-09 |
+| D14 | Trends ingestion is rebuilt from scratch later; no piecemeal fixes until then.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | 2026-10-09 |
+| D15 | The first pipeline step keeps the name **supervisor** (`agents/supervisor_agents/`); it will gain more files in later versions.                                                                                                                                                                                                                                                                                                                                                                                                                          | 2026-10-09 |
+| D16 | The supervisor makes no LLM calls — every check is deterministic.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | 2026-10-09 |
+| D17 | uv is the Python dependency manager: `pyproject.toml` + `uv.lock`, commands via `uv run` (no venv activation).                                                                                                                                                                                                                                                                                                                                                                                                                                             | 2026-10-09 |
+| D18 | No git pre-commit hooks. Quality checks are run manually with `uv run`: ruff (lint + format), pyright (types), pytest; CI runs them on pull requests.                                                                                                                                                                                                                                                                                                                                                                                                          | 2026-10-12 |
+| D19 | Evals live in `backend/evals/`, separate from `tests/`: real LLMs, scored datasets, results gitignored; never run by `uv run pytest` or CI.                                                                                                                                                                                                                                                                                                                                                                                                                | 2026-10-12 |
+| D20 | Test layout: folder = what is tested (mirrors `app/`, agents get one subfolder per part); marker = what it needs (`db`, `integration`). `tests/security/` holds only app-wide security rules; feature-specific security tests live with the feature. Ruff security rules (`S`) are on.                                                                                                                                                                                                                                                                 | 2026-10-12 |
+| D21 | Agent folders are named `<area>_agents/` (`supervisor_agents/`, `research_agents/`, `studio_agents/`): each holds one or more agents for that area, and the name makes clear the folder contains agents. Their tests mirror the names.                                                                                                                                                                                                                                                                                                                   | 2026-10-16 |
 | D22 | No duplicate pipeline work. The run queue is SAQ on **Postgres**, not Redis: SAQ's Redis sweep can re-queue a job caught mid-dequeue (seen in CI); on Postgres a job is taken and marked active in one statement, and `group_key` = run id allows one active job per run. Defence in depth: `execute()` holds a per-run Postgres lock and runs only queued runs (or runs whose worker died). A run over its time limit fails (resumable) instead of being retried by the queue; deploys let running jobs finish. Redis keeps events and LLM cooldowns. | 2026-10-17 |
 
 ---
@@ -58,13 +59,13 @@ POST /api/v1/agents/generate ──► run_id
      every step     ──► typed events ──► Redis stream ──► GET /runs/{id}/events (SSE)
 ```
 
-| Step        | Job                                                                                                                                  | Writes to the run pool   |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
-| supervisor  | Deterministic checks (input, quota, rate limits) and the run plan from the request. No LLM call. Replaces the keyword supervisor. | `plan`                   |
-| research    | Plan queries, search, extract, evaluate and select personalized sources.                                                             | `research`               |
-| director    | Reads everything once and makes the creative decisions every specialist follows.                                                     | `brief`                  |
-| specialists | Produce each deliverable variant in parallel. Writer first; designer, infographic, animator and video later. Each piece is reviewed before it lands. | `pieces` (appended)      |
-| finalize    | Save to history once (keyed by run id) and emit `run.completed`.                                                                     | —                        |
+| Step        | Job                                                                                                                                                  | Writes to the run pool |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| supervisor  | Deterministic checks (input, quota, rate limits) and the run plan from the request. No LLM call. Replaces the keyword supervisor.                    | `plan`               |
+| research    | Plan queries, search, extract, evaluate and select personalized sources.                                                                             | `research`           |
+| director    | Reads everything once and makes the creative decisions every specialist follows.                                                                     | `brief`              |
+| specialists | Produce each deliverable variant in parallel. Writer first; designer, infographic, animator and video later. Each piece is reviewed before it lands. | `pieces` (appended)  |
+| finalize    | Save to history once (keyed by run id) and emit `run.completed`.                                                                                   | —                     |
 
 ### Principles
 
@@ -83,13 +84,13 @@ POST /api/v1/agents/generate ──► run_id
 
 ### 4.1 Feature-folder convention
 
-| File         | Job                                                                                   |
-| ------------ | ------------------------------------------------------------------------------------- |
-| `models.py`  | Data this folder owns: DB tables in features, typed contracts (Pydantic) in agents.   |
-| `schemas.py` | HTTP request and response shapes only.                                                |
-| `service.py` | Logic.                                                                                |
-| `router.py`  | HTTP only, thin. No try/except, no business logic.                                    |
-| `deps.py`    | FastAPI dependencies.                                                                 |
+| File           | Job                                                                                 |
+| -------------- | ----------------------------------------------------------------------------------- |
+| `models.py`  | Data this folder owns: DB tables in features, typed contracts (Pydantic) in agents. |
+| `schemas.py` | HTTP request and response shapes only.                                              |
+| `service.py` | Logic.                                                                              |
+| `router.py`  | HTTP only, thin. No try/except, no business logic.                                  |
+| `deps.py`    | FastAPI dependencies.                                                               |
 
 Rules:
 
@@ -187,8 +188,8 @@ backend/
 
 ### 4.5 Daily commands (from `backend/`, no venv activation)
 
-| Task                       | Command                                            |
-| -------------------------- | -------------------------------------------------- |
+| Task                       | Command                                              |
+| -------------------------- | ---------------------------------------------------- |
 | Install / sync environment | `uv sync`                                          |
 | Run tests                  | `uv run pytest`                                    |
 | Format                     | `uv run ruff format .`                             |
@@ -196,7 +197,7 @@ backend/
 | Type check                 | `uv run pyright`                                   |
 | Start the API              | `uv run uvicorn app.main:app --reload --port 8000` |
 | Migrate the database       | `uv run alembic upgrade head`                      |
-| Add or upgrade a package   | `uv add <package>==<version>` (dev: `--dev`)       |
+| Add or upgrade a package   | `uv add <package>==<version>` (dev: `--dev`)     |
 | Remove a package           | `uv remove <package>`                              |
 
 ---
@@ -308,7 +309,6 @@ class ContentPiece(ContractModel):
       max_chars: int | None
       guide: str                                # what a great one looks like
   ```
-
 - **Specialists** share one interface, so the director routes through the registry:
   `async def make(task: Assignment, brief: CreativeBrief) -> ContentPiece`.
   (`edit()` is added with the editor.)
@@ -364,7 +364,6 @@ Built by promoting the research agent's `LLMClient` (and its tests), not written
       ):
           await events.publish(run_id, to_event(mode, chunk))
   ```
-
 - **Worker:** runs execute outside the API process (SAQ; the queue lives in Postgres, D22),
   so deploys and restarts do not kill runs; the worker's concurrency limit protects
   provider rate limits.
@@ -373,26 +372,24 @@ Built by promoting the research agent's `LLMClient` (and its tests), not written
   `run.degraded`, `run.failed`, `run.completed`.
 - **Endpoints** (all under v1, D1):
 
-  | Method | Path                                  | Status                 |
-  | ------ | ------------------------------------- | ---------------------- |
-  | POST   | `/api/v1/agents/generate`             | exists, body unchanged |
-  | GET    | `/api/v1/agents/runs/{id}`            | exists (snapshot)      |
-  | GET    | `/api/v1/agents/runs/{id}/events`     | new (SSE)              |
-  | POST   | `/api/v1/agents/runs/{id}/resume`     | new                    |
-
+  | Method | Path                                | Status                 |
+  | ------ | ----------------------------------- | ---------------------- |
+  | POST   | `/api/v1/agents/generate`         | exists, body unchanged |
+  | GET    | `/api/v1/agents/runs/{id}`        | exists (snapshot)      |
+  | GET    | `/api/v1/agents/runs/{id}/events` | new (SSE)              |
+  | POST   | `/api/v1/agents/runs/{id}/resume` | new                    |
 - **Failure handling:**
 
-  | Failure                              | Handling                                                    |
-  | ------------------------------------ | ----------------------------------------------------------- |
-  | Rate limit, timeout, 5xx on a call   | Gateway retries, then the next provider for that role       |
-  | A step keeps failing                 | `RetryPolicy(max_attempts=2)`, then run marked failed, resumable |
-  | Deploy                               | Worker lets running jobs finish (up to 5 min), then stops   |
-  | Worker crash                         | Queue hands the job out again → `execute(run_id)` resumes   |
-  | Run exceeds its time limit (15 min)  | Run marked failed, resumable; never retried automatically   |
-  | Same job delivered twice             | One active job per run; `execute()` lock + status check     |
-  | User clicks Retry                    | `POST .../resume` → `execute(run_id)`                       |
-  | Weaker result                        | Run completes with a visible "degraded" label               |
-
+  | Failure                             | Handling                                                           |
+  | ----------------------------------- | ------------------------------------------------------------------ |
+  | Rate limit, timeout, 5xx on a call  | Gateway retries, then the next provider for that role              |
+  | A step keeps failing                | `RetryPolicy(max_attempts=2)`, then run marked failed, resumable |
+  | Deploy                              | Worker lets running jobs finish (up to 5 min), then stops          |
+  | Worker crash                        | Queue hands the job out again → `execute(run_id)` resumes       |
+  | Run exceeds its time limit (15 min) | Run marked failed, resumable; never retried automatically          |
+  | Same job delivered twice            | One active job per run; `execute()` lock + status check          |
+  | User clicks Retry                   | `POST .../resume` → `execute(run_id)`                         |
+  | Weaker result                       | Run completes with a visible "degraded" label                      |
 - **Resume safety:** side effects only in finalize, keyed by run id. Slow media jobs store
   the provider's job id in state before waiting, so a resume never pays twice.
 
@@ -435,29 +432,29 @@ checks until the full supervisor lands (Phase 4).
 
 ### Phase 0 — Stabilize (S)
 
-- [x] Restore `models/top_content.py`.
-- [x] Baseline commit of the old codebase (`db5fd4e`).
-- [x] Switch to uv (D17): dependencies in `pyproject.toml` (direct pins, dev group) with
-      `uv.lock`; `requirements*.txt` removed; local `.venv` synced (unused packages such as
-      torch removed). Verified: app starts, same test results as before.
-- [x] Tests: `integration` and `db` markers (strict); default run skips `integration`; the
-      3 network tests marked; 6 keyword-supervisor and 2 trends failures are strict xfails.
-      Default run: ~1 s, green.
-- [x] Removed settings nothing reads (ChromaDB, Ollama, Reddit, Resend, Anthropic, Gemini)
-      and the ChromaDB container; `.env.example` lists exactly the settings, enforced by a test.
-- [x] Request options (content type, platform, length, tone) defined once per language:
-      `app/agents/models.py` and `frontend/lib/api.ts`, kept equal by a test.
-- [x] CI backend job uses uv (`setup-uv`, `uv sync --locked`) and runs ruff and pytest.
-- [x] CI green locally: Prettier applied, 0 ESLint errors (17 warnings remain), tsc and
-      `next build` pass, `npm ci` accepts the lock file, no Linux path-case problems.
-- [x] `backend/Scripts/` tracked as `scripts/` (Linux CI is case-sensitive).
-- [x] Stopped tracking generated `next-env.d.ts` and `tsconfig.tsbuildinfo`.
-- [x] Tag `legacy-pipeline` on the baseline commit (`db5fd4e`).
-- [x] Removed pre-commit hooks (D18); pyright replaces mypy as the type checker.
+- [X] Restore `models/top_content.py`.
+- [X] Baseline commit of the old codebase (`db5fd4e`).
+- [X] Switch to uv (D17): dependencies in `pyproject.toml` (direct pins, dev group) with
+  `uv.lock`; `requirements*.txt` removed; local `.venv` synced (unused packages such as
+  torch removed). Verified: app starts, same test results as before.
+- [X] Tests: `integration` and `db` markers (strict); default run skips `integration`; the
+  3 network tests marked; 6 keyword-supervisor and 2 trends failures are strict xfails.
+  Default run: ~1 s, green.
+- [X] Removed settings nothing reads (ChromaDB, Ollama, Reddit, Resend, Anthropic, Gemini)
+  and the ChromaDB container; `.env.example` lists exactly the settings, enforced by a test.
+- [X] Request options (content type, platform, length, tone) defined once per language:
+  `app/agents/models.py` and `frontend/lib/api.ts`, kept equal by a test.
+- [X] CI backend job uses uv (`setup-uv`, `uv sync --locked`) and runs ruff and pytest.
+- [X] CI green locally: Prettier applied, 0 ESLint errors (17 warnings remain), tsc and
+  `next build` pass, `npm ci` accepts the lock file, no Linux path-case problems.
+- [X] `backend/Scripts/` tracked as `scripts/` (Linux CI is case-sensitive).
+- [X] Stopped tracking generated `next-env.d.ts` and `tsconfig.tsbuildinfo`.
+- [X] Tag `legacy-pipeline` on the baseline commit (`db5fd4e`).
+- [X] Removed pre-commit hooks (D18); pyright replaces mypy as the type checker.
 - [ ] Fix pyright errors in code that stays (40 as of Phase 1, incl. 6 in scripts/; ~15 in old agents/trends that are
-      deleted later, ~7 real `None`-handling gaps, ~13 library typing noise), then add
-      `uv run pyright` to CI.
-- [x] Pushed the `phase-0-stabilize` branch and the `legacy-pipeline` tag; CI green, merged into `main` (PR #2).
+  deleted later, ~7 real `None`-handling gaps, ~13 library typing noise), then add
+  `uv run pyright` to CI.
+- [X] Pushed the `phase-0-stabilize` branch and the `legacy-pipeline` tag; CI green, merged into `main` (PR #2).
 
 Done when: the app starts, `pytest` passes in seconds, CI is green on GitHub.
 
@@ -465,24 +462,24 @@ Done when: the app starts, `pytest` passes in seconds, CI is green on GitHub.
 
 Pure moves, no behavior change. One commit per feature, using `git mv` to keep history.
 
-- [x] Before moving: snapshot of the OpenAPI schema, every table definition and test results.
-- [x] `core/`: `Base` and `DbSession` in `db.py`; `tables.py` discovers every `models.py`
-      automatically (no list to keep in sync, so no test needed); `errors.py` with one JSON
-      handler in `main.py` (tested); `oauth_state.py` moved in.
-- [x] `auth/`: models, schemas, service, `google.py` (OAuth client), `session.py` (JWT +
-      session cookie), `deps.py` (`get_current_user`, `CurrentUser`), `router.py` (both auth
-      routers merged; URLs unchanged).
-- [x] `profile/`, `connections/`, `history/`, `admin/` (AuditLog), `agents/router.py` +
-      `agents/schemas.py`.
-- [x] `insights/`: one `models.py` for both tables (snapshot + top content).
-- [x] `trends/`: models, schemas, router; the dead Celery task (`tasks/trends_ingest.py`) deleted.
-- [x] `alembic/env.py` uses `core.tables`; `tests/conftest.py` imports `Base` from `core/db.py`.
-- [x] Emptied `models/`, `schemas/`, `services/`, `routers/`, `tasks/` deleted.
-- [x] Tests mirror the app: `tests/<feature>/`.
-- [x] Stale `pyrightconfig.json` (it silently overrode `pyproject.toml`) and an empty
-      `backend/package-lock.json` removed.
-- [x] README project tree updated.
-- [x] Pushed, CI green, merged into `main` (PR #3).
+- [X] Before moving: snapshot of the OpenAPI schema, every table definition and test results.
+- [X] `core/`: `Base` and `DbSession` in `db.py`; `tables.py` discovers every `models.py`
+  automatically (no list to keep in sync, so no test needed); `errors.py` with one JSON
+  handler in `main.py` (tested); `oauth_state.py` moved in.
+- [X] `auth/`: models, schemas, service, `google.py` (OAuth client), `session.py` (JWT +
+  session cookie), `deps.py` (`get_current_user`, `CurrentUser`), `router.py` (both auth
+  routers merged; URLs unchanged).
+- [X] `profile/`, `connections/`, `history/`, `admin/` (AuditLog), `agents/router.py` +
+  `agents/schemas.py`.
+- [X] `insights/`: one `models.py` for both tables (snapshot + top content).
+- [X] `trends/`: models, schemas, router; the dead Celery task (`tasks/trends_ingest.py`) deleted.
+- [X] `alembic/env.py` uses `core.tables`; `tests/conftest.py` imports `Base` from `core/db.py`.
+- [X] Emptied `models/`, `schemas/`, `services/`, `routers/`, `tasks/` deleted.
+- [X] Tests mirror the app: `tests/<feature>/`.
+- [X] Stale `pyrightconfig.json` (it silently overrode `pyproject.toml`) and an empty
+  `backend/package-lock.json` removed.
+- [X] README project tree updated.
+- [X] Pushed, CI green, merged into `main` (PR #3).
 
 Done when: the OpenAPI schema is identical, `alembic revision --autogenerate` produces an
 empty migration, test results are unchanged, and the app starts.
@@ -492,28 +489,28 @@ Docker was off for autogenerate); tests unchanged; the app starts and serves its
 
 ### Phase 1.5 — Test foundation (S)
 
-- [x] Ruff security rules (`S`) on; 6 false alarms marked inline with reasons.
-- [x] `tests/security/` with the first app-wide rule: every route requires login except an
-      allowlist of 5 deliberately public routes (verified it catches a forgotten check).
-- [x] `tests/agents/supervisor/` subfolder; `backend/evals/` skeleton with its README.
-- [x] `conftest.py` rewritten: one event loop per run, working Postgres fixtures
-      (`db_session` rolled back per test, auto `db` marker, skip locally / fail in CI when
-      the DB is down), `db_client`, `sign_in(user)`; trends fixtures moved to its conftest.
-- [x] `factories.py` (`make_user`, `make_history`, `make_subscription`, `save`).
-      `FakeLLM` / `fakes.py` deferred to Phase 2 so it matches the gateway's interface.
-- [x] Dev tools: `respx`, `pytest-cov` (baseline coverage 52%).
-- [x] CI: Postgres service (`db` tests run), coverage, `pip-audit`, vitest, `npm audit`
-      (production deps), gitleaks secret scan over full history (`.gitleaksignore`).
-- [x] Tests: session cookie checks, entitlement rules, history ownership (25 tests).
-- [x] App-wide security tests: no secrets in settings output/errors or 500 responses,
-      CORS origin. Fetch-guard and untrusted-content tests deferred to Phase 3 (research).
-- [x] Fixed what the new checks found: settings leaked secrets (now hidden); 7 vulnerable
-      Python packages (upgraded; python-jose replaced by PyJWT, existing sessions stay
-      valid); 22 frontend vulnerabilities (production audit now 0); Phase 1's
-      `alembic check` confirmed against the real DB.
-- [x] `backend/tests/tests.md`: guide to the test suite.
+- [X] Ruff security rules (`S`) on; 6 false alarms marked inline with reasons.
+- [X] `tests/security/` with the first app-wide rule: every route requires login except an
+  allowlist of 5 deliberately public routes (verified it catches a forgotten check).
+- [X] `tests/agents/supervisor/` subfolder; `backend/evals/` skeleton with its README.
+- [X] `conftest.py` rewritten: one event loop per run, working Postgres fixtures
+  (`db_session` rolled back per test, auto `db` marker, skip locally / fail in CI when
+  the DB is down), `db_client`, `sign_in(user)`; trends fixtures moved to its conftest.
+- [X] `factories.py` (`make_user`, `make_history`, `make_subscription`, `save`).
+  `FakeLLM` / `fakes.py` deferred to Phase 2 so it matches the gateway's interface.
+- [X] Dev tools: `respx`, `pytest-cov` (baseline coverage 52%).
+- [X] CI: Postgres service (`db` tests run), coverage, `pip-audit`, vitest, `npm audit`
+  (production deps), gitleaks secret scan over full history (`.gitleaksignore`).
+- [X] Tests: session cookie checks, entitlement rules, history ownership (25 tests).
+- [X] App-wide security tests: no secrets in settings output/errors or 500 responses,
+  CORS origin. Fetch-guard and untrusted-content tests deferred to Phase 3 (research).
+- [X] Fixed what the new checks found: settings leaked secrets (now hidden); 7 vulnerable
+  Python packages (upgraded; python-jose replaced by PyJWT, existing sessions stay
+  valid); 22 frontend vulnerabilities (production audit now 0); Phase 1's
+  `alembic check` confirmed against the real DB.
+- [X] `backend/tests/tests.md`: guide to the test suite.
 - [ ] **Revoke the Hugging Face token** found in git history (repo is public) —
-      huggingface.co/settings/tokens. Owner action.
+  huggingface.co/settings/tokens. Owner action.
 
 Done when: DB tests run in CI, and auth, entitlements and history ownership are covered.
 
@@ -521,51 +518,43 @@ Done when: DB tests run in CI, and auth, entitlements and history ownership are 
 
 Test-first, on placeholder steps. Split into small steps, each its own pull request:
 
-- [x] **2.0** Move the old pipeline into `app/agents/legacy/` (pure move) so the new code can
-      use the planned names; each old part is deleted when its replacement lands.
-- [x] **2.1** Contracts in `agents/models.py` (`RunRequest`, `RunPlan`, `Issue`, `RunEvent`, …)
-      and the run pool in `agents/state.py` (inputs / shared decisions / outputs, reducers).
-- [x] **2.2** `llm/` gateway built from the research agent's `LLMClient` and its tests: roles
-      from settings, one provider per run, 429 cooldown, timeouts, retries, structured
-      output, usage + cached-token logging, privacy options. `tests/fakes.py` (`FakeLLM`).
-- [x] **2.3** `llm/prompts.py`: prompt builder (most-shared first) with determinism tests.
-- [x] **2.4** Graph with placeholder supervisor, research and studio steps; ownership test
-      (each step writes only its fields); full run and **crash-and-resume** test on
-      `InMemorySaver`.
-- [x] **2.5a** Runtime core: our own step retry rule (`runtime/retry.py`: transient errors
-      only; quota errors resumed later; bugs never retried), strict checkpoint
-      serialization (allowlist derived from `RunState`), Postgres checkpointer (crash and
-      resume verified on real Postgres), Alembic guard for the checkpointer's tables,
-      `agent_runs` table + migration, run events on Redis streams, `execute()` runner.
-- [x] **2.5b** Worker and endpoints, verified against Docker (Postgres + Redis):
-      - `runtime/worker.py` (SAQ; Windows event loop; automatic resume after quota
-        errors, bounded, keyed per attempt), `runtime/queue.py` (no import side effects).
-      - Idempotent start: a re-delivered start job resumes instead of restarting.
-      - `RunStore.claim_for_resume`: one atomic UPDATE, so a run is never queued twice.
-      - Gateway cooldowns pluggable; `RedisCooldowns` shares them across workers.
-      - `GET /runs/{id}/events` (SSE, owner only, Last-Event-ID, keep-alives, final event
-        from the run record if the stream expired) and `POST /runs/{id}/resume`
-        (202 / 404 / 409 / 503).
-      - CI gets a Redis service; end-to-end test with a real SAQ worker: quota failure →
-        automatic resume → done (waits for the run's outcome, not a timer).
-      - Run the worker: `uv run saq app.agents.runtime.worker.worker_settings`.
-- [x] **2.5c** No duplicate work (D22), after CI caught a job delivered twice:
-      - `execute()`: per-run Postgres lock; runs only queued runs (or whose worker died).
-      - Queue moved to SAQ on Postgres with `group_key` = run id; tests prove a job being
-        run is never handed out again and a run has one active job at a time.
-      - Run time limit (15 min) fails the run, resumable; the queue's timeout is a backstop.
-      - Graceful deploys (5 min grace), tested by stopping a worker mid-step.
-      - API connects the queue at startup (fails fast with a hint on Windows' default loop).
-- [x] **2.6** Router and create page on the new runtime. Drafts are placeholders until
-      Phases 3–5 (decided 2026-10-17; Cupid isn't launched, `production` is untouched).
-      - `POST /generate` records the run and queues its start job with a snapshot of the
-        creator's profile; `GET /runs/{id}` returns the run record. The old background
-        pipeline and its Redis run store are gone; `_TONE_TO_VOICE` moved to
-        `studio_agents/voices.py` (D2).
-      - The live stream ends with an explicit `end` once the run record is final, so
-        reloading a resumed run doesn't stop at its earlier failure.
-      - Create page follows live events: step progress, sources, drafts; Retry (resume)
-        once the run has ended; a note while an automatic resume is pending.
+- [X] **2.0** Move the old pipeline into `app/agents/legacy/` (pure move) so the new code can
+  use the planned names; each old part is deleted when its replacement lands.
+- [X] **2.1** Contracts in `agents/models.py` (`RunRequest`, `RunPlan`, `Issue`, `RunEvent`, …)
+  and the run pool in `agents/state.py` (inputs / shared decisions / outputs, reducers).
+- [X] **2.2** `llm/` gateway built from the research agent's `LLMClient` and its tests: roles
+  from settings, one provider per run, 429 cooldown, timeouts, retries, structured
+  output, usage + cached-token logging, privacy options. `tests/fakes.py` (`FakeLLM`).
+- [X] **2.3** `llm/prompts.py`: prompt builder (most-shared first) with determinism tests.
+- [X] **2.4** Graph with placeholder supervisor, research and studio steps; ownership test
+  (each step writes only its fields); full run and **crash-and-resume** test on
+  `InMemorySaver`.
+- [X] **2.5a** Runtime core: our own step retry rule (`runtime/retry.py`: transient errors
+  only; quota errors resumed later; bugs never retried), strict checkpoint
+  serialization (allowlist derived from `RunState`), Postgres checkpointer (crash and
+  resume verified on real Postgres), Alembic guard for the checkpointer's tables,
+  `agent_runs` table + migration, run events on Redis streams, `execute()` runner.
+- [X] **2.5b** Worker and endpoints, verified against Docker (Postgres + Redis):
+  - `runtime/worker.py` (SAQ; Windows event loop; automatic resume after quota
+  errors, bounded, keyed per attempt), `runtime/queue.py` (no import side effects).
+  - Idempotent start: a re-delivered start job resumes instead of restarting.
+  - `RunStore.claim_for_resume`: one atomic UPDATE, so a run is never queued twice.
+  - Gateway cooldowns pluggable; `RedisCooldowns` shares them across workers.
+  - `GET /runs/{id}/events` (SSE, owner only, Last-Event-ID, keep-alives, final event
+  from the run record if the stream expired) and `POST /runs/{id}/resume`
+  (202 / 404 / 409 / 503).
+  - CI gets a Redis service; end-to-end test with a real SAQ worker: quota failure →
+  automatic resume → done (waits for the run's outcome, not a timer).
+  - Run the worker: `uv run saq app.agents.runtime.worker.worker_settings`.
+- [X] **2.5c** No duplicate work (D22), after CI caught a job delivered twice:
+  - `execute()`: per-run Postgres lock; runs only queued runs (or whose worker died).
+  - Queue moved to SAQ on Postgres with `group_key` = run id; tests prove a job being
+  run is never handed out again and a run has one active job at a time.
+  - Run time limit (15 min) fails the run, resumable; the queue's timeout is a backstop.
+  - Graceful deploys (5 min grace), tested by stopping a worker mid-step.
+  - API connects the queue at startup (fails fast with a hint on Windows' default loop).
+- [ ] **2.6** Router switches to the new runtime; create page switches from polling to live
+  events and shows step progress.
 
 Done when: a placeholder pipeline runs through the API; the crash test passes (break step 2,
 resume, step 1 does not re-run); prompt-prefix tests pass.
@@ -573,10 +562,10 @@ resume, step 1 does not re-run); prompt-prefix tests pass.
 ### Phase 3 — Research (M)
 
 - [ ] Port the agent and its 311 tests into `agents/research_agents/` and `tests/agents/research_agents/`,
-      using the gateway and Cupid settings.
+  using the gateway and Cupid settings.
 - [ ] `adapter.py`: profile → `PersonaContext`; result → `ResearchPack`.
 - [ ] Delete the old personalization and research packages and their tests; drop `ddgs`,
-      `langsmith` and other packages only they used.
+  `langsmith` and other packages only they used.
 - [ ] UI: sources panel fed by `research.sources` events.
 
 Done when: the 311 tests pass in Cupid CI and a real run shows research progress and sources live.
@@ -585,7 +574,7 @@ Done when: the 311 tests pass in Cupid CI and a real run shows research progress
 
 - [ ] Deterministic supervisor: input checks, quota and rate limits, `RunPlan` from the request.
 - [ ] Content safety in the agreed place (see Open questions), tested with about 40 prompts,
-      including normal ones the keyword supervisor blocked.
+  including normal ones the keyword supervisor blocked.
 - [ ] Replace the old keyword supervisor and its tests.
 - [ ] UI: blocked-reason message.
 
@@ -594,22 +583,21 @@ Done when: the 40-prompt test set passes with no extra LLM calls.
 ### Phase 5 — Studio, text (L)
 
 - [ ] `studio_agents/models.py` (blocks, `ContentPiece`, `CreativeBrief`), `voices.py`, `registry.py`,
-      `director.py`, `specialists/writer.py`, `reviewer.py`.
+  `director.py`, `specialists/writer.py`, `reviewer.py`.
 - [ ] History stores `ContentPiece`s (migration from the old variants shape).
 - [ ] Test set of 20–30 real prompts with a judge rubric.
-- [ ] Delete the old composer, old `graph.py`, `state.py`, and the frontend's
-      `ComposerResults.tsx` (unused since 2.6); drop
-      `langchain-core`, `langchain-groq` if unused.
+- [ ] Delete the old composer, old `graph.py`, `state.py`, `run_store.py`; drop
+  `langchain-core`, `langchain-groq` if unused.
 - [ ] UI: render blocks; edits save back to history.
 - [ ] README: rewrite the architecture section for the new pipeline (it still describes the
-      old agents and `MemoryState`).
+  old agents and `MemoryState`).
 
 Done when: the studio beats the old composer on the test set and no old agent code remains.
 
 ### Phase 6 — Optimize (M)
 
 - [ ] Research compression: select passages per source, tuned by a fact-survival test on
-      saved runs.
+  saved runs.
 - [ ] Cache tuning from logged `cached_tokens`; stagger parallel calls only if data says so.
 - [ ] Tokens and time per run; load test against free-tier limits.
 
@@ -630,15 +618,17 @@ Done when: agreed latency and token targets are met.
   Real calls showed Groq returns no cache data, even for byte-identical requests, and
   they are not faster. So D7 (caching) saves nothing on our only provider today, and the
   8k tokens/minute free limit was hit after three ~2.7k-token calls. A full run (research
+
   + studio with several drafts) will exceed one minute's quota. Options to weigh:
+
   1. Keep Groq free and accept slower runs (gateway cooldown spreads calls out).
   2. Add a provider that caches and reports it (OpenRouter → DeepSeek/others, OpenAI,
      DeepSeek direct) for the roles with the largest shared prompts (director, writer).
   3. Groq paid tier: check whether caching applies there before paying.
   4. Spend fewer tokens per run regardless: research compression (Phase 6), fewer/shorter
      drafts, smaller research context for the writer.
-  Evidence: `tests/agents/llm/test_prompts_live.py` (skips with the reason today; asserts
-  cache hits once a provider reports them). See also section 5.5 "Observed".
+     Evidence: `tests/agents/llm/test_prompts_live.py` (skips with the reason today; asserts
+     cache hits once a provider reports them). See also section 5.5 "Observed".
 - **Research fails completely:** write without research and say so in the UI, or fail the run?
 - **Launch deliverables:** which formats ship first (e.g. LinkedIn post, X thread, carousel)?
 - **Targets:** maximum time to first draft; maximum tokens per run.
