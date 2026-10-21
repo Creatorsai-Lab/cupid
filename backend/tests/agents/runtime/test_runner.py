@@ -14,9 +14,10 @@ from app.agents.llm.errors import RateLimitedError
 from app.agents.models import CreatorProfile, Issue
 from app.agents.runtime.checkpoint import checkpoint_serde
 from app.agents.runtime.events import EventStream
+from app.agents.runtime.retry import StepFailedError
 from app.agents.runtime.runner import USER_ERROR, Runtime, execute
 from tests.agents.test_contracts import make_request
-from tests.agents.test_graph import Calls, steps
+from tests.agents.test_graph import FAST_RETRY, Calls, steps
 from tests.fakes import FakeRuns
 
 RUN_ID = "11111111-1111-1111-1111-111111111111"
@@ -39,6 +40,7 @@ def runtime(
     graph = build_graph(
         steps(calls or Calls(), **step_overrides),
         checkpointer=InMemorySaver(serde=checkpoint_serde()),
+        retry=FAST_RETRY,
     )
     return Runtime(
         graph=graph,
@@ -242,3 +244,34 @@ async def test_stale_job_for_a_finished_run_does_nothing(redis, status):
 
     assert outcome.status == "skipped"
     assert (calls.count, await event_types(rt), runs_of(rt).history) == ({}, [], [])
+
+
+async def test_a_failing_step_gets_three_attempts_then_shows_its_own_message(redis):
+    calls = Calls()
+    always_fails = calls.track(
+        "research", PLACEHOLDER_STEPS.research, fail_times=99, error=StepFailedError
+    )
+    rt = runtime(redis, calls, research=always_fails)
+
+    outcome = await execute(rt, RUN_ID, make_request(run_id=RUN_ID))
+
+    assert (outcome.status, outcome.resume_later) == ("failed", False)
+    assert calls.count["research"] == 3  # 3 attempts in total, then stop
+    failed = (await rt.events.read(RUN_ID))[-1][1]
+    assert (
+        failed.data["message"] == "research crashed"
+    )  # the step's message, not USER_ERROR
+    assert runs_of(rt).history[-1] == ("failed", "research crashed")
+
+
+async def test_a_step_that_succeeds_on_its_last_attempt_completes_the_run(redis):
+    calls = Calls()
+    fails_twice = calls.track(
+        "research", PLACEHOLDER_STEPS.research, fail_times=2, error=StepFailedError
+    )
+    rt = runtime(redis, calls, research=fails_twice)
+
+    outcome = await execute(rt, RUN_ID, make_request(run_id=RUN_ID))
+
+    assert outcome.status == "completed"
+    assert calls.count["research"] == 3

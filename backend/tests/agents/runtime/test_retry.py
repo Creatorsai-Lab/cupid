@@ -13,7 +13,12 @@ from app.agents.llm.errors import (
     RetryableProviderError,
     StructuredOutputError,
 )
-from app.agents.runtime.retry import STEP_RETRY, resume_later, should_retry_step
+from app.agents.runtime.retry import (
+    STEP_RETRY,
+    StepFailedError,
+    resume_later,
+    should_retry_step,
+)
 
 
 def validation_error() -> ValidationError:
@@ -85,3 +90,9 @@ def test_policy_uses_our_rule_with_a_bounded_backoff():
     assert STEP_RETRY.max_attempts == 3
     assert STEP_RETRY.initial_interval == 1.0
     assert STEP_RETRY.max_interval <= 10.0
+
+
+def test_a_failed_step_attempt_is_retried_but_not_paused():
+    error = StepFailedError("Research failed. Please try again.")
+    assert should_retry_step(error) is True
+    assert resume_later(error) is False  # not a quota problem: no automatic resume

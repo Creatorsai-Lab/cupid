@@ -23,7 +23,14 @@ class Calls:
     def __init__(self) -> None:
         self.count: dict[str, int] = {}
 
-    def track(self, name: str, step, *, fail_times: int = 0, error=RuntimeError):
+    def track(
+        self,
+        name: str,
+        step,
+        *,
+        fail_times: int = 0,
+        error: type[Exception] = RuntimeError,
+    ):
         async def run(state):
             self.count[name] = self.count.get(name, 0) + 1
             if self.count[name] <= fail_times:

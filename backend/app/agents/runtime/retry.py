@@ -24,6 +24,17 @@ from app.agents.llm.errors import (
     RetryableProviderError,
 )
 
+
+class StepFailedError(Exception):
+    """A step's attempt failed in a way another attempt may fix (e.g. research
+    found nothing). Retried like a transient error; if every attempt fails, the
+    user sees `user_message` instead of the generic error."""
+
+    def __init__(self, user_message: str) -> None:
+        super().__init__(user_message)
+        self.user_message = user_message
+
+
 # Specific classes only: PermissionError is an OSError too, so OSError must not be here.
 _TRANSIENT = (
     RetryableProviderError,
@@ -38,7 +49,7 @@ def should_retry_step(error: Exception) -> bool:
     """True if retrying the failed step within seconds can succeed."""
     if isinstance(error, _QUOTA):  # RateLimitedError is a RetryableProviderError
         return False
-    return isinstance(error, _TRANSIENT)
+    return isinstance(error, (*_TRANSIENT, StepFailedError))
 
 
 def resume_later(error: BaseException) -> bool:

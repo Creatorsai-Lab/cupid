@@ -29,7 +29,7 @@ from app.agents.models import (
     RunStatus,
 )
 from app.agents.runtime.events import EventStream
-from app.agents.runtime.retry import resume_later
+from app.agents.runtime.retry import StepFailedError, resume_later
 from app.agents.state import RunState
 
 logger = logging.getLogger("app.agents.runtime")
@@ -130,10 +130,13 @@ async def _execute(
                     for step, update in chunk.items():
                         await _publish_outputs(publish, step, update or {})
     except Exception as error:  # every failure ends here; the run stays resumable
+        message = (
+            error.user_message if isinstance(error, StepFailedError) else USER_ERROR
+        )
         logger.exception("run %s failed", run_id)
         later = resume_later(error)
-        await publish("run.failed", message=USER_ERROR, resume_later=later)
-        await rt.runs.set_status(run_id, "failed", error=USER_ERROR)
+        await publish("run.failed", message=message, resume_later=later)
+        await rt.runs.set_status(run_id, "failed", error=message)
         return RunOutcome("failed", resume_later=later)
 
     state = cast(RunState, (await rt.graph.aget_state(config)).values)
