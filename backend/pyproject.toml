@@ -42,6 +42,7 @@ dependencies = [
     "ddgs==9.13.1",
     "gnews==0.4.3",
     "saq[redis]==0.26.4",
+    "tldextract==5.4.0",
 ]
 
 [dependency-groups]

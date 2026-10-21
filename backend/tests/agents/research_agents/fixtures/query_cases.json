@@ -1,0 +1,1199 @@
+[
+  {
+    "name": "breaking_ai_uk_policy",
+    "intent_class": "breaking news",
+    "user_input": "Find breaking AI policy news in the UK today.",
+    "current_date": "2026-09-04T12:00:00+00:00",
+    "persona": {
+      "audience": "Gen Z",
+      "tone": "playful"
+    },
+    "preserved_entities": [
+      "AI",
+      "UK"
+    ],
+    "preserved_constraints": [
+      "today"
+    ],
+    "expected_freshness_mode": "breaking",
+    "expected_freshness_window_days": 3,
+    "expected_required_angles": [
+      "official announcement",
+      "policy analysis",
+      "industry reaction"
+    ],
+    "expected_query_freshness": {
+      "official": 3,
+      "analysis": 3,
+      "reaction": 3
+    },
+    "query_anchor_lanes": {
+      "AI": [
+        "official",
+        "analysis",
+        "reaction"
+      ],
+      "UK": [
+        "official",
+        "analysis",
+        "reaction"
+      ],
+      "today": [
+        "analysis",
+        "reaction"
+      ]
+    },
+    "required_query_purposes": [
+      "official announcement",
+      "policy analysis",
+      "industry reaction"
+    ],
+    "forbidden_terms": [
+      "instagram",
+      "gen z",
+      "playful"
+    ],
+    "planner_response": {
+      "brief": {
+        "topic": "breaking AI policy news UK",
+        "main_keywords": [
+          "AI",
+          "UK"
+        ],
+        "user_goal": "Find breaking AI policy news in the UK today",
+        "required_angles": [
+          "official announcement",
+          "policy analysis",
+          "industry reaction"
+        ],
+        "locale": "UK",
+        "language": "en",
+        "freshness_mode": "breaking",
+        "freshness_window_days": 3,
+        "constraints": [
+          "today"
+        ],
+        "search_query_count": 3
+      },
+      "queries": [
+        {
+          "id": "official",
+          "query": "AI UK policy official announcement September 2026",
+          "purpose": "official announcement",
+          "intent": "news",
+          "freshness_window_days": 3,
+          "preferred_source_type": "government"
+        },
+        {
+          "id": "analysis",
+          "query": "AI UK policy breaking analysis today",
+          "purpose": "policy analysis",
+          "intent": "analysis",
+          "freshness_window_days": 3,
+          "preferred_source_type": "news"
+        },
+        {
+          "id": "reaction",
+          "query": "AI UK policy industry reaction today",
+          "purpose": "industry reaction",
+          "intent": "opinion",
+          "freshness_window_days": 3,
+          "preferred_source_type": "trade press"
+        }
+      ]
+    }
+  },
+  {
+    "name": "current_trend_sustainable_fashion",
+    "intent_class": "current trend",
+    "user_input": "What sustainable fashion trends are current in 2026?",
+    "current_date": "2026-09-04T12:00:00+00:00",
+    "persona": {
+      "audience": "teens",
+      "bio": "short-form fashion creator"
+    },
+    "preserved_entities": [
+      "sustainable fashion"
+    ],
+    "preserved_constraints": [
+      "2026",
+      "current"
+    ],
+    "expected_freshness_mode": "recent",
+    "expected_freshness_window_days": 30,
+    "expected_required_angles": [
+      "runway direction",
+      "retail signals",
+      "consumer data"
+    ],
+    "expected_query_freshness": {
+      "runway": 30,
+      "retail": 30,
+      "data": 30
+    },
+    "query_anchor_lanes": {
+      "sustainable fashion": [
+        "runway",
+        "retail",
+        "data"
+      ],
+      "2026": [
+        "runway",
+        "retail",
+        "data"
+      ],
+      "current": [
+        "retail"
+      ]
+    },
+    "required_query_purposes": [
+      "runway direction",
+      "retail signals",
+      "consumer data"
+    ],
+    "forbidden_terms": [
+      "tiktok",
+      "teens",
+      "short-form"
+    ],
+    "planner_response": {
+      "brief": {
+        "topic": "sustainable fashion trends",
+        "main_keywords": [
+          "sustainable fashion"
+        ],
+        "user_goal": "What sustainable fashion trends are current in 2026",
+        "required_angles": [
+          "runway direction",
+          "retail signals",
+          "consumer data"
+        ],
+        "language": "en",
+        "freshness_mode": "recent",
+        "freshness_window_days": 30,
+        "constraints": [
+          "2026",
+          "current"
+        ],
+        "search_query_count": 3
+      },
+      "queries": [
+        {
+          "id": "runway",
+          "query": "sustainable fashion runway trends 2026",
+          "purpose": "runway direction",
+          "intent": "trend",
+          "freshness_window_days": 30,
+          "preferred_source_type": "fashion press"
+        },
+        {
+          "id": "retail",
+          "query": "current sustainable fashion retail launches 2026",
+          "purpose": "retail signals",
+          "intent": "news",
+          "freshness_window_days": 30,
+          "preferred_source_type": "retail press"
+        },
+        {
+          "id": "data",
+          "query": "sustainable fashion consumer survey 2026",
+          "purpose": "consumer data",
+          "intent": "data",
+          "freshness_window_days": 30,
+          "preferred_source_type": "research"
+        }
+      ]
+    }
+  },
+  {
+    "name": "current_cycle_diwali",
+    "intent_class": "annual/current-cycle festival",
+    "user_input": "Research Diwali 2026 dates, traditions, and preparations.",
+    "current_date": "2026-09-04T12:00:00+00:00",
+    "persona": {
+      "audience": "parents",
+      "tone": "warm"
+    },
+    "preserved_entities": [
+      "Diwali"
+    ],
+    "preserved_constraints": [
+      "2026"
+    ],
+    "expected_freshness_mode": "current_cycle",
+    "expected_freshness_window_days": 366,
+    "expected_required_angles": [
+      "calendar date",
+      "religious tradition",
+      "preparation guidance"
+    ],
+    "expected_query_freshness": {
+      "calendar": 366,
+      "traditions": 366,
+      "preparation": 366
+    },
+    "query_anchor_lanes": {
+      "Diwali": [
+        "calendar",
+        "traditions",
+        "preparation"
+      ],
+      "2026": [
+        "calendar",
+        "traditions",
+        "preparation"
+      ]
+    },
+    "required_query_purposes": [
+      "calendar date",
+      "religious tradition",
+      "preparation guidance"
+    ],
+    "forbidden_terms": [
+      "youtube",
+      "parents",
+      "warm"
+    ],
+    "planner_response": {
+      "brief": {
+        "topic": "Diwali 2026",
+        "main_keywords": [
+          "Diwali"
+        ],
+        "user_goal": "Research Diwali 2026 dates, traditions, and preparations",
+        "required_angles": [
+          "calendar date",
+          "religious tradition",
+          "preparation guidance"
+        ],
+        "locale": "India",
+        "language": "en",
+        "freshness_mode": "current_cycle",
+        "freshness_window_days": 366,
+        "constraints": [
+          "2026"
+        ],
+        "search_query_count": 3
+      },
+      "queries": [
+        {
+          "id": "calendar",
+          "query": "Diwali 2026 date calendar India",
+          "purpose": "calendar date",
+          "intent": "fact",
+          "freshness_window_days": 366,
+          "preferred_source_type": "calendar"
+        },
+        {
+          "id": "traditions",
+          "query": "Diwali 2026 religious traditions sources",
+          "purpose": "religious tradition",
+          "intent": "explanation",
+          "freshness_window_days": 366,
+          "preferred_source_type": "cultural institution"
+        },
+        {
+          "id": "preparation",
+          "query": "Diwali 2026 preparation guide",
+          "purpose": "preparation guidance",
+          "intent": "how_to",
+          "freshness_window_days": 366,
+          "preferred_source_type": "guide"
+        }
+      ]
+    }
+  },
+  {
+    "name": "current_recommendation_aeropress_eur_budget",
+    "intent_class": "current recommendation",
+    "user_input": "Recommend current AeroPress travel gear under €100 in 2026.",
+    "current_date": "2026-09-04T12:00:00+00:00",
+    "persona": {
+      "audience": "millennials",
+      "niches": [
+        "coffee reels"
+      ]
+    },
+    "preserved_entities": [
+      "AeroPress"
+    ],
+    "preserved_constraints": [
+      "under €100",
+      "2026",
+      "current"
+    ],
+    "expected_freshness_mode": "recent",
+    "expected_freshness_window_days": 30,
+    "expected_required_angles": [
+      "product options",
+      "expert reviews",
+      "euro pricing"
+    ],
+    "expected_query_freshness": {
+      "options": 30,
+      "reviews": 30,
+      "pricing": 30
+    },
+    "query_anchor_lanes": {
+      "AeroPress": [
+        "options",
+        "reviews",
+        "pricing"
+      ],
+      "under €100": [
+        "options",
+        "pricing"
+      ],
+      "2026": [
+        "options",
+        "reviews"
+      ],
+      "current": [
+        "reviews"
+      ]
+    },
+    "required_query_purposes": [
+      "product options",
+      "expert reviews",
+      "euro pricing"
+    ],
+    "forbidden_terms": [
+      "instagram",
+      "millennials",
+      "reels"
+    ],
+    "planner_response": {
+      "brief": {
+        "topic": "AeroPress travel gear",
+        "main_keywords": [
+          "AeroPress"
+        ],
+        "user_goal": "Recommend current AeroPress travel gear under €100 in 2026",
+        "required_angles": [
+          "product options",
+          "expert reviews",
+          "euro pricing"
+        ],
+        "language": "en",
+        "freshness_mode": "recent",
+        "freshness_window_days": 30,
+        "constraints": [
+          "under €100",
+          "2026",
+          "current"
+        ],
+        "search_query_count": 3
+      },
+      "queries": [
+        {
+          "id": "options",
+          "query": "AeroPress travel gear under €100 2026",
+          "purpose": "product options",
+          "intent": "recommendation",
+          "freshness_window_days": 30,
+          "preferred_source_type": "retailer"
+        },
+        {
+          "id": "reviews",
+          "query": "current AeroPress travel gear expert reviews 2026",
+          "purpose": "expert reviews",
+          "intent": "opinion",
+          "freshness_window_days": 30,
+          "preferred_source_type": "review"
+        },
+        {
+          "id": "pricing",
+          "query": "AeroPress travel gear under €100 price Europe",
+          "purpose": "euro pricing",
+          "intent": "data",
+          "freshness_window_days": 30,
+          "preferred_source_type": "retailer"
+        }
+      ]
+    }
+  },
+  {
+    "name": "quantitative_india_solar_data",
+    "intent_class": "quantitative/data request",
+    "user_input": "Give me 2025-26 data on India's solar capacity growth.",
+    "current_date": "2026-09-04T12:00:00+00:00",
+    "persona": {
+      "audience": "professionals",
+      "tone": "authoritative"
+    },
+    "preserved_entities": [
+      "India",
+      "solar capacity"
+    ],
+    "preserved_constraints": [
+      "2025-26",
+      "data"
+    ],
+    "expected_freshness_mode": "current_cycle",
+    "expected_freshness_window_days": 366,
+    "expected_required_angles": [
+      "official statistics",
+      "year comparison",
+      "capacity forecast"
+    ],
+    "expected_query_freshness": {
+      "official": 366,
+      "comparison": 366,
+      "forecast": 366
+    },
+    "query_anchor_lanes": {
+      "India": [
+        "official",
+        "comparison",
+        "forecast"
+      ],
+      "solar capacity": [
+        "official",
+        "comparison",
+        "forecast"
+      ],
+      "2025-26": [
+        "official"
+      ],
+      "data": [
+        "official"
+      ]
+    },
+    "required_query_purposes": [
+      "official statistics",
+      "year comparison",
+      "capacity forecast"
+    ],
+    "forbidden_terms": [
+      "linkedin",
+      "professionals",
+      "authoritative"
+    ],
+    "planner_response": {
+      "brief": {
+        "topic": "India solar capacity growth",
+        "main_keywords": [
+          "India",
+          "solar capacity"
+        ],
+        "user_goal": "Give 2025-26 data on India's solar capacity growth",
+        "required_angles": [
+          "official statistics",
+          "year comparison",
+          "capacity forecast"
+        ],
+        "locale": "India",
+        "language": "en",
+        "freshness_mode": "current_cycle",
+        "freshness_window_days": 366,
+        "constraints": [
+          "2025-26",
+          "data"
+        ],
+        "search_query_count": 3
+      },
+      "queries": [
+        {
+          "id": "official",
+          "query": "India solar capacity 2025-26 official data",
+          "purpose": "official statistics",
+          "intent": "data",
+          "freshness_window_days": 366,
+          "preferred_source_type": "government"
+        },
+        {
+          "id": "comparison",
+          "query": "India solar capacity growth 2025 2026 comparison",
+          "purpose": "year comparison",
+          "intent": "data",
+          "freshness_window_days": 366,
+          "preferred_source_type": "research"
+        },
+        {
+          "id": "forecast",
+          "query": "India solar capacity forecast 2026",
+          "purpose": "capacity forecast",
+          "intent": "forecast",
+          "freshness_window_days": 366,
+          "preferred_source_type": "energy research"
+        }
+      ]
+    }
+  },
+  {
+    "name": "how_to_matcha",
+    "intent_class": "how-to",
+    "user_input": "How do I whisk ceremonial matcha without clumps?",
+    "current_date": "2026-09-04T12:00:00+00:00",
+    "persona": {
+      "audience": "beginners",
+      "bio": "home cafe creator"
+    },
+    "preserved_entities": [
+      "ceremonial matcha"
+    ],
+    "preserved_constraints": [
+      "without clumps"
+    ],
+    "expected_freshness_mode": "evergreen",
+    "expected_freshness_window_days": null,
+    "expected_required_angles": [
+      "whisking method",
+      "tool technique",
+      "troubleshooting clumps"
+    ],
+    "expected_query_freshness": {},
+    "query_anchor_lanes": {
+      "ceremonial matcha": [
+        "method",
+        "tools",
+        "clumps"
+      ],
+      "without clumps": [
+        "clumps"
+      ]
+    },
+    "required_query_purposes": [
+      "whisking method",
+      "tool technique",
+      "troubleshooting clumps"
+    ],
+    "forbidden_terms": [
+      "pinterest",
+      "beginners",
+      "home cafe"
+    ],
+    "planner_response": {
+      "brief": {
+        "topic": "ceremonial matcha whisking",
+        "main_keywords": [
+          "ceremonial matcha"
+        ],
+        "user_goal": "Explain how to whisk ceremonial matcha without clumps",
+        "required_angles": [
+          "whisking method",
+          "tool technique",
+          "troubleshooting clumps"
+        ],
+        "language": "en",
+        "freshness_mode": "evergreen",
+        "freshness_window_days": null,
+        "constraints": [
+          "without clumps"
+        ],
+        "search_query_count": 3
+      },
+      "queries": [
+        {
+          "id": "method",
+          "query": "ceremonial matcha whisking method",
+          "purpose": "whisking method",
+          "intent": "how_to",
+          "preferred_source_type": "tea educator"
+        },
+        {
+          "id": "tools",
+          "query": "ceremonial matcha chasen technique",
+          "purpose": "tool technique",
+          "intent": "fact",
+          "preferred_source_type": "tea educator"
+        },
+        {
+          "id": "clumps",
+          "query": "ceremonial matcha without clumps troubleshooting",
+          "purpose": "troubleshooting clumps",
+          "intent": "troubleshooting",
+          "preferred_source_type": "guide"
+        }
+      ]
+    }
+  },
+  {
+    "name": "opinion_landscape_remote_work",
+    "intent_class": "opinion landscape",
+    "user_input": "Map the current debate over four-day remote work.",
+    "current_date": "2026-09-04T12:00:00+00:00",
+    "persona": {
+      "audience": "Gen Z",
+      "tone": "provocative"
+    },
+    "preserved_entities": [
+      "four-day remote work"
+    ],
+    "preserved_constraints": [
+      "current debate"
+    ],
+    "expected_freshness_mode": "recent",
+    "expected_freshness_window_days": 30,
+    "expected_required_angles": [
+      "supporting view",
+      "critical view",
+      "workplace evidence"
+    ],
+    "expected_query_freshness": {
+      "support": 30,
+      "critical": 30,
+      "evidence": 30
+    },
+    "query_anchor_lanes": {
+      "four-day remote work": [
+        "support",
+        "critical",
+        "evidence"
+      ],
+      "current debate": [
+        "support",
+        "critical"
+      ]
+    },
+    "required_query_purposes": [
+      "supporting view",
+      "critical view",
+      "workplace evidence"
+    ],
+    "forbidden_terms": [
+      "gen z",
+      "provocative"
+    ],
+    "planner_response": {
+      "brief": {
+        "topic": "four-day remote work debate",
+        "main_keywords": [
+          "four-day remote work"
+        ],
+        "user_goal": "Map the current debate over four-day remote work",
+        "required_angles": [
+          "supporting view",
+          "critical view",
+          "workplace evidence"
+        ],
+        "language": "en",
+        "freshness_mode": "recent",
+        "freshness_window_days": 30,
+        "constraints": [
+          "current debate"
+        ],
+        "search_query_count": 3
+      },
+      "queries": [
+        {
+          "id": "support",
+          "query": "four-day remote work benefits current debate",
+          "purpose": "supporting view",
+          "intent": "opinion",
+          "freshness_window_days": 30,
+          "preferred_source_type": "analysis"
+        },
+        {
+          "id": "critical",
+          "query": "four-day remote work criticisms current debate",
+          "purpose": "critical view",
+          "intent": "opinion",
+          "freshness_window_days": 30,
+          "preferred_source_type": "analysis"
+        },
+        {
+          "id": "evidence",
+          "query": "four-day remote work productivity evidence 2026",
+          "purpose": "workplace evidence",
+          "intent": "data",
+          "freshness_window_days": 30,
+          "preferred_source_type": "research"
+        }
+      ]
+    }
+  },
+  {
+    "name": "evergreen_explanation_quantum_computing",
+    "intent_class": "evergreen explanation",
+    "user_input": "Explain quantum computing error correction simply.",
+    "current_date": "2026-09-04T12:00:00+00:00",
+    "persona": {
+      "audience": "teens",
+      "tone": "energetic"
+    },
+    "preserved_entities": [
+      "quantum computing",
+      "error correction"
+    ],
+    "preserved_constraints": [
+      "simply"
+    ],
+    "expected_freshness_mode": "evergreen",
+    "expected_freshness_window_days": null,
+    "expected_required_angles": [
+      "plain language explanation",
+      "core mechanism",
+      "illustrative example"
+    ],
+    "expected_query_freshness": {},
+    "query_anchor_lanes": {
+      "quantum computing": [
+        "plain",
+        "example"
+      ],
+      "error correction": [
+        "plain",
+        "mechanism",
+        "example"
+      ],
+      "simply": [
+        "plain"
+      ]
+    },
+    "required_query_purposes": [
+      "plain language explanation",
+      "core mechanism",
+      "illustrative example"
+    ],
+    "forbidden_terms": [
+      "youtube",
+      "teens",
+      "energetic"
+    ],
+    "planner_response": {
+      "brief": {
+        "topic": "quantum computing error correction",
+        "main_keywords": [
+          "quantum computing",
+          "error correction"
+        ],
+        "user_goal": "Explain quantum computing error correction simply",
+        "required_angles": [
+          "plain language explanation",
+          "core mechanism",
+          "illustrative example"
+        ],
+        "language": "en",
+        "freshness_mode": "evergreen",
+        "freshness_window_days": null,
+        "constraints": [
+          "simply"
+        ],
+        "search_query_count": 3
+      },
+      "queries": [
+        {
+          "id": "plain",
+          "query": "quantum computing error correction simply explained",
+          "purpose": "plain language explanation",
+          "intent": "explanation",
+          "preferred_source_type": "university"
+        },
+        {
+          "id": "mechanism",
+          "query": "quantum error correction core mechanism",
+          "purpose": "core mechanism",
+          "intent": "fact",
+          "preferred_source_type": "research institute"
+        },
+        {
+          "id": "example",
+          "query": "quantum computing error correction illustrative example",
+          "purpose": "illustrative example",
+          "intent": "explanation",
+          "preferred_source_type": "education"
+        }
+      ]
+    }
+  },
+  {
+    "name": "location_specific_bengaluru_metro",
+    "intent_class": "location-specific request",
+    "user_input": "What are the latest Bengaluru Metro airport route updates?",
+    "current_date": "2026-09-04T12:00:00+00:00",
+    "persona": {
+      "audience": "parents",
+      "niches": [
+        "local family content"
+      ]
+    },
+    "preserved_entities": [
+      "Bengaluru Metro",
+      "airport route"
+    ],
+    "preserved_constraints": [
+      "latest"
+    ],
+    "expected_freshness_mode": "recent",
+    "expected_freshness_window_days": 30,
+    "expected_required_angles": [
+      "official status",
+      "construction progress",
+      "commuter impact"
+    ],
+    "expected_query_freshness": {
+      "official": 30,
+      "construction": 30,
+      "impact": 30
+    },
+    "query_anchor_lanes": {
+      "Bengaluru Metro": [
+        "official",
+        "construction",
+        "impact"
+      ],
+      "airport route": [
+        "official",
+        "construction",
+        "impact"
+      ],
+      "latest": [
+        "official"
+      ]
+    },
+    "required_query_purposes": [
+      "official status",
+      "construction progress",
+      "commuter impact"
+    ],
+    "forbidden_terms": [
+      "facebook",
+      "parents",
+      "family"
+    ],
+    "planner_response": {
+      "brief": {
+        "topic": "Bengaluru Metro airport route",
+        "main_keywords": [
+          "Bengaluru Metro",
+          "airport route"
+        ],
+        "user_goal": "What are the latest Bengaluru Metro airport route updates",
+        "required_angles": [
+          "official status",
+          "construction progress",
+          "commuter impact"
+        ],
+        "locale": "Bengaluru",
+        "language": "en",
+        "freshness_mode": "recent",
+        "freshness_window_days": 30,
+        "constraints": [
+          "latest"
+        ],
+        "search_query_count": 3
+      },
+      "queries": [
+        {
+          "id": "official",
+          "query": "Bengaluru Metro airport route latest official update 2026",
+          "purpose": "official status",
+          "intent": "news",
+          "freshness_window_days": 30,
+          "preferred_source_type": "transport authority"
+        },
+        {
+          "id": "construction",
+          "query": "Bengaluru Metro airport route construction progress 2026",
+          "purpose": "construction progress",
+          "intent": "news",
+          "freshness_window_days": 30,
+          "preferred_source_type": "local news"
+        },
+        {
+          "id": "impact",
+          "query": "Bengaluru Metro airport route commuter impact update",
+          "purpose": "commuter impact",
+          "intent": "analysis",
+          "freshness_window_days": 30,
+          "preferred_source_type": "local news"
+        }
+      ]
+    }
+  },
+  {
+    "name": "cultural_constraint_renee_french_vegetarian",
+    "intent_class": "culturally constrained topic",
+    "user_input": "Find vegetarian French dishes for Renée's Bastille Day menu, no alcohol.",
+    "current_date": "2026-09-04T12:00:00+00:00",
+    "persona": {
+      "audience": "foodies",
+      "tone": "festive"
+    },
+    "preserved_entities": [
+      "Renée",
+      "Bastille Day"
+    ],
+    "preserved_constraints": [
+      "vegetarian",
+      "French",
+      "no alcohol"
+    ],
+    "expected_freshness_mode": "evergreen",
+    "expected_freshness_window_days": null,
+    "expected_required_angles": [
+      "traditional dishes",
+      "vegetarian adaptation",
+      "alcohol free pairing"
+    ],
+    "expected_query_freshness": {},
+    "query_anchor_lanes": {
+      "Renée": [
+        "adaptation"
+      ],
+      "Bastille Day": [
+        "traditional",
+        "adaptation"
+      ],
+      "vegetarian": [
+        "traditional",
+        "adaptation",
+        "pairing"
+      ],
+      "French": [
+        "traditional",
+        "adaptation",
+        "pairing"
+      ],
+      "no alcohol": [
+        "pairing"
+      ]
+    },
+    "required_query_purposes": [
+      "traditional dishes",
+      "vegetarian adaptation",
+      "alcohol free pairing"
+    ],
+    "forbidden_terms": [
+      "instagram",
+      "foodies",
+      "festive"
+    ],
+    "planner_response": {
+      "brief": {
+        "topic": "vegetarian French Bastille Day menu",
+        "main_keywords": [
+          "Renée",
+          "Bastille Day"
+        ],
+        "user_goal": "Find vegetarian French dishes for Renée's Bastille Day menu with no alcohol",
+        "required_angles": [
+          "traditional dishes",
+          "vegetarian adaptation",
+          "alcohol free pairing"
+        ],
+        "locale": "France",
+        "language": "en",
+        "freshness_mode": "evergreen",
+        "freshness_window_days": null,
+        "constraints": [
+          "vegetarian",
+          "French",
+          "no alcohol"
+        ],
+        "search_query_count": 3
+      },
+      "queries": [
+        {
+          "id": "traditional",
+          "query": "Bastille Day French traditional dishes vegetarian",
+          "purpose": "traditional dishes",
+          "intent": "fact",
+          "preferred_source_type": "cultural guide"
+        },
+        {
+          "id": "adaptation",
+          "query": "French vegetarian Bastille Day menu Renée",
+          "purpose": "vegetarian adaptation",
+          "intent": "recommendation",
+          "preferred_source_type": "recipe"
+        },
+        {
+          "id": "pairing",
+          "query": "French vegetarian menu no alcohol pairing",
+          "purpose": "alcohol free pairing",
+          "intent": "how_to",
+          "preferred_source_type": "recipe"
+        }
+      ]
+    }
+  },
+  {
+    "name": "explicit_platform_reddit_research",
+    "intent_class": "platform-specific research explicitly requested",
+    "user_input": "Research Reddit discussions about current home battery failures.",
+    "current_date": "2026-09-04T12:00:00+00:00",
+    "persona": {
+      "audience": "Gen Z",
+      "tone": "casual"
+    },
+    "preserved_entities": [
+      "Reddit",
+      "home battery failures"
+    ],
+    "preserved_constraints": [
+      "current"
+    ],
+    "expected_freshness_mode": "recent",
+    "expected_freshness_window_days": 30,
+    "expected_required_angles": [
+      "user reports",
+      "recurring symptoms",
+      "manufacturer response"
+    ],
+    "expected_query_freshness": {
+      "reports": 30,
+      "symptoms": 30,
+      "response": 30
+    },
+    "query_anchor_lanes": {
+      "Reddit": [
+        "reports",
+        "symptoms"
+      ],
+      "home battery failures": [
+        "reports"
+      ],
+      "current": [
+        "reports"
+      ]
+    },
+    "required_query_purposes": [
+      "user reports",
+      "recurring symptoms",
+      "manufacturer response"
+    ],
+    "forbidden_terms": [
+      "instagram",
+      "gen z",
+      "casual"
+    ],
+    "planner_response": {
+      "brief": {
+        "topic": "Reddit home battery failures",
+        "main_keywords": [
+          "Reddit",
+          "home battery failures"
+        ],
+        "user_goal": "Research Reddit discussions about current home battery failures",
+        "required_angles": [
+          "user reports",
+          "recurring symptoms",
+          "manufacturer response"
+        ],
+        "language": "en",
+        "freshness_mode": "recent",
+        "freshness_window_days": 30,
+        "constraints": [
+          "current"
+        ],
+        "search_query_count": 3
+      },
+      "queries": [
+        {
+          "id": "reports",
+          "query": "Reddit home battery failures current user reports",
+          "purpose": "user reports",
+          "intent": "platform_research",
+          "freshness_window_days": 30,
+          "preferred_source_type": "forum"
+        },
+        {
+          "id": "symptoms",
+          "query": "Reddit home battery failure recurring symptoms",
+          "purpose": "recurring symptoms",
+          "intent": "platform_research",
+          "freshness_window_days": 30,
+          "preferred_source_type": "forum"
+        },
+        {
+          "id": "response",
+          "query": "home battery failure manufacturer response 2026",
+          "purpose": "manufacturer response",
+          "intent": "news",
+          "freshness_window_days": 30,
+          "preferred_source_type": "manufacturer"
+        }
+      ]
+    }
+  },
+  {
+    "name": "vague_request_inferred_angles",
+    "intent_class": "vague request requiring inferred angles",
+    "user_input": "I need something useful about urban heat.",
+    "current_date": "2026-09-04T12:00:00+00:00",
+    "persona": {
+      "audience": "teens",
+      "content_intent": "viral explainer"
+    },
+    "preserved_entities": [
+      "urban heat"
+    ],
+    "preserved_constraints": [
+      "useful"
+    ],
+    "expected_freshness_mode": "evergreen",
+    "expected_freshness_window_days": null,
+    "expected_required_angles": [
+      "definition",
+      "health impact",
+      "city solutions"
+    ],
+    "expected_query_freshness": {},
+    "query_anchor_lanes": {
+      "urban heat": [
+        "definition",
+        "health",
+        "solutions"
+      ],
+      "useful": [
+        "definition"
+      ]
+    },
+    "required_query_purposes": [
+      "definition",
+      "health impact",
+      "city solutions"
+    ],
+    "forbidden_terms": [
+      "tiktok",
+      "teens",
+      "viral"
+    ],
+    "planner_response": {
+      "brief": {
+        "topic": "urban heat",
+        "main_keywords": [
+          "urban heat"
+        ],
+        "user_goal": "Provide something useful about urban heat",
+        "required_angles": [
+          "definition",
+          "health impact",
+          "city solutions"
+        ],
+        "language": "en",
+        "freshness_mode": "evergreen",
+        "freshness_window_days": null,
+        "constraints": [
+          "useful"
+        ],
+        "search_query_count": 3
+      },
+      "queries": [
+        {
+          "id": "definition",
+          "query": "urban heat useful definition explained",
+          "purpose": "definition",
+          "intent": "explanation",
+          "preferred_source_type": "public health"
+        },
+        {
+          "id": "health",
+          "query": "urban heat health impacts evidence",
+          "purpose": "health impact",
+          "intent": "data",
+          "preferred_source_type": "research"
+        },
+        {
+          "id": "solutions",
+          "query": "urban heat city cooling solutions",
+          "purpose": "city solutions",
+          "intent": "how_to",
+          "preferred_source_type": "urban policy"
+        }
+      ]
+    }
+  }
+]

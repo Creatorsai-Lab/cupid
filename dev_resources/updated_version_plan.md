@@ -652,3 +652,5 @@ Done when: agreed latency and token targets are met.
 - Clear the 17 ESLint warnings (mostly unused variables) as those files are touched.
 - Adopt `eslint-plugin-react-hooks` 7.1 (pinned to 7.0.1 via npm overrides): its stricter
   rules report 8 findings, some possibly real bugs ("variable used before declared").
+- Tighten pyright in the ported research tests: remove the per-file rule exceptions
+  in test_models.py, test_pipeline.py and test_selection.py.
