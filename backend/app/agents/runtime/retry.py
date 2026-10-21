@@ -4,7 +4,10 @@ A step is retried only when a fresh attempt can plausibly succeed within
 seconds. LangGraph's default rule never retries RuntimeError subclasses (all
 our provider errors), so we use our own, explicit allow-list.
 
-- Retried: transient provider and network errors.
+- Retried: transient provider and network errors, and a step's failed attempt
+  (StepFailedError, e.g. research that found nothing). After the last attempt
+  the user sees the step's own message.
+
 - Resumed later by the runtime (not retried here): quota errors, which need
   the provider's cooldown (~30 s+) to pass.
 - Never retried: code bugs (ownership, validation), errors every provider
