@@ -1,4 +1,3 @@
-
 # Cupid — Updated Version Plan
 
 > Living plan for rebuilding Cupid's agent system. Edit freely: tick tasks as they land,
@@ -132,7 +131,7 @@ backend/app/
     runtime/         runner.py  events.py  worker.py  checkpoint.py
     llm/             gateway.py  roles.py  prompts.py  errors.py
     supervisor_agents/  models.py  rules.py  agent.py
-    research_agents/ models.py  agent.py  planning.py  filters.py  providers.py  config.py  adapter.py
+    research_agents/ models.py  agent.py  planning.py  filters.py  providers.py  config.py  adapter.py step.py
     studio_agents/   models.py  director.py  registry.py  reviewer.py  voices.py
                      specialists/writer.py   (later: designer, infographic, animator, video)
                      editor.py               (later)
@@ -536,20 +535,20 @@ Test-first, on placeholder steps. Split into small steps, each its own pull requ
   `agent_runs` table + migration, run events on Redis streams, `execute()` runner.
 - [X] **2.5b** Worker and endpoints, verified against Docker (Postgres + Redis):
   - `runtime/worker.py` (SAQ; Windows event loop; automatic resume after quota
-  errors, bounded, keyed per attempt), `runtime/queue.py` (no import side effects).
+    errors, bounded, keyed per attempt), `runtime/queue.py` (no import side effects).
   - Idempotent start: a re-delivered start job resumes instead of restarting.
   - `RunStore.claim_for_resume`: one atomic UPDATE, so a run is never queued twice.
   - Gateway cooldowns pluggable; `RedisCooldowns` shares them across workers.
   - `GET /runs/{id}/events` (SSE, owner only, Last-Event-ID, keep-alives, final event
-  from the run record if the stream expired) and `POST /runs/{id}/resume`
-  (202 / 404 / 409 / 503).
+    from the run record if the stream expired) and `POST /runs/{id}/resume`
+    (202 / 404 / 409 / 503).
   - CI gets a Redis service; end-to-end test with a real SAQ worker: quota failure →
-  automatic resume → done (waits for the run's outcome, not a timer).
+    automatic resume → done (waits for the run's outcome, not a timer).
   - Run the worker: `uv run saq app.agents.runtime.worker.worker_settings`.
 - [X] **2.5c** No duplicate work (D22), after CI caught a job delivered twice:
   - `execute()`: per-run Postgres lock; runs only queued runs (or whose worker died).
   - Queue moved to SAQ on Postgres with `group_key` = run id; tests prove a job being
-  run is never handed out again and a run has one active job at a time.
+    run is never handed out again and a run has one active job at a time.
   - Run time limit (15 min) fails the run, resumable; the queue's timeout is a backstop.
   - Graceful deploys (5 min grace), tested by stopping a worker mid-step.
   - API connects the queue at startup (fails fast with a hint on Windows' default loop).

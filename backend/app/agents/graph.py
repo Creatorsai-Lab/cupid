@@ -18,7 +18,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import RetryPolicy
 
-from app.agents.research_agents.agent import research
+from app.agents.research_agents.step import research
 from app.agents.runtime.retry import STEP_RETRY
 from app.agents.state import RunState, check_update
 from app.agents.studio_agents.agent import create
