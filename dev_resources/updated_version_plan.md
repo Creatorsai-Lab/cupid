@@ -41,6 +41,8 @@ creation) is the product; every other step exists to feed it well.
 | D20 | Test layout: folder = what is tested (mirrors `app/`, agents get one subfolder per part); marker = what it needs (`db`, `integration`). `tests/security/` holds only app-wide security rules; feature-specific security tests live with the feature. Ruff security rules (`S`) are on.                                                                                                                                                                                                                                                                 | 2026-10-12 |
 | D21 | Agent folders are named `<area>_agents/` (`supervisor_agents/`, `research_agents/`, `studio_agents/`): each holds one or more agents for that area, and the name makes clear the folder contains agents. Their tests mirror the names.                                                                                                                                                                                                                                                                                                                   | 2026-10-16 |
 | D22 | No duplicate pipeline work. The run queue is SAQ on **Postgres**, not Redis: SAQ's Redis sweep can re-queue a job caught mid-dequeue (seen in CI); on Postgres a job is taken and marked active in one statement, and `group_key` = run id allows one active job per run. Defence in depth: `execute()` holds a per-run Postgres lock and runs only queued runs (or runs whose worker died). A run over its time limit fails (resumable) instead of being retried by the queue; deploys let running jobs finish. Redis keeps events and LLM cooldowns. | 2026-10-17 |
+| D23 | Research failure rules: the research step is tried 3 times, then the run shows "Research failed. Please try again." (no sources, or a timeout with none). Low coverage, a timeout with sources, or offline scoring after every provider failed (not on quota) continue as `degraded` with an issue the user sees. | 2026-10-22 |
+| D24 | LLM providers: a rate limit falls back to another provider; when all are limited the run pauses and resumes automatically (never the offline plan). Rotation per run across Groq and Cloudflare Workers AI, weighted by daily capacity; Gemini only as a counted last resort (its free tier trains on prompts; paid tier at launch). A provider stays fixed per run and role; a model joins a role only after passing its eval. | 2026-10-22 |
 
 ---
 
@@ -552,20 +554,46 @@ Test-first, on placeholder steps. Split into small steps, each its own pull requ
   - Run time limit (15 min) fails the run, resumable; the queue's timeout is a backstop.
   - Graceful deploys (5 min grace), tested by stopping a worker mid-step.
   - API connects the queue at startup (fails fast with a hint on Windows' default loop).
-- [ ] **2.6** Router switches to the new runtime; create page switches from polling to live
-  events and shows step progress.
+- [X] **2.6** Router and create page on the new runtime. Drafts are placeholders until
+  Phases 3–5 (decided 2026-10-17; Cupid isn't launched, `production` is untouched).
+  - `POST /generate` records the run and queues its start job with a snapshot of the
+    creator's profile; `GET /runs/{id}` returns the run record. The old background
+    pipeline and its Redis run store are gone; `_TONE_TO_VOICE` moved to
+    `studio_agents/voices.py` (D2).
+  - The live stream ends with an explicit `end` once the run record is final, so
+    reloading a resumed run doesn't stop at its earlier failure.
+  - Create page follows live events: step progress, sources, drafts; Retry (resume)
+    once the run has ended; a note while an automatic resume is pending.
 
 Done when: a placeholder pipeline runs through the API; the crash test passes (break step 2,
 resume, step 1 does not re-run); prompt-prefix tests pass.
 
 ### Phase 3 — Research (M)
 
-- [ ] Port the agent and its 311 tests into `agents/research_agents/` and `tests/agents/research_agents/`,
-  using the gateway and Cupid settings.
-- [ ] `adapter.py`: profile → `PersonaContext`; result → `ResearchPack`.
-- [ ] Delete the old personalization and research packages and their tests; drop `ddgs`,
-  `langsmith` and other packages only they used.
-- [ ] UI: sources panel fed by `research.sources` events.
+- [X] Port the agent and its tests into `agents/research_agents/` and
+  `tests/agents/research_agents/`, using the gateway and Cupid settings (C1–C4):
+  - Typed seams: the agent receives its LLM, search and page fetcher and closes nothing;
+    whoever creates a thing closes it.
+  - Secrets come from Cupid's settings only. The agent's own LLM client is gone; every LLM
+    call goes through the gateway (roles `research_planning`, `research_evaluation`).
+  - Rate limits pause the run (D24); optional gap recovery skips on a rate limit and
+    keeps the main results.
+- [X] `adapter.py` (C5): profile → minimal `PersonaContext` (no name, nickname or USP);
+  result → `ResearchPack` with numbered sources; failed and degraded rules (D23).
+- [X] Research step in the pipeline (C6): one agent per run on the run's gateway session;
+  search and page fetcher created once per worker and closed at shutdown. The worker
+  refuses to start without `TAVILY_API_KEY`, and a failed startup closes what it opened.
+- [X] Fetch-guard and untrusted-content tests (C7): one address check for URLs and DNS
+  answers, now also rejecting IPv4 hidden in 6to4 addresses and carrier-grade NAT; page
+  text can't close its untrusted block.
+- [X] Deleted the old personalization and research packages, the old `graph.py` and their
+  tests; dropped `langsmith` and `beautifulsoup4` (C8). Pyright is clean on the whole
+  backend (the 24 older errors fixed; a dead script that couldn't import removed).
+- [ ] Provider rotation in the gateway (D24): Groq and Cloudflare Workers AI per run,
+  weighted by daily capacity, skipping a spent or cooling provider; Gemini last.
+- [ ] C9: a real run end to end (API, worker, frontend): sources live, degraded and failed
+  paths, rate-limit pause and automatic resume.
+- [ ] UI: sources panel fed by `research.sources` events (check in C9).
 
 Done when: the 311 tests pass in Cupid CI and a real run shows research progress and sources live.
 
@@ -585,8 +613,8 @@ Done when: the 40-prompt test set passes with no extra LLM calls.
   `director.py`, `specialists/writer.py`, `reviewer.py`.
 - [ ] History stores `ContentPiece`s (migration from the old variants shape).
 - [ ] Test set of 20–30 real prompts with a judge rubric.
-- [ ] Delete the old composer, old `graph.py`, `state.py`, `run_store.py`; drop
-  `langchain-core`, `langchain-groq` if unused.
+- [ ] Delete the old composer, `state.py`, and the frontend's `ComposerResults.tsx`
+  (unused since 2.6); drop `langchain-groq` (`langchain-core` stays: the runtime uses it).
 - [ ] UI: render blocks; edits save back to history.
 - [ ] README: rewrite the architecture section for the new pipeline (it still describes the
   old agents and `MemoryState`).
