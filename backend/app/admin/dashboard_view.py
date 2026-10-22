@@ -43,14 +43,18 @@ async def _gather_metrics() -> dict:
                         User.auth_provider
                     )
                 )
-            ).all()
+            )
+            .tuples()
+            .all()
         )
         tiers = dict(
             (
                 await s.execute(
                     select(Subscription.tier, func.count()).group_by(Subscription.tier)
                 )
-            ).all()
+            )
+            .tuples()
+            .all()
         )
         content_total = await s.scalar(
             select(func.count()).select_from(CreationHistory)

@@ -59,7 +59,7 @@ async def test_callback_links_active_user_and_sets_cookie(monkeypatch) -> None:
         code="google-code",
         state="valid-state",
         error=None,
-        redis=object(),
+        redis=AsyncMock(),
         db=db,
     )
 
@@ -115,7 +115,7 @@ async def test_callback_rejects_disabled_user_without_cookie(monkeypatch) -> Non
         code="google-code",
         state="valid-state",
         error=None,
-        redis=object(),
+        redis=AsyncMock(),
         db=db,
     )
 

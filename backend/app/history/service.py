@@ -17,11 +17,13 @@ agents router, a Celery task, or a future webhook.
 from __future__ import annotations
 
 import logging
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import delete as sa_delete
 from sqlalchemy import func, select
 from sqlalchemy import update as sa_update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.history.models import CreationHistory
@@ -158,7 +160,7 @@ async def update_variants(
         .where(CreationHistory.user_id == user_id)
         .values(variants=slim_variants)
     )
-    result = await session.execute(stmt)
+    result = cast(CursorResult[Any], await session.execute(stmt))  # DML: has rowcount
     await session.commit()
     return result.rowcount > 0
 
@@ -180,6 +182,6 @@ async def delete_entry(
         .where(CreationHistory.id == entry_id)
         .where(CreationHistory.user_id == user_id)
     )
-    result = await session.execute(stmt)
+    result = cast(CursorResult[Any], await session.execute(stmt))  # DML: has rowcount
     await session.commit()
     return result.rowcount > 0

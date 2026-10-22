@@ -285,7 +285,7 @@ async def get_heatmap(
             day_of_week=dow,
             hour=hour,
             avg_views=bucket["sum_views"] / bucket["count"],
-            post_count=bucket["count"],
+            post_count=int(bucket["count"]),
         )
         for (dow, hour), bucket in buckets.items()
     ]

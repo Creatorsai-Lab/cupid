@@ -62,7 +62,7 @@ logger = logging.getLogger(__name__)
 async def sync_connection(
     connection_id: UUID,
     session: AsyncSession,
-) -> dict[str, int]:
+) -> dict[str, str | int]:
     """
     Pull fresh data from YouTube and persist a new snapshot + top videos.
 

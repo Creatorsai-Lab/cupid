@@ -14,6 +14,7 @@ from typing import Any
 import httpx
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
+from pydantic import SecretStr
 
 from app.agents.legacy.composer.compose import (
     build_composer_system_prompt,
@@ -38,7 +39,7 @@ def _get_groq_llm() -> Any | None:
 
         return ChatGroq(
             model="llama-3.3-70b-versatile",
-            groq_api_key=key,
+            api_key=SecretStr(key),
             temperature=0.7,  # Balanced temperature for stylistic variance across drafts
             max_tokens=2500,  # Highly expanded token runway for long articles
             timeout=25,

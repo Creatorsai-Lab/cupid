@@ -171,12 +171,13 @@ async def youtube_callback(
         SocialConnection.platform == "youtube",
     )
     existing = (await session.execute(existing_stmt)).scalar_one_or_none()
+    refresh_token = tokens.get("refresh_token")  # missing on some re-auths
 
     if existing:
         # User reconnecting — update tokens
         existing.access_token_encrypted = encrypt_token(tokens["access_token"])
-        if tokens.get("refresh_token"):
-            existing.refresh_token_encrypted = encrypt_token(tokens["refresh_token"])
+        if refresh_token:
+            existing.refresh_token_encrypted = encrypt_token(refresh_token)
         existing.expires_at = expires_at
         existing.scopes = tokens.get("scope", "")
         existing.platform_user_id = channel["channel_id"]
@@ -191,9 +192,7 @@ async def youtube_callback(
             handle=channel["handle"] or channel["title"],
             access_token_encrypted=encrypt_token(tokens["access_token"]),
             refresh_token_encrypted=(
-                encrypt_token(tokens["refresh_token"])
-                if tokens.get("refresh_token")
-                else None
+                encrypt_token(refresh_token) if refresh_token else None
             ),
             expires_at=expires_at,
             scopes=tokens.get("scope", ""),

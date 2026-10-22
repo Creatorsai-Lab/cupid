@@ -99,4 +99,4 @@ class Settings(BaseSettings):
 
 # the single global config object
 # This builds the object once, reading env vars + .env
-settings = Settings()
+settings = Settings()  # pyright: ignore[reportCallIssue]  # fields come from env/.env

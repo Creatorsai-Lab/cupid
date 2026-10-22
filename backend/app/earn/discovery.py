@@ -64,7 +64,7 @@ class _Candidate:
     opp_type: str
     title: str
     url: str
-    description: str
+    description: str | None
     niche_key: str
 
 

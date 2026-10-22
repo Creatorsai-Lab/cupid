@@ -41,7 +41,7 @@ class TestSupervisorValidation:
             f"{description}: Expected {expected_valid}, got {is_valid}"
         )
         if not expected_valid:
-            assert "too short" in error.lower()
+            assert "too short" in (error or "").lower()
 
     # Violence detection tests
     @pytest.mark.parametrize(
@@ -74,7 +74,7 @@ class TestSupervisorValidation:
             f"{description}: Expected {expected_valid}, got {is_valid}"
         )
         if not expected_valid:
-            assert "violence" in error.lower()
+            assert "violence" in (error or "").lower()
 
     # Sexual content tests
     @pytest.mark.parametrize(
@@ -97,7 +97,7 @@ class TestSupervisorValidation:
             f"{description}: Expected {expected_valid}, got {is_valid}"
         )
         if not expected_valid:
-            assert "sexual" in error.lower() or "adult" in error.lower()
+            assert "sexual" in (error or "").lower() or "adult" in (error or "").lower()
 
     # Hate speech tests
     @pytest.mark.parametrize(
@@ -137,7 +137,7 @@ class TestSupervisorValidation:
         )
         if not expected_valid:
             assert any(
-                word in error.lower()
+                word in (error or "").lower()
                 for word in ["offensive", "discriminatory", "hate"]
             )
 
@@ -167,7 +167,7 @@ class TestSupervisorValidation:
         )
         if not expected_valid:
             assert any(
-                word in error.lower()
+                word in (error or "").lower()
                 for word in ["spam", "promotional", "capitalization", "punctuation"]
             )
 

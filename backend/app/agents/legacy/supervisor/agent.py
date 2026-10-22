@@ -345,7 +345,7 @@ async def supervisor_node(state: MemoryState) -> dict[str, Any]:
         logger.agent_complete(
             run_id,
             status="rejected",
-            reason=error_message[:100],
+            reason=(error_message or "")[:100],
         )
 
         return {

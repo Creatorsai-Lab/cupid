@@ -92,16 +92,17 @@ async def get_valid_access_token(
 
     # Persist new tokens
     connection.access_token_encrypted = encrypt_token(new_tokens["access_token"])
-    connection.expires_at = youtube_oauth.compute_expires_at(new_tokens["expires_in"])
+    expires_at = youtube_oauth.compute_expires_at(new_tokens["expires_in"])
+    connection.expires_at = expires_at
     # Google sometimes returns a new refresh_token, sometimes doesn't.
     # If it does, update; otherwise keep the existing one.
-    if new_tokens.get("refresh_token"):
-        connection.refresh_token_encrypted = encrypt_token(new_tokens["refresh_token"])
+    if new_refresh_token := new_tokens.get("refresh_token"):
+        connection.refresh_token_encrypted = encrypt_token(new_refresh_token)
 
     await session.commit()
     logger.info(
         "[token_manager] refreshed; new expiry %s",
-        connection.expires_at.isoformat() if connection.expires_at else None,
+        expires_at.isoformat(),
     )
 
     return new_tokens["access_token"]

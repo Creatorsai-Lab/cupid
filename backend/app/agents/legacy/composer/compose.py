@@ -6,6 +6,7 @@ into clear instructions for semantic content synthesis.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 _PLATFORM_PROMPTS = {
@@ -19,7 +20,7 @@ _PLATFORM_PROMPTS = {
 
 
 def build_composer_system_prompt(
-    platform: str, tone: str, length: str, persona: dict[str, Any]
+    platform: str, tone: str, length: str, persona: Mapping[str, Any]
 ) -> str:
     platform_hint = _PLATFORM_PROMPTS.get(platform, _PLATFORM_PROMPTS["Web"])
     niche = persona.get("content_niche") or "General Expertise"
@@ -58,7 +59,9 @@ def build_composer_system_prompt(
     Output ONLY the final content post body. No preambles, no chat commentary, and do not wrap the final output inside markdown code block fences unless the format explicitly requires headers (like a Web Article)."""
 
 
-def build_composer_user_prompt(topic: str, fetched_pages: list[dict[str, Any]]) -> str:
+def build_composer_user_prompt(
+    topic: str, fetched_pages: Sequence[Mapping[str, Any]]
+) -> str:
     # Pool all high-signal raw data blocks together into a single, cohesive context layer
     data_segments = []
     for i, page in enumerate(

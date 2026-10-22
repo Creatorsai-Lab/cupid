@@ -43,10 +43,11 @@ async def main(connection_id_arg: str | None) -> int:
             except ValueError:
                 print(f"ERROR: invalid UUID: {connection_id_arg}")
                 return 1
-            connections = [await session.get(SocialConnection, conn_id)]
-            if connections[0] is None:
+            connection = await session.get(SocialConnection, conn_id)
+            if connection is None:
                 print(f"ERROR: connection {conn_id} not found")
                 return 1
+            connections = [connection]
         else:
             # Sync all youtube connections
             stmt = select(SocialConnection).where(

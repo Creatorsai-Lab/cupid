@@ -20,8 +20,10 @@ import logging
 import random
 from collections.abc import Iterable
 from datetime import UTC, datetime
+from typing import Any, cast
 
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -164,7 +166,7 @@ async def _persist_articles(
             "velocity_score": stmt.excluded.velocity_score,
         },
     )
-    result = await session.execute(stmt)
+    result = cast(CursorResult[Any], await session.execute(stmt))  # DML: has rowcount
     return result.rowcount or 0
 
 
