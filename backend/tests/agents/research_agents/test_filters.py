@@ -117,6 +117,35 @@ def test_early_rejection_rejects_non_http_and_unsafe_targets(url: str) -> None:
 @pytest.mark.parametrize(
     "url",
     (
+        "https://100.64.0.1/article",  # carrier-grade NAT: private, not "private"
+        "https://[::ffff:127.0.0.1]/article",  # IPv4-mapped loopback
+        "https://[2002:7f00:1::1]/article",  # 6to4 wrapping 127.0.0.1
+        "https://[2002:a9fe:a9fe::1]/article",  # 6to4 wrapping the cloud metadata IP
+        "https://[64:ff9b::a9fe:a9fe]/article",  # NAT64 wrapping the metadata IP
+    ),
+)
+def test_early_rejection_rejects_non_public_addresses_however_written(url: str) -> None:
+    # Break caught: an internal IPv4 address hidden inside an IPv6 one (or outside the
+    # "private" ranges) passing the guard and reaching the fetcher.
+    assert early_rejection_reason(url, "A substantive title", CONFIG) == "unsafe_url"
+
+
+@pytest.mark.parametrize(
+    "url",
+    (
+        "https://8.8.8.8/article",
+        "https://[2606:4700::1111]/article",
+        "https://[2002:808:808::1]/article",  # 6to4 wrapping a public address
+    ),
+)
+def test_early_rejection_allows_public_addresses(url: str) -> None:
+    # Break caught: the address guard over-blocking public hosts.
+    assert early_rejection_reason(url, "A substantive title", CONFIG) != "unsafe_url"
+
+
+@pytest.mark.parametrize(
+    "url",
+    (
         "https://exa mple.com/article",
         "https://example..com/article",
         "https://-invalid.example/article",

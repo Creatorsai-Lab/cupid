@@ -34,6 +34,7 @@ from app.agents.research_agents.filters import (
     canonicalize_url,
     early_rejection_reason,
     publisher_domain,
+    unsafe_address,
 )
 from app.agents.research_agents.models import (
     CandidatePage,
@@ -655,7 +656,7 @@ class PageExtractor:
                     "unsafe_resolved_address",
                     f"DNS returned an invalid address for {hostname}",
                 ) from error
-            if _unsafe_address(parsed_address):
+            if unsafe_address(parsed_address):
                 raise UnsafeRedirectError(
                     candidate.id,
                     "unsafe_resolved_address",
@@ -750,20 +751,6 @@ async def _resolve_public_addresses(hostname: str, port: int) -> tuple[str, ...]
     loop = asyncio.get_running_loop()
     records = await loop.getaddrinfo(hostname, port, type=socket.SOCK_STREAM)
     return tuple(dict.fromkeys(str(record[4][0]) for record in records))
-
-
-def _unsafe_address(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-    return any(
-        (
-            address.is_private,
-            address.is_loopback,
-            address.is_link_local,
-            address.is_reserved,
-            address.is_multicast,
-            address.is_unspecified,
-            not address.is_global,
-        )
-    )
 
 
 def _tavily_country(locale: str | None) -> str | None:

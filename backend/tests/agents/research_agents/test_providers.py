@@ -507,13 +507,25 @@ def test_providers_close_the_clients_they_created() -> None:
     assert extractor._local_client.is_closed
 
 
-def test_jina_prevalidation_rejects_private_dns_without_any_remote_io() -> None:
-    # Break caught: proxying a public-looking hostname to Jina before rejecting loopback DNS resolution.
+@pytest.mark.parametrize(
+    "address",
+    (
+        "127.0.0.1",
+        "2002:7f00:1::1",  # 6to4 wrapping loopback
+        "2002:a9fe:a9fe::1",  # 6to4 wrapping the cloud metadata IP
+        "64:ff9b::a9fe:a9fe",  # NAT64 wrapping the metadata IP
+    ),
+)
+def test_jina_prevalidation_rejects_private_dns_without_any_remote_io(
+    address: str,
+) -> None:
+    # Break caught: proxying a public-looking hostname to Jina before rejecting a
+    # non-public DNS answer, including IPv4 hidden inside IPv6.
     requested_hosts: list[str] = []
 
     async def private_resolver(host: str, port: int) -> tuple[str, ...]:
         assert host == "news.example.com"
-        return ("127.0.0.1",)
+        return (address,)
 
     def handler(request: httpx.Request) -> httpx.Response:
         requested_hosts.append(request.url.host)

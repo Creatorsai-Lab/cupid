@@ -413,6 +413,16 @@ def _unsafe_url(url: str) -> bool:
         address = ipaddress.ip_address(hostname)
     except ValueError:
         return not _valid_hostname(hostname)
+    return unsafe_address(address)
+
+
+def unsafe_address(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """True unless the address is on the public internet. A 6to4 address is also
+    judged by the IPv4 address it carries; the other IPv6 forms that carry one
+    (mapped, Teredo, NAT64) sit in ranges that are already not public."""
+    if isinstance(address, ipaddress.IPv6Address) and address.sixtofour:
+        if unsafe_address(address.sixtofour):
+            return True
     return any(
         (
             address.is_private,
@@ -421,6 +431,7 @@ def _unsafe_url(url: str) -> bool:
             address.is_reserved,
             address.is_multicast,
             address.is_unspecified,
+            not address.is_global,
         )
     )
 
