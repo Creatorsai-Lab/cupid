@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from http.cookies import SimpleCookie
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import fakeredis
 import httpx
@@ -237,6 +237,7 @@ async def test_verify_route_rejects_wrong_code_without_cookie(redis, sms, monkey
     with pytest.raises(otp.InvalidCodeError):
         await auth_router.otp_verify(
             body=auth_router.OtpVerifyRequest(phone=PHONE, code="000000"),
+            request=Mock(),
             response=response,
             redis=redis,
             db=AsyncMock(),

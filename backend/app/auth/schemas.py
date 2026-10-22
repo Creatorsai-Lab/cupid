@@ -32,6 +32,21 @@ class AuthResponse(BaseModel):
     error: str | None = None
 
 
+class LoginEventResponse(BaseModel):
+    id: uuid.UUID
+    method: str
+    ip_address: str
+    user_agent: str | None
+    created_at: datetime
+    model_config = {"from_attributes": True}
+
+
+class LoginHistoryResponse(BaseModel):
+    success: bool = True
+    data: list[LoginEventResponse]
+    error: str | None = None
+
+
 # ── Phone OTP login ───────────────────────────────────────────
 
 

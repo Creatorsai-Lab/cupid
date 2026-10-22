@@ -91,10 +91,22 @@ async function requestRaw<T>(endpoint: string, options: RequestInit = {}): Promi
 
 // Sign-in is Google OAuth (a full-page redirect to the backend), so there's no
 // login/register fetch here — just session reads.
+export interface LoginEvent {
+  id: string;
+  method: "google" | "phone";
+  ip_address: string;
+  user_agent: string | null;
+  created_at: string;
+}
+
 export const authApi = {
   logout: () => request<null>("/api/v1/auth/logout", { method: "POST" }),
 
   me: () => request<UserData>("/api/v1/auth/me"),
+
+  // Most recent sign-ins, newest first (Settings > Login history).
+  loginHistory: (limit: number = 20) =>
+    request<LoginEvent[]>(`/api/v1/auth/login-history?limit=${limit}`),
 };
 
 // ── Profile API ──────────────────────────────────────────────

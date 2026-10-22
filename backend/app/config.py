@@ -33,6 +33,11 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://cupid:cupid@localhost:5433/cupid_db", repr=False
     )
 
+    # Reverse proxies in front of the app that append to X-Forwarded-For
+    # (production: Traefik = 1; add 1 more if Cloudflare proxying is on).
+    # 0 = trust no header and use the socket address. See app/core/client_ip.py.
+    trusted_proxy_count: int = 1
+
     # FRONTEND
     frontend_url: str = "http://localhost:3000"
 
