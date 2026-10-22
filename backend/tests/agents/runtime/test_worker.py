@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from types import SimpleNamespace
 from typing import cast
 
+import httpx
 import pytest
 from fakeredis import FakeAsyncRedis
 from langgraph.checkpoint.memory import InMemorySaver
@@ -156,3 +157,59 @@ async def test_a_resume_that_cannot_be_queued_does_not_leave_the_run_stuck(redis
     )
 
     assert runs.statuses[-1] == "failed"
+
+
+async def test_the_real_pipeline_needs_a_search_key_and_closes_what_it_creates(
+    monkeypatch,
+):
+    from contextlib import AsyncExitStack
+
+    from app.agents.llm.gateway import LLMGateway
+    from app.agents.research_agents.providers import PageExtractor, TavilySearch
+    from app.agents.research_agents.step import ResearchStep
+    from app.config import settings
+
+    services = worker.Services(llm=LLMGateway({}), http=httpx.AsyncClient())
+    monkeypatch.setattr(settings, "tavily_api_key", "")
+    with pytest.raises(RuntimeError, match="TAVILY_API_KEY"):
+        worker.pipeline_steps(services, AsyncExitStack())
+
+    monkeypatch.setattr(settings, "tavily_api_key", "test-key")
+    async with AsyncExitStack() as stack:
+        research = worker.pipeline_steps(services, stack).research
+        assert isinstance(
+            research, ResearchStep
+        )  # the real step (also narrows the type)
+        search, extractor = research._search, research._extractor
+        assert isinstance(search, TavilySearch) and isinstance(extractor, PageExtractor)
+        assert not search._client.is_closed
+    # Closed when the worker shut down: whoever creates a thing closes it.
+    assert search._client.is_closed
+    assert extractor._jina_client.is_closed and extractor._local_client.is_closed
+    await services.http.aclose()
+
+
+async def test_a_failed_startup_closes_what_it_opened_and_shutdown_still_runs(
+    monkeypatch,
+):
+    # Break caught: startup failing half-way (e.g. a missing key) left the database
+    # connection and HTTP client open, and SAQ's shutdown then crashed on the
+    # missing stack, hiding the real error.
+    closed: list[str] = []
+
+    async def half_open_runtime(stack, **_):
+        stack.push_async_callback(lambda: _record(closed, "checkpointer"))
+        raise RuntimeError("TAVILY_API_KEY is not set")
+
+    monkeypatch.setattr(worker, "create_runtime", half_open_runtime)
+    ctx = cast(worker.WorkerContext, {})
+
+    with pytest.raises(RuntimeError, match="TAVILY_API_KEY"):
+        await worker.startup(ctx)
+    await worker.shutdown(ctx)  # SAQ calls it even after a failed startup
+
+    assert closed == ["checkpointer"]
+
+
+async def _record(log: list[str], name: str) -> None:
+    log.append(name)

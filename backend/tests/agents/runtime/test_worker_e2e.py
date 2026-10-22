@@ -101,7 +101,7 @@ async def running_worker(svc: Services, pipeline: Steps) -> AsyncIterator[Worker
             database_url=svc.database_url,
             redis_url=svc.redis_url,
             providers={},
-            build_steps=lambda _: pipeline,
+            build_steps=lambda _services, _stack: pipeline,
         )
         ctx.update(runtime=runtime, runs=runs, stack=stack)
 
@@ -173,7 +173,7 @@ async def test_deploy_lets_the_running_job_finish(services):
 async def test_steps_share_the_workers_llm_gateway_and_http_client(services):
     built: list[worker.Services] = []
 
-    def build_steps(shared: worker.Services) -> Steps:
+    def build_steps(shared: worker.Services, stack) -> Steps:
         built.append(shared)
         return PLACEHOLDER_STEPS
 

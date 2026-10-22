@@ -41,6 +41,9 @@ from app.agents.graph import PLACEHOLDER_STEPS, Steps, build_graph
 from app.agents.llm.gateway import LLMGateway, RedisCooldowns
 from app.agents.llm.roles import ProviderSpec, configured_providers
 from app.agents.models import CreatorProfile, RunRequest
+from app.agents.research_agents.config import CONFIG
+from app.agents.research_agents.providers import PageExtractor, TavilySearch
+from app.agents.research_agents.step import ResearchStep
 from app.agents.runtime.checkpoint import open_checkpointer
 from app.agents.runtime.events import EventStream
 from app.agents.runtime.queue import enqueue_run, make_queue
@@ -59,12 +62,28 @@ class Services:
     http: httpx.AsyncClient
 
 
-StepsFactory = Callable[[Services], Steps]
+StepsFactory = Callable[[Services, AsyncExitStack], Steps]
 
 
-def placeholder_steps(services: Services) -> Steps:
-    """Until real agents arrive: steps that need no services."""
+def placeholder_steps(services: Services, stack: AsyncExitStack) -> Steps:
+    """Steps that need no services (tests, local runs without keys)."""
     return PLACEHOLDER_STEPS
+
+
+def pipeline_steps(services: Services, stack: AsyncExitStack) -> Steps:
+    """The real pipeline. Search and the page fetcher are created once per worker
+    and closed at shutdown; whoever creates a thing closes it."""
+    if not settings.tavily_api_key:
+        raise RuntimeError("TAVILY_API_KEY is not set: research can't search the web")
+    search = TavilySearch(CONFIG, api_key=settings.tavily_api_key)
+    extractor = PageExtractor(CONFIG)
+    stack.push_async_callback(search.close)
+    stack.push_async_callback(extractor.close)
+    return Steps(
+        supervisor=PLACEHOLDER_STEPS.supervisor,
+        research=ResearchStep(services.llm, search, extractor),
+        studio=PLACEHOLDER_STEPS.studio,
+    )
 
 
 class WorkerContext(Context, total=False):
@@ -137,23 +156,30 @@ async def create_runtime(
     stack.push_async_callback(engine.dispose)
     runs = RunStore(async_sessionmaker(engine, expire_on_commit=False))
     saver = await stack.enter_async_context(open_checkpointer(database_url))
-    graph = build_graph(build_steps(services), checkpointer=saver)
+    graph = build_graph(build_steps(services, stack), checkpointer=saver)
     return Runtime(graph=graph, events=EventStream(redis), runs=runs), runs
 
 
 async def startup(ctx: WorkerContext) -> None:
     stack = AsyncExitStack()
-    runtime, runs = await create_runtime(
-        stack,
-        database_url=settings.database_url,
-        redis_url=settings.redis_url,
-        providers=configured_providers(settings),
-    )
+    try:
+        runtime, runs = await create_runtime(
+            stack,
+            database_url=settings.database_url,
+            redis_url=settings.redis_url,
+            providers=configured_providers(settings),
+            build_steps=pipeline_steps,
+        )
+    except BaseException:
+        await stack.aclose()  # a half-finished startup leaves nothing open
+        raise
     ctx.update(stack=stack, runtime=runtime, runs=runs)
 
 
 async def shutdown(ctx: WorkerContext) -> None:
-    await ctx["stack"].aclose()
+    stack = ctx.get("stack")
+    if stack is not None:  # SAQ calls shutdown even when startup failed
+        await stack.aclose()
 
 
 worker_settings = {
