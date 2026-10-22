@@ -21,11 +21,7 @@ our typed errors (app.agents.llm.errors) for failures they know are transient.
 import httpx
 from langgraph.types import RetryPolicy
 
-from app.agents.llm.errors import (
-    NoProviderAvailableError,
-    RateLimitedError,
-    RetryableProviderError,
-)
+from app.agents.llm.errors import QUOTA_ERRORS, RetryableProviderError
 
 
 class StepFailedError(Exception):
@@ -45,19 +41,18 @@ _TRANSIENT = (
     TimeoutError,
     httpx.TransportError,
 )
-_QUOTA = (RateLimitedError, NoProviderAvailableError)
 
 
 def should_retry_step(error: Exception) -> bool:
     """True if retrying the failed step within seconds can succeed."""
-    if isinstance(error, _QUOTA):  # RateLimitedError is a RetryableProviderError
+    if isinstance(error, QUOTA_ERRORS):  # RateLimitedError is a RetryableProviderError
         return False
     return isinstance(error, (*_TRANSIENT, StepFailedError))
 
 
 def resume_later(error: BaseException) -> bool:
     """True if the run should be resumed automatically once provider quota recovers."""
-    return isinstance(error, _QUOTA)
+    return isinstance(error, QUOTA_ERRORS)
 
 
 STEP_RETRY = RetryPolicy(

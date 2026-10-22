@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 
 import pytest
 
+from app.agents.llm.errors import NoProviderAvailableError, RateLimitedError
 from app.agents.research_agents.agent import ResearchAgent
 from app.agents.research_agents.config import CONFIG
 from app.agents.research_agents.filters import clean_article_content
@@ -217,9 +218,9 @@ def test_run_uses_one_gap_query_to_cover_a_missing_angle() -> None:
     assert [query.id for query in search.calls].count("gap-backup") == 1
     assert search.calls[-1].query == "community solar adoption outcomes evidence"
     assert [call["role"] for call in llm.calls] == [
-        "planning",
-        "evaluation",
-        "evaluation",
+        "research_planning",
+        "research_evaluation",
+        "research_evaluation",
     ]
     assert result.run_audit.rejection_reasons["gap_recovery"] == "completed"
     assert result.run_audit.provider_usage["gap_planning"] == "planner_backup"
@@ -750,7 +751,10 @@ def test_run_labels_each_model_call_with_its_pipeline_stage() -> None:
     result = run(agent.run("Research community solar", PersonaContext()))
 
     assert result.status == ResearchStatus.COMPLETE
-    assert [call["role"] for call in llm.calls] == ["planning", "evaluation"]
+    assert [call["role"] for call in llm.calls] == [
+        "research_planning",
+        "research_evaluation",
+    ]
 
 
 def test_run_fails_when_the_evaluator_is_unavailable_and_nothing_was_validated() -> (
@@ -1233,3 +1237,71 @@ def test_a_run_never_closes_the_providers_it_was_given() -> None:
     )
 
     assert not (llm.closed or search.closed or extractor.closed)
+
+
+def test_a_rate_limit_while_planning_pauses_the_run_instead_of_the_offline_plan() -> (
+    None
+):
+    # Break caught: hiding a rate limit behind the offline plan; the runtime must see
+    # it to pause the run and resume it once quota is back.
+    agent = make_agent(
+        FakeLLM(RateLimitedError("groq: HTTP 429")), FakeSearch(), FakeExtractor()
+    )
+
+    with pytest.raises(RateLimitedError):
+        run(agent.run("Research community solar", PersonaContext()))
+
+
+def test_a_rate_limit_while_scoring_pages_pauses_the_run() -> None:
+    first = make_candidate("cost-page", "cost", "cost.example")
+    agent = make_agent(
+        FakeLLM(
+            make_plan(), NoProviderAvailableError("every provider is cooling down")
+        ),
+        FakeSearch({"cost": [first], "policy": [], "adoption": []}),
+        FakeExtractor({first.url: make_document(first)}),
+    )
+
+    with pytest.raises(NoProviderAvailableError):
+        run(agent.run("Research community solar", PersonaContext()))
+
+
+def test_a_rate_limit_during_optional_gap_recovery_keeps_the_main_results() -> None:
+    # Break caught: pausing (and later redoing) the whole research step for an
+    # optional extra search; the main results are kept and the gap step is skipped.
+    plan = with_backup(make_plan(), "community solar adoption outcomes evidence")
+    first = make_candidate("cost-page", "cost", "cost.example")
+    second = make_candidate("policy-page", "policy", "policy.example")
+    recovered = make_candidate("adoption-page", "gap-backup", "adoption.example")
+    agent = make_agent(
+        FakeLLM(
+            plan,
+            {
+                "evaluations": [
+                    evaluation(first.id, "cost"),
+                    evaluation(second.id, "policy"),
+                ]
+            },
+            RateLimitedError("groq: HTTP 429"),
+        ),
+        FakeSearch(
+            {
+                "cost": [first],
+                "policy": [second],
+                "adoption": [],
+                "gap-backup": [recovered],
+            }
+        ),
+        FakeExtractor(
+            {
+                first.url: make_document(first),
+                second.url: make_document(second),
+                recovered.url: make_document(recovered),
+            }
+        ),
+    )
+
+    result = run(agent.run("Research community solar", PersonaContext()))
+
+    assert {item.title for item in result.corpus} == {first.title, second.title}
+    assert result.run_audit.rejection_reasons["gap_recovery"] == "gap_rate_limited"

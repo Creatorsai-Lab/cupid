@@ -207,6 +207,7 @@ class LLMSession:
     def __init__(self, gateway: LLMGateway, run_id: str) -> None:
         self._gateway = gateway
         self.run_id = run_id
+        self.last_provider: str | None = None
         self._chosen: dict[str, str] = {}
         self.usage: list[Usage] = []
 
@@ -272,6 +273,7 @@ class LLMSession:
             latency_s=latency_s,
         )
         self.usage.append(usage)
+        self.last_provider = provider.name
         logger.info(
             "llm run=%s role=%s provider=%s model=%s in=%d cached=%s out=%d %.2fs",
             usage.run_id,

@@ -28,3 +28,8 @@ class StructuredOutputError(ProviderError):
 
 class NoProviderAvailableError(ProviderError):
     """No configured provider can serve the role right now."""
+
+
+# "No provider has quota right now": the runtime pauses the run and resumes it
+# later, instead of failing it or retrying within seconds.
+QUOTA_ERRORS: tuple[type[Exception], ...] = (RateLimitedError, NoProviderAvailableError)

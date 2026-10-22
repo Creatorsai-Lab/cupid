@@ -357,3 +357,17 @@ async def test_redis_cooldown_is_shared_by_every_worker():
     assert primary.call_count == 1
     assert 0 < await redis.pttl("llm:cooldown:primary") <= 20_000
     await redis.aclose()
+
+
+@respx.mock
+async def test_session_reports_the_provider_of_its_last_answer(gateway):
+    respx.post(PRIMARY).mock(
+        return_value=httpx.Response(429, headers={"Retry-After": "20"})
+    )
+    respx.post(BACKUP).mock(return_value=OK)
+    session = gateway.session("run-1")
+    assert session.last_provider is None
+
+    await ask(session)
+
+    assert session.last_provider == "backup"  # who answered, not who was tried first

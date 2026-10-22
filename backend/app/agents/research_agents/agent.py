@@ -12,6 +12,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlsplit
 
+from app.agents.llm.errors import QUOTA_ERRORS
 from app.agents.research_agents.config import CONFIG, Config
 from app.agents.research_agents.filters import (
     _GENERIC_PATH_SEGMENTS,
@@ -86,6 +87,10 @@ from app.agents.research_agents.planning import (
     _with_acronym_equivalents,
     _without_delivery_platforms,
 )
+
+# Cupid's LLM gateway roles (app/agents/llm/roles.py).
+PLANNING_ROLE = "research_planning"
+EVALUATION_ROLE = "research_evaluation"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -170,7 +175,7 @@ class ResearchAgent:
             "Return only the structured ResearchPlan."
         )
         plan = await self.llm.structured(
-            system, user, ResearchPlan, temperature=0.0, role="planning"
+            system, user, ResearchPlan, temperature=0.0, role=PLANNING_ROLE
         )
         if not isinstance(plan, ResearchPlan):
             plan = ResearchPlan.model_validate(plan)
@@ -239,6 +244,8 @@ class ResearchAgent:
                 _planning_failure_summary("semantic_validation", error)
             )
             return _fallback_research_plan(user_input, now, seed=error.plan)
+        except QUOTA_ERRORS:
+            raise  # the runtime pauses the run and resumes it once quota is back
         except Exception as error:
             diagnostics.provider_usage["planning_attempt"] = str(
                 getattr(self.llm, "last_provider", None) or "unknown"
@@ -835,7 +842,7 @@ class ResearchAgent:
             "required candidate_id; a missing id discards that page."
         )
         batch = await self.llm.structured(
-            system, user, PageRankBatch, role="evaluation"
+            system, user, PageRankBatch, role=EVALUATION_ROLE
         )
         if not isinstance(batch, PageRankBatch):
             batch = PageRankBatch.model_validate(batch)
@@ -1374,6 +1381,11 @@ class ResearchAgent:
             return initial_candidates, evaluated_pages, selected
         except asyncio.CancelledError:
             raise
+        except QUOTA_ERRORS:
+            # Gap recovery is optional and the main results already stand: pausing here
+            # would make the resumed run redo all of research for an optional extra.
+            diagnostics.rejection_reasons["gap_recovery"] = "gap_rate_limited"
+            return initial_candidates + new_candidates, evaluated_pages, selected
         except Exception:
             _LOGGER.exception("Gap-query evaluation failed")
             diagnostics.rejection_reasons["gap_recovery"] = "gap_processing_error"
@@ -1419,6 +1431,8 @@ class ResearchAgent:
                 brief = plan.brief
             except asyncio.CancelledError:
                 raise
+            except QUOTA_ERRORS:
+                raise  # the runtime pauses the run and resumes it once quota is back
             except Exception:
                 _LOGGER.exception("Research planning failed")
                 diagnostics.coverage_status = "planning_failed"
@@ -1549,10 +1563,12 @@ class ResearchAgent:
                 raise
             except asyncio.CancelledError:
                 raise
+            except QUOTA_ERRORS:
+                raise  # the runtime pauses the run and resumes it once quota is back
             except Exception:
                 # The pages are already fetched and validated; losing them to a provider
-                # outage or rate limit would hand the composer nothing. Rank them
-                # deterministically and report the run as degraded, never as complete.
+                # outage would hand the composer nothing. Rank them deterministically
+                # and report the run as degraded, never as complete.
                 _LOGGER.exception(
                     "Research evaluation failed; using deterministic ranking"
                 )
@@ -1645,6 +1661,8 @@ class ResearchAgent:
             )
         except asyncio.CancelledError:
             raise
+        except QUOTA_ERRORS:
+            raise  # the runtime pauses the run and resumes it once quota is back
         except Exception:
             _LOGGER.exception("Unexpected research pipeline failure")
             diagnostics.coverage_status = "failed"
