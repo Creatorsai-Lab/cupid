@@ -1105,32 +1105,37 @@ def test_both_extractors_failing_raises_typed_error() -> None:
     run(extractor.close())
 
 
-def test_clients_close_their_reused_http_clients() -> None:
-    # Break caught: leaking shared connection pools owned by provider adapters.
-    llm_http = httpx.AsyncClient(
-        transport=httpx.MockTransport(lambda request: httpx.Response(200))
-    )
-    search_http = httpx.AsyncClient(
-        transport=httpx.MockTransport(lambda request: httpx.Response(200))
-    )
-    jina_http = httpx.AsyncClient(
-        transport=httpx.MockTransport(lambda request: httpx.Response(200))
-    )
-    local_http = httpx.AsyncClient(
-        transport=httpx.MockTransport(lambda request: httpx.Response(200))
-    )
+def test_providers_leave_clients_they_were_given_open() -> None:
+    # Break caught: closing an HTTP client that its creator still uses
+    # (whoever creates a thing closes it).
+    def ok(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200)
 
-    llm = LLMClient(replace(CONFIG, groq_api_key="key"), http_client=llm_http)
+    search_http = httpx.AsyncClient(transport=httpx.MockTransport(ok))
+    jina_http = httpx.AsyncClient(transport=httpx.MockTransport(ok))
+    local_http = httpx.AsyncClient(transport=httpx.MockTransport(ok))
     search = TavilySearch(CONFIG, http_client=search_http)
     extractor = PageExtractor(CONFIG, jina_client=jina_http, local_client=local_http)
-    run(llm.close())
+
     run(search.close())
     run(extractor.close())
 
-    assert llm_http.is_closed
-    assert search_http.is_closed
-    assert jina_http.is_closed
-    assert local_http.is_closed
+    assert not (search_http.is_closed or jina_http.is_closed or local_http.is_closed)
+    for client in (search_http, jina_http, local_http):
+        run(client.aclose())  # the test created them, so the test closes them
+
+
+def test_providers_close_the_clients_they_created() -> None:
+    # Break caught: leaking connection pools a provider opened itself.
+    search = TavilySearch(CONFIG)
+    extractor = PageExtractor(CONFIG)
+
+    run(search.close())
+    run(extractor.close())
+
+    assert search._client.is_closed
+    assert extractor._jina_client.is_closed
+    assert extractor._local_client.is_closed
 
 
 def test_jina_prevalidation_rejects_private_dns_without_any_remote_io() -> None:
@@ -1588,7 +1593,8 @@ def test_tavily_failure_is_not_cached_and_close_cancels_pending_producers_idempo
             await pending
         assert attempts == 3
         assert cancelled.is_set()
-        assert client.is_closed
+        assert not client.is_closed  # given to the search, so ours to close
+        await client.aclose()
 
     run(scenario())
 
@@ -1744,7 +1750,8 @@ def test_tavily_close_rejects_different_key_arriving_after_shutdown_begins() -> 
         await closing
         with pytest.raises(asyncio.CancelledError):
             await pending
-        assert client.is_closed
+        assert not client.is_closed  # given to the search, so ours to close
+        await client.aclose()
 
     run(scenario())
 

@@ -531,6 +531,7 @@ class TavilySearch:
         self._client = http_client or httpx.AsyncClient(
             timeout=httpx.Timeout(10.0), trust_env=False
         )
+        self._owns_client = http_client is None
         self._now = now or (lambda: datetime.now(UTC))
         self._cache = _AsyncTTLCache(
             config.cache_ttl_seconds,
@@ -663,7 +664,8 @@ class TavilySearch:
 
     async def close(self) -> None:
         await self._cache.close()
-        await self._client.aclose()
+        if self._owns_client:  # a client we were given belongs to its creator
+            await self._client.aclose()
 
 
 class PageExtractor:
@@ -687,6 +689,14 @@ class PageExtractor:
         self._local_client = local_client or httpx.AsyncClient(
             timeout=httpx.Timeout(12.0),
             trust_env=False,
+        )
+        self._owned_clients = tuple(
+            client
+            for client, given in (
+                (self._jina_client, jina_client),
+                (self._local_client, local_client),
+            )
+            if given is None
         )
         self._resolver = resolver or _resolve_public_addresses
         self._max_redirects = max_redirects
@@ -987,11 +997,9 @@ class PageExtractor:
 
     async def close(self) -> None:
         await self._cache.close()
-        clients = {
-            id(self._jina_client): self._jina_client,
-            id(self._local_client): self._local_client,
-        }
-        for client in clients.values():
+        for (
+            client
+        ) in self._owned_clients:  # clients we were given belong to their creator
             await client.aclose()
 
 
