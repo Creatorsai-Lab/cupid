@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import inspect
 import logging
 import re
 import time
@@ -39,6 +38,11 @@ from app.agents.research_agents.filters import (
     freshness_status,
     select_for_coverage,
     structural_quality,
+)
+from app.agents.research_agents.interfaces import (
+    PageFetcher,
+    SearchProvider,
+    StructuredLLM,
 )
 from app.agents.research_agents.models import (
     CandidatePage,
@@ -119,30 +123,18 @@ class ResearchAgent:
         self,
         config: Config = CONFIG,
         *,
-        llm: Any | None = None,
-        search: Any | None = None,
-        extractor: Any | None = None,
+        llm: StructuredLLM,
+        search: SearchProvider,
+        extractor: PageFetcher,
         now: Callable[[], datetime] | None = None,
         monotonic: Callable[[], float] | None = None,
     ) -> None:
-        # Provider imports are deliberately local: providers import these pure helpers.
-        if llm is None or search is None or extractor is None:
-            from app.agents.research_agents.providers import (
-                LLMClient,
-                PageExtractor,
-                TavilySearch,
-            )
-
-            llm = llm or LLMClient(config)
-            search = search or TavilySearch(config, now=now)
-            extractor = extractor or PageExtractor(config)
         self.config = config
         self.llm = llm
         self.search = search
         self.extractor = extractor
         self._now = now or (lambda: datetime.now(UTC))
         self._monotonic = monotonic or time.monotonic
-        self._close_task: asyncio.Task[None] | None = None
 
     async def _plan(
         self, user_input: str, persona: PersonaContext, now: datetime
@@ -1668,35 +1660,3 @@ class ResearchAgent:
             )
         finally:
             diagnostics.stage_timings_seconds["total"] = budget.elapsed()
-
-    async def _close_providers(self) -> None:
-        """Close each unique injected or owned provider once, including synchronous test doubles."""
-        errors: list[Exception] = []
-        providers = {
-            id(provider): provider
-            for provider in (self.llm, self.search, self.extractor)
-        }
-        for provider in providers.values():
-            closer = getattr(provider, "close", None)
-            if not callable(closer):
-                continue
-            try:
-                outcome = closer()
-                if inspect.isawaitable(outcome):
-                    await outcome
-            except Exception as error:
-                errors.append(error)
-        if errors:
-            raise errors[0]
-
-    async def close(self) -> None:
-        """Idempotently release all clients owned by this agent lifecycle."""
-        if self._close_task is None:
-            self._close_task = asyncio.create_task(self._close_providers())
-        await asyncio.shield(self._close_task)
-
-    async def __aenter__(self) -> ResearchAgent:
-        return self
-
-    async def __aexit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
-        await self.close()

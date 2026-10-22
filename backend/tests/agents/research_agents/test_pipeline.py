@@ -12,6 +12,9 @@ import pytest
 from app.agents.research_agents.agent import ResearchAgent
 from app.agents.research_agents.config import CONFIG
 from app.agents.research_agents.filters import clean_article_content
+from app.agents.research_agents.interfaces import (
+    SearchProvider,
+)
 from app.agents.research_agents.models import (
     BackupQuery,
     CandidatePage,
@@ -123,7 +126,7 @@ def evaluation(identifier: str, angle: str) -> dict[str, object]:
 
 def make_agent(
     llm: FakeLLM,
-    search: FakeSearch,
+    search: SearchProvider,
     extractor: FakeExtractor,
     **config_values: object,
 ) -> ResearchAgent:
@@ -178,25 +181,27 @@ def test_run_uses_one_gap_query_to_cover_a_missing_angle() -> None:
     first = make_candidate("cost-page", "cost", "cost.example")
     second = make_candidate("policy-page", "policy", "policy.example")
     recovered = make_candidate("adoption-page", "gap-backup", "adoption.example")
+    llm = FakeLLM(
+        plan,
+        {
+            "evaluations": [
+                evaluation(first.id, "cost"),
+                evaluation(second.id, "policy"),
+            ]
+        },
+        {"evaluations": [evaluation(recovered.id, "adoption")]},
+    )
+    search = FakeSearch(
+        {
+            "cost": [first],
+            "policy": [second],
+            "adoption": [],
+            "gap-backup": [recovered],
+        }
+    )
     agent = make_agent(
-        FakeLLM(
-            plan,
-            {
-                "evaluations": [
-                    evaluation(first.id, "cost"),
-                    evaluation(second.id, "policy"),
-                ]
-            },
-            {"evaluations": [evaluation(recovered.id, "adoption")]},
-        ),
-        FakeSearch(
-            {
-                "cost": [first],
-                "policy": [second],
-                "adoption": [],
-                "gap-backup": [recovered],
-            }
-        ),
+        llm,
+        search,
         FakeExtractor(
             {
                 first.url: make_document(first),
@@ -209,9 +214,9 @@ def test_run_uses_one_gap_query_to_cover_a_missing_angle() -> None:
     result = run(agent.run("Research community solar", PersonaContext()))
 
     assert result.status == ResearchStatus.COMPLETE
-    assert [query.id for query in agent.search.calls].count("gap-backup") == 1
-    assert agent.search.calls[-1].query == "community solar adoption outcomes evidence"
-    assert [call["role"] for call in agent.llm.calls] == [
+    assert [query.id for query in search.calls].count("gap-backup") == 1
+    assert search.calls[-1].query == "community solar adoption outcomes evidence"
+    assert [call["role"] for call in llm.calls] == [
         "planning",
         "evaluation",
         "evaluation",
@@ -227,19 +232,21 @@ def test_run_never_repeats_a_failed_gap_recovery() -> None:
     plan = with_backup(make_plan(), "community solar adoption evidence")
     first = make_candidate("cost-page", "cost", "cost.example")
     second = make_candidate("policy-page", "policy", "policy.example")
+    llm = FakeLLM(
+        plan,
+        {
+            "evaluations": [
+                evaluation(first.id, "cost"),
+                evaluation(second.id, "policy"),
+            ]
+        },
+    )
+    search = FakeSearch(
+        {"cost": [first], "policy": [second], "adoption": [], "gap-backup": []}
+    )
     agent = make_agent(
-        FakeLLM(
-            plan,
-            {
-                "evaluations": [
-                    evaluation(first.id, "cost"),
-                    evaluation(second.id, "policy"),
-                ]
-            },
-        ),
-        FakeSearch(
-            {"cost": [first], "policy": [second], "adoption": [], "gap-backup": []}
-        ),
+        llm,
+        search,
         FakeExtractor(
             {first.url: make_document(first), second.url: make_document(second)}
         ),
@@ -248,8 +255,8 @@ def test_run_never_repeats_a_failed_gap_recovery() -> None:
     result = run(agent.run("Research community solar", PersonaContext()))
 
     assert result.status == ResearchStatus.LOW_COVERAGE
-    assert [query.id for query in agent.search.calls].count("gap-backup") == 1
-    assert len(agent.llm.calls) == 2
+    assert [query.id for query in search.calls].count("gap-backup") == 1
+    assert len(llm.calls) == 2
     assert result.run_audit.rejection_reasons["gap_recovery"] == "no_new_candidates"
 
 
@@ -322,16 +329,17 @@ def test_run_replaces_an_invalid_planner_backup_with_a_safe_local_query(
     plan = plan.model_copy(update={"backup_queries": (backup,)})
 
     search = FakeSearch({"cost": [first], "policy": [second], "adoption": []})
+    llm = FakeLLM(
+        plan,
+        {
+            "evaluations": [
+                evaluation(first.id, "cost"),
+                evaluation(second.id, "policy"),
+            ]
+        },
+    )
     agent = make_agent(
-        FakeLLM(
-            plan,
-            {
-                "evaluations": [
-                    evaluation(first.id, "cost"),
-                    evaluation(second.id, "policy"),
-                ]
-            },
-        ),
+        llm,
         search,
         FakeExtractor(
             {first.url: make_document(first), second.url: make_document(second)}
@@ -343,7 +351,7 @@ def test_run_replaces_an_invalid_planner_backup_with_a_safe_local_query(
     assert result.status == ResearchStatus.LOW_COVERAGE, case
     assert {item.title for item in result.corpus} == {first.title, second.title}, case
     assert len(search.calls) == 4, case
-    assert len(agent.llm.calls) == 2, case
+    assert len(llm.calls) == 2, case
     assert search.calls[-1].id == "gap-fallback", case
     assert search.calls[-1].query.startswith("community solar adoption"), case
     assert (
@@ -388,16 +396,17 @@ def test_run_scrubs_persona_and_platform_labels_from_planner_backups_like_main_q
     search = FakeSearch(
         {"cost": [first], "policy": [second], "adoption": [], "gap-backup": []}
     )
+    llm = FakeLLM(
+        plan,
+        {
+            "evaluations": [
+                evaluation(first.id, "cost"),
+                evaluation(second.id, "policy"),
+            ]
+        },
+    )
     agent = make_agent(
-        FakeLLM(
-            plan,
-            {
-                "evaluations": [
-                    evaluation(first.id, "cost"),
-                    evaluation(second.id, "policy"),
-                ]
-            },
-        ),
+        llm,
         search,
         FakeExtractor(
             {first.url: make_document(first), second.url: make_document(second)}
@@ -461,16 +470,17 @@ def test_run_records_attempted_gap_search_when_a_gap_provider_failure_returns_no
             "gap-backup": RuntimeError("search offline"),
         }
     )
+    llm = FakeLLM(
+        plan,
+        {
+            "evaluations": [
+                evaluation(first.id, "cost"),
+                evaluation(second.id, "policy"),
+            ]
+        },
+    )
     agent = make_agent(
-        FakeLLM(
-            plan,
-            {
-                "evaluations": [
-                    evaluation(first.id, "cost"),
-                    evaluation(second.id, "policy"),
-                ]
-            },
-        ),
+        llm,
         search,
         FakeExtractor(
             {first.url: make_document(first), second.url: make_document(second)}
@@ -494,16 +504,17 @@ def test_run_uses_a_local_gap_query_when_the_plan_has_no_backup() -> None:
     first = make_candidate("cost-page", "cost", "cost.example")
     second = make_candidate("policy-page", "policy", "policy.example")
     search = FakeSearch({"cost": [first], "policy": [second], "adoption": []})
+    llm = FakeLLM(
+        plan,
+        {
+            "evaluations": [
+                evaluation(first.id, "cost"),
+                evaluation(second.id, "policy"),
+            ]
+        },
+    )
     agent = make_agent(
-        FakeLLM(
-            plan,
-            {
-                "evaluations": [
-                    evaluation(first.id, "cost"),
-                    evaluation(second.id, "policy"),
-                ]
-            },
-        ),
+        llm,
         search,
         FakeExtractor(
             {first.url: make_document(first), second.url: make_document(second)}
@@ -514,7 +525,7 @@ def test_run_uses_a_local_gap_query_when_the_plan_has_no_backup() -> None:
 
     assert result.status == ResearchStatus.LOW_COVERAGE
     assert result.run_audit.gap_search_used is True
-    assert len(agent.llm.calls) == 2
+    assert len(llm.calls) == 2
     assert result.run_audit.provider_usage["gap_planning"] == "deterministic_fallback"
     assert (
         result.run_audit.rejection_reasons["gap_planning_fallback"]
@@ -726,15 +737,12 @@ def test_run_labels_each_model_call_with_its_pipeline_stage() -> None:
         make_candidate(f"{angle}-page", angle, f"{angle}.example")
         for angle in ("cost", "policy", "adoption")
     ]
+    llm = FakeLLM(
+        plan,
+        {"evaluations": [evaluation(page.id, page.discovered_by[0]) for page in pages]},
+    )
     agent = make_agent(
-        FakeLLM(
-            plan,
-            {
-                "evaluations": [
-                    evaluation(page.id, page.discovered_by[0]) for page in pages
-                ]
-            },
-        ),
+        llm,
         FakeSearch({page.discovered_by[0]: [page] for page in pages}),
         FakeExtractor({page.url: make_document(page) for page in pages}),
     )
@@ -742,7 +750,7 @@ def test_run_labels_each_model_call_with_its_pipeline_stage() -> None:
     result = run(agent.run("Research community solar", PersonaContext()))
 
     assert result.status == ResearchStatus.COMPLETE
-    assert [call["role"] for call in agent.llm.calls] == ["planning", "evaluation"]
+    assert [call["role"] for call in llm.calls] == ["planning", "evaluation"]
 
 
 def test_run_fails_when_the_evaluator_is_unavailable_and_nothing_was_validated() -> (
@@ -769,12 +777,13 @@ def test_run_preserves_partial_extraction_and_keeps_an_omitted_evaluation_id() -
     cost = make_candidate("cost-page", "cost", "cost.example")
     policy = make_candidate("policy-page", "policy", "policy.example")
     adoption = make_candidate("adoption-page", "adoption", "adoption.example")
+    llm = FakeLLM(
+        plan,
+        {"evaluations": [evaluation(cost.id, "cost")]},
+        {"evaluations": [evaluation("unknown-page", "policy")]},
+    )
     agent = make_agent(
-        FakeLLM(
-            plan,
-            {"evaluations": [evaluation(cost.id, "cost")]},
-            {"evaluations": [evaluation("unknown-page", "policy")]},
-        ),
+        llm,
         FakeSearch({"cost": [cost], "policy": [policy], "adoption": [adoption]}),
         FakeExtractor(
             {
@@ -807,7 +816,7 @@ def test_run_preserves_partial_extraction_and_keeps_an_omitted_evaluation_id() -
         result.run_audit.notes[policy.url]
         == "evaluation_missing: deterministic score used"
     )
-    assert len(agent.llm.calls) == 2  # plan + one evaluation; no repair round-trip
+    assert len(llm.calls) == 2  # plan + one evaluation; no repair round-trip
 
 
 def test_run_timeout_cancels_inflight_work_and_caller_cancellation_propagates() -> None:
@@ -819,13 +828,14 @@ def test_run_timeout_cancels_inflight_work_and_caller_cancellation_propagates() 
             self.started = asyncio.Event()
             self.cancelled = 0
 
-        async def search(self, query, brief, max_results):
+        async def search(self, query, brief, max_results) -> list[CandidatePage]:
             self.started.set()
             try:
                 await asyncio.Event().wait()
             except asyncio.CancelledError:
                 self.cancelled += 1
                 raise
+            raise AssertionError("unreachable: the search hangs until it is cancelled")
 
     timeout_search = HangingSearch()
     timeout_agent = make_agent(
@@ -931,6 +941,15 @@ def test_run_skips_gap_at_exact_required_recovery_reserve_boundary() -> None:
     first = make_candidate("cost-page", "cost", "cost.example")
     second = make_candidate("policy-page", "policy", "policy.example")
     search = FakeSearch({"cost": [first], "policy": [second], "adoption": []})
+    llm = AdvancingLLM(
+        plan,
+        {
+            "evaluations": [
+                evaluation(first.id, "cost"),
+                evaluation(second.id, "policy"),
+            ]
+        },
+    )
     agent = ResearchAgent(
         config=replace(
             CONFIG,
@@ -939,15 +958,7 @@ def test_run_skips_gap_at_exact_required_recovery_reserve_boundary() -> None:
             gap_min_remaining_seconds=8.0,
             evaluation_reserve_seconds=8.0,
         ),
-        llm=AdvancingLLM(
-            plan,
-            {
-                "evaluations": [
-                    evaluation(first.id, "cost"),
-                    evaluation(second.id, "policy"),
-                ]
-            },
-        ),
+        llm=llm,
         search=search,
         extractor=FakeExtractor(
             {first.url: make_document(first), second.url: make_document(second)}
@@ -962,12 +973,12 @@ def test_run_skips_gap_at_exact_required_recovery_reserve_boundary() -> None:
     assert (
         result.run_audit.rejection_reasons["gap_recovery"] == "insufficient_time_budget"
     )
-    assert len(agent.llm.calls) == 2
+    assert len(llm.calls) == 2
     assert all(query.id != "gap-adoption" for query in search.calls)
 
 
-def test_run_records_nonnegative_monotonic_timings_and_closes_clients_once() -> None:
-    # Break caught: wall-clock/negative stage metrics or duplicated provider cleanup across an async lifecycle.
+def test_run_records_nonnegative_monotonic_timings() -> None:
+    # Break caught: wall-clock or negative stage metrics.
     class Clock:
         value = 0.0
 
@@ -1015,48 +1026,21 @@ def test_run_records_nonnegative_monotonic_timings_and_closes_clients_once() -> 
     )
     extractor = AdvancingExtractor({page.url: make_document(page) for page in pages})
 
-    async def lifecycle():
-        async with ResearchAgent(
-            config=replace(CONFIG, minimum_article_chars=100),
-            llm=llm,
-            search=search,
-            extractor=extractor,
-            now=lambda: NOW,
-            monotonic=clock,
-        ) as agent:
-            result = await agent.run("Research community solar", PersonaContext())
-        await agent.close()
-        return result
-
-    result = run(lifecycle())
+    agent = ResearchAgent(
+        config=replace(CONFIG, minimum_article_chars=100),
+        llm=llm,
+        search=search,
+        extractor=extractor,
+        now=lambda: NOW,
+        monotonic=clock,
+    )
+    result = run(agent.run("Research community solar", PersonaContext()))
 
     timings = result.run_audit.stage_timings_seconds
     assert all(value >= 0 for value in timings.values())
     assert timings["total"] >= sum(
         value for name, value in timings.items() if name != "total"
     )
-    assert llm.closed and search.closed and extractor.closed
-
-
-def test_close_calls_synchronous_injected_clients_exactly_once() -> None:
-    # Break caught: assuming close is awaitable or closing a shared injected client repeatedly.
-    class SyncCloser:
-        def __init__(self) -> None:
-            self.calls = 0
-
-        def close(self) -> None:
-            self.calls += 1
-
-    shared = SyncCloser()
-    agent = ResearchAgent(config=CONFIG, llm=shared, search=shared, extractor=shared)
-
-    async def close_twice() -> None:
-        await agent.close()
-        await agent.close()
-
-    run(close_twice())
-
-    assert shared.calls == 1
 
 
 def test_run_recovery_reuses_first_pass_content_deduplication() -> None:
@@ -1078,16 +1062,17 @@ def test_run_recovery_reuses_first_pass_content_deduplication() -> None:
     shared_recovered_document = shared_cost_document.model_copy(
         update={"candidate_id": recovered.id, "title": recovered.title}
     )
+    llm = FakeLLM(
+        plan,
+        {
+            "evaluations": [
+                evaluation(cost.id, "cost"),
+                evaluation(policy.id, "policy"),
+            ]
+        },
+    )
     agent = make_agent(
-        FakeLLM(
-            plan,
-            {
-                "evaluations": [
-                    evaluation(cost.id, "cost"),
-                    evaluation(policy.id, "policy"),
-                ]
-            },
-        ),
+        llm,
         FakeSearch(
             {
                 "cost": [cost],
@@ -1114,7 +1099,7 @@ def test_run_recovery_reuses_first_pass_content_deduplication() -> None:
         policy.id,
     ]
     assert {item.title for item in result.corpus} == {cost.title, policy.title}
-    assert len(agent.llm.calls) == 2
+    assert len(llm.calls) == 2
 
 
 def test_run_accumulates_monotonic_shortlist_timing_across_recovery() -> None:
@@ -1234,3 +1219,17 @@ def test_a_cancelled_search_query_is_recorded_as_a_search_error() -> None:
     assert (
         result.run_audit.notes.get("query:policy") == "search_error: CancelledError: "
     )
+
+
+def test_a_run_never_closes_the_providers_it_was_given() -> None:
+    # Break caught: an agent closing providers the worker shares across runs,
+    # which would break every later run.
+    llm, search, extractor = FakeLLM(make_plan()), FakeSearch(), FakeExtractor()
+
+    run(
+        make_agent(llm, search, extractor).run(
+            "Research community solar", PersonaContext()
+        )
+    )
+
+    assert not (llm.closed or search.closed or extractor.closed)
