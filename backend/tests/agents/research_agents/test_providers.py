@@ -14,20 +14,13 @@ from app.agents.research_agents.models import (
     FreshnessMode,
     PlannedQuery,
     ResearchBrief,
-    ResearchPlan,
 )
 from app.agents.research_agents.providers import (
-    CircuitOpenError,
     DownloadError,
     ExtractionError,
-    LLMClient,
     MalformedContentLengthError,
     PageExtractor,
-    PermanentProviderError,
-    RateLimitedProviderError,
     ResponseTooLargeError,
-    RetryableProviderError,
-    StructuredOutputError,
     TavilySearch,
     UnsafeRedirectError,
 )
@@ -152,9 +145,8 @@ def test_tavily_maps_month_news_locale_and_preserves_search_metadata() -> None:
             },
         )
 
-    config = replace(CONFIG, tavily_api_key="tavily-secret")
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    search = TavilySearch(config, http_client=client)
+    search = TavilySearch(CONFIG, api_key="tavily-secret", http_client=client)
     pages = run(search.search(make_query(), make_brief(), 5))
 
     payload = json.loads(requests[0].content)
@@ -162,8 +154,8 @@ def test_tavily_maps_month_news_locale_and_preserves_search_metadata() -> None:
     assert payload["topic"] == "news"
     assert payload["language"] == "en"
     assert "country" not in payload
-    assert payload["exclude_domains"] == sorted(config.blocked_domains)
-    assert "api_key" not in payload
+    assert payload["exclude_domains"] == sorted(CONFIG.blocked_domains)
+    assert "api_key" not in payload  # the key goes only in the header
     assert requests[0].headers["authorization"] == "Bearer tavily-secret"
     assert requests[0].headers["content-type"] == "application/json"
     assert "start_date" not in payload
@@ -191,6 +183,7 @@ def test_tavily_uses_explicit_dates_and_normalized_general_locale(locale: str) -
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     search = TavilySearch(
         CONFIG,
+        api_key="test-key",
         http_client=client,
         now=lambda: datetime(2026, 9, 4, 12, tzinfo=UTC),
     )
@@ -223,6 +216,7 @@ def test_tavily_never_date_filters_evergreen_and_defaults_to_the_staleness_windo
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     search = TavilySearch(
         CONFIG,
+        api_key="test-key",
         http_client=client,
         now=lambda: datetime(2026, 9, 4, 12, tzinfo=UTC),
     )
@@ -242,631 +236,6 @@ def test_tavily_never_date_filters_evergreen_and_defaults_to_the_staleness_windo
     assert not {"time_range", "start_date", "end_date"} & evergreen.keys()
     assert recent["start_date"] == "2026-06-06"
     run(search.close())
-
-
-def test_groq_structured_success_requests_strict_schema_and_validates() -> None:
-    # Break caught: accepting unvalidated model text or failing to request Groq's strict schema.
-    requests: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        return httpx.Response(
-            200,
-            json={"choices": [{"message": {"content": '{"answer":"validated"}'}}]},
-        )
-
-    config = replace(CONFIG, groq_api_key="groq-secret", nvidia_api_key="")
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client)
-    answer = run(llm.structured("Be precise", "Question", StructuredAnswer))
-
-    payload = json.loads(requests[0].content)
-    assert payload["model"] == config.groq_model
-    assert payload["response_format"]["type"] == "json_schema"
-    assert payload["response_format"]["json_schema"]["strict"] is True
-    assert payload["response_format"]["json_schema"]["schema"]["required"] == ["answer"]
-    assert answer == StructuredAnswer(answer="validated")
-    run(llm.close())
-
-
-def test_groq_research_plan_schema_requires_every_nested_property() -> None:
-    # Break caught: sending Pydantic defaults as optional fields, which Groq strict mode rejects.
-    requests: list[httpx.Request] = []
-    result = {
-        "brief": {
-            "topic": "AI agents",
-            "main_keywords": [],
-            "user_goal": "Find current changes",
-            "required_angles": ["recent changes"],
-            "locale": None,
-            "language": "en",
-            "freshness_mode": "recent",
-            "freshness_window_days": 30,
-            "constraints": [],
-            "search_query_count": 3,
-        },
-        "queries": [
-            {
-                "id": f"q-{index}",
-                "query": f"AI agent change {index}",
-                "purpose": "recent changes",
-                "intent": "news",
-                "freshness_window_days": 30,
-                "preferred_source_type": None,
-            }
-            for index in range(1, 4)
-        ],
-        "backup_queries": [
-            {"angle": "recent changes", "query": "AI agent release notes"}
-        ],
-    }
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        return httpx.Response(
-            200,
-            json={"choices": [{"message": {"content": json.dumps(result)}}]},
-        )
-
-    original_schema = ResearchPlan.model_json_schema()
-    config = replace(CONFIG, groq_api_key="groq-secret", nvidia_api_key="")
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client)
-    plan = run(
-        llm.structured("Plan research", "Current AI agent changes", ResearchPlan)
-    )
-
-    schema = json.loads(requests[0].content)["response_format"]["json_schema"]["schema"]
-    assert schema["required"] == ["brief", "queries", "backup_queries"]
-    assert schema["$defs"]["BackupQuery"]["required"] == ["angle", "query"]
-    assert schema["additionalProperties"] is False
-    assert schema["$defs"]["ResearchBrief"]["required"] == list(
-        schema["$defs"]["ResearchBrief"]["properties"]
-    )
-    assert schema["$defs"]["ResearchBrief"]["additionalProperties"] is False
-    assert schema["$defs"]["PlannedQuery"]["required"] == list(
-        schema["$defs"]["PlannedQuery"]["properties"]
-    )
-    assert schema["$defs"]["PlannedQuery"]["additionalProperties"] is False
-    assert schema["$defs"]["ResearchBrief"]["properties"]["locale"]["anyOf"][-1] == {
-        "type": "null"
-    }
-    assert (
-        schema["$defs"]["PlannedQuery"]["properties"]["freshness_window_days"]["anyOf"][
-            0
-        ]["minimum"]
-        == 1
-    )
-    assert ResearchPlan.model_json_schema() == original_schema
-    assert plan.brief.search_query_count == 3
-    assert plan.backup_queries[0].query == "AI agent release notes"
-    run(llm.close())
-
-
-def test_groq_strict_schema_recurses_through_arrays_and_union_branches_without_mutating_input() -> (
-    None
-):
-    # Break caught: normalizing only root/$defs objects or modifying a model-owned schema in place.
-    requests: list[httpx.Request] = []
-    original_schema = RecursiveSchemaAnswer.model_json_schema()
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        return httpx.Response(
-            200,
-            json={"choices": [{"message": {"content": '{"answer":"validated"}'}}]},
-        )
-
-    config = replace(CONFIG, groq_api_key="groq-secret", nvidia_api_key="")
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client)
-    answer = run(llm.structured("Be precise", "Question", RecursiveSchemaAnswer))
-
-    schema = json.loads(requests[0].content)["response_format"]["json_schema"]["schema"]
-    assert schema["required"] == ["answer", "items", "optional_object", "choice"]
-    assert schema["additionalProperties"] is False
-    array_object = schema["properties"]["items"]["items"]
-    assert array_object["required"] == ["label", "rank"]
-    assert array_object["additionalProperties"] is False
-    any_of_object = schema["properties"]["optional_object"]["anyOf"][0]
-    assert any_of_object["required"] == ["note"]
-    assert any_of_object["additionalProperties"] is False
-    assert schema["properties"]["optional_object"]["anyOf"][1] == {"type": "null"}
-    one_of_object = schema["properties"]["choice"]["oneOf"][0]
-    assert one_of_object["required"] == ["code"]
-    assert one_of_object["additionalProperties"] is False
-    assert one_of_object["properties"]["code"]["pattern"] == "^[A-Z]+$"
-    assert RecursiveSchemaAnswer.model_json_schema() == original_schema
-    assert answer.answer == "validated"
-    run(llm.close())
-
-
-def test_retryable_groq_failure_falls_back_to_fresh_nvidia_json_payload() -> None:
-    # Break caught: resending a request that reached the model (it may have spent tokens), skipping a
-    # configured fallback, or mutating and reusing Groq's provider-specific payload.
-    requests: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        if request.url.host == "api.groq.com":
-            return httpx.Response(503, json={"error": "busy"})
-        return httpx.Response(
-            200,
-            json={"choices": [{"message": {"content": '{"answer":"fallback"}'}}]},
-        )
-
-    config = replace(
-        CONFIG,
-        groq_api_key="groq-secret",
-        nvidia_api_key="nvidia-secret",
-        default_provider_chain=("groq", "nvidia"),
-    )
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client, retry_delays=(0.0,))
-    answer = run(llm.structured("System", "User", StructuredAnswer))
-
-    assert [request.url.host for request in requests] == [
-        "api.groq.com",
-        "integrate.api.nvidia.com",
-    ]
-    nvidia_payload = json.loads(requests[-1].content)
-    assert nvidia_payload["model"] == config.nvidia_model
-    assert nvidia_payload["response_format"] == {"type": "json_object"}
-    assert "json_schema" not in nvidia_payload["response_format"]
-    assert answer.answer == "fallback"
-    assert llm.last_provider == "nvidia"
-    run(llm.close())
-
-
-@pytest.mark.parametrize(
-    "groq_envelope",
-    (
-        {"choices": []},
-        {"choices": [{"message": {"content": ["not", "text"]}}]},
-    ),
-    ids=("missing_choice", "non_text_content"),
-)
-def test_unusable_groq_envelope_is_not_resent_but_falls_back(
-    groq_envelope: dict,
-) -> None:
-    # Break caught: a malformed successful provider response escapes as generic ProviderError and skips NVIDIA.
-    requests: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        if request.url.host == "api.groq.com":
-            return httpx.Response(200, json=groq_envelope)
-        return httpx.Response(
-            200,
-            json={"choices": [{"message": {"content": '{"answer":"fallback"}'}}]},
-        )
-
-    config = replace(
-        CONFIG,
-        groq_api_key="groq-secret",
-        nvidia_api_key="nvidia-secret",
-        default_provider_chain=("groq", "nvidia"),
-    )
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client, retry_delays=(0.0,))
-    answer = run(llm.structured("System", "User", StructuredAnswer))
-
-    assert [request.url.host for request in requests] == [
-        "api.groq.com",
-        "integrate.api.nvidia.com",
-    ]
-    assert answer.answer == "fallback"
-    assert llm.last_provider == "nvidia"
-    run(llm.close())
-
-
-def test_provider_specific_4xx_is_not_retried_but_uses_the_next_provider() -> None:
-    # Break caught: one provider's authentication/configuration failure disabling a healthy fallback provider.
-    requests: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        if request.url.host == "api.groq.com":
-            return httpx.Response(401, json={"error": "bad token"})
-        return httpx.Response(
-            200,
-            json={"choices": [{"message": {"content": '{"answer":"fallback"}'}}]},
-        )
-
-    config = replace(
-        CONFIG,
-        groq_api_key="bad",
-        nvidia_api_key="available",
-        default_provider_chain=("groq", "nvidia"),
-    )
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client, retry_delays=(0.0, 0.0))
-
-    answer = run(llm.structured("System", "User", StructuredAnswer))
-
-    assert answer.answer == "fallback"
-    assert [request.url.host for request in requests] == [
-        "api.groq.com",
-        "integrate.api.nvidia.com",
-    ]
-    assert llm.last_provider == "nvidia"
-    run(llm.close())
-
-
-def test_opted_in_failover_chain_on_429_skips_same_model_retry_and_uses_the_next_model() -> (
-    None
-):
-    # Break caught: a spent per-minute quota being retried on the same model, or a deployment that opts
-    # a stage into failover skipping its next listed model.
-    requests: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        payload = json.loads(request.content)
-        if request.url.host == "api.groq.com" and payload["model"] == CONFIG.groq_model:
-            return httpx.Response(429, json={"error": {"code": "rate_limit_exceeded"}})
-        return httpx.Response(
-            200, json={"choices": [{"message": {"content": '{"answer":"fast"}'}}]}
-        )
-
-    config = replace(
-        CONFIG,
-        groq_api_key="groq-secret",
-        nvidia_api_key="nvidia-secret",
-        planning_provider_chain=("groq", "groq_fast", "nvidia"),
-    )
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client, retry_delays=(0.0, 0.0))
-
-    answer = run(llm.structured("System", "User", StructuredAnswer, role="planning"))
-
-    assert [
-        (request.url.host, json.loads(request.content)["model"]) for request in requests
-    ] == [
-        ("api.groq.com", config.groq_model),
-        ("api.groq.com", config.groq_fast_model),
-    ]
-    fast_payload = json.loads(requests[-1].content)
-    assert fast_payload["response_format"]["type"] == "json_schema"
-    assert fast_payload["response_format"]["json_schema"]["strict"] is True
-    assert answer.answer == "fast"
-    assert llm.last_provider == "groq_fast"
-    run(llm.close())
-
-
-def test_http_429_on_both_groq_models_falls_back_to_nvidia() -> None:
-    # Break caught: the fast model's own quota being spent and the chain stopping short of the external fallback.
-    requests: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        if request.url.host == "api.groq.com":
-            return httpx.Response(429, json={"error": {"code": "rate_limit_exceeded"}})
-        return httpx.Response(
-            200, json={"choices": [{"message": {"content": '{"answer":"fallback"}'}}]}
-        )
-
-    config = replace(
-        CONFIG,
-        groq_api_key="groq-secret",
-        nvidia_api_key="nvidia-secret",
-        planning_provider_chain=("groq", "groq_fast", "nvidia"),
-    )
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client, retry_delays=(0.0, 0.0))
-
-    answer = run(llm.structured("System", "User", StructuredAnswer, role="planning"))
-
-    assert [request.url.host for request in requests] == [
-        "api.groq.com",
-        "api.groq.com",
-        "integrate.api.nvidia.com",
-    ]
-    assert answer.answer == "fallback"
-    assert llm.last_provider == "nvidia"
-    run(llm.close())
-
-
-@pytest.mark.parametrize("role", (None, "planning", "evaluation"))
-def test_every_stage_uses_only_the_120b_model(role: str | None) -> None:
-    # Break caught: a stage drawing on the 20b quota that other agents rely on.
-    requests: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        return httpx.Response(
-            200, json={"choices": [{"message": {"content": '{"answer":"scored"}'}}]}
-        )
-
-    config = replace(CONFIG, groq_api_key="groq-secret", nvidia_api_key="nvidia-secret")
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client, retry_delays=(0.0,))
-
-    answer = run(llm.structured("System", "User", StructuredAnswer, role=role))
-
-    assert [json.loads(request.content)["model"] for request in requests] == [
-        "openai/gpt-oss-120b"
-    ]
-    assert answer.answer == "scored"
-    assert llm.last_provider == "groq"
-    run(llm.close())
-
-
-@pytest.mark.parametrize(
-    ("response", "error"),
-    (
-        (
-            httpx.Response(429, json={"error": {"code": "rate_limit_exceeded"}}),
-            RateLimitedProviderError,
-        ),
-        (httpx.Response(503, json={"error": "busy"}), RetryableProviderError),
-        (
-            httpx.Response(
-                400,
-                json={
-                    "error": {
-                        "code": "json_validate_failed",
-                        "message": "Failed to generate JSON",
-                    }
-                },
-            ),
-            PermanentProviderError,
-        ),
-        (
-            httpx.Response(
-                200, json={"choices": [{"message": {"content": '{"answer":"no"}'}}]}
-            ),
-            StructuredOutputError,
-        ),
-    ),
-    ids=("rate_limited", "server_error", "json_validate_failed", "invalid_schema"),
-)
-def test_a_failed_generation_is_never_resent_repaired_or_moved_to_another_model(
-    response: httpx.Response, error: type[Exception]
-) -> None:
-    # Break caught: one stage spending a second generation (a retry, a repair prompt or another model)
-    # on the free-tier quota instead of handing the failure to its deterministic fallback.
-    requests: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        return response
-
-    config = replace(CONFIG, groq_api_key="groq-secret", nvidia_api_key="nvidia-secret")
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client, retry_delays=(0.0, 0.0))
-
-    with pytest.raises(error):
-        run(llm.structured("System", "User", StructuredAnswer, role="planning"))
-
-    assert len(requests) == 1
-    run(llm.close())
-
-
-@pytest.mark.parametrize(
-    ("failure", "expected_requests"),
-    (
-        (httpx.ConnectError("connection refused"), 2),
-        (httpx.ReadTimeout("no response"), 1),
-    ),
-    ids=("never_sent_is_retried", "maybe_generated_is_not_resent"),
-)
-def test_only_a_request_that_never_reached_the_model_is_retried(
-    failure: Exception, expected_requests: int
-) -> None:
-    # Break caught: resending a request the model may already have answered (spending tokens twice),
-    # or giving up on a connection failure that cost nothing.
-    requests: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        if len(requests) == 1:
-            raise failure
-        return httpx.Response(
-            200, json={"choices": [{"message": {"content": '{"answer":"second"}'}}]}
-        )
-
-    config = replace(CONFIG, groq_api_key="groq-secret", nvidia_api_key="")
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client, retry_delays=(0.0,))
-
-    if expected_requests == 2:
-        assert (
-            run(llm.structured("System", "User", StructuredAnswer)).answer == "second"
-        )
-    else:
-        with pytest.raises(RetryableProviderError, match="network request failed"):
-            run(llm.structured("System", "User", StructuredAnswer))
-    assert len(requests) == expected_requests
-    run(llm.close())
-
-
-def test_groq_payload_carries_the_stage_reasoning_effort_and_nvidia_payload_does_not() -> (
-    None
-):
-    # Break caught: evaluation burning hidden reasoning tokens at the default effort, or a Groq-only
-    # parameter leaking into the NVIDIA request.
-    requests: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        if request.url.host == "api.groq.com":
-            return httpx.Response(401, json={"error": {"message": "bad token"}})
-        return httpx.Response(
-            200, json={"choices": [{"message": {"content": '{"answer":"fallback"}'}}]}
-        )
-
-    config = replace(
-        CONFIG,
-        groq_api_key="groq-secret",
-        nvidia_api_key="nvidia-secret",
-        evaluation_provider_chain=("groq", "nvidia"),
-    )
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client, retry_delays=(0.0,))
-
-    run(llm.structured("System", "User", StructuredAnswer, role="evaluation"))
-
-    groq_payloads = [
-        json.loads(r.content) for r in requests if r.url.host == "api.groq.com"
-    ]
-    nvidia_payloads = [
-        json.loads(r.content) for r in requests if r.url.host != "api.groq.com"
-    ]
-    assert [p["reasoning_effort"] for p in groq_payloads] == ["low"]
-    assert all("reasoning_effort" not in p for p in nvidia_payloads)
-    run(llm.close())
-
-
-def test_permanent_4xx_error_message_includes_the_provider_detail() -> None:
-    # Break caught: a 400 from a misnamed model surfacing as a bare status code with no diagnosable cause.
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            404,
-            json={
-                "error": {
-                    "code": "model_not_found",
-                    "message": "The model `x` does not exist",
-                }
-            },
-        )
-
-    config = replace(CONFIG, groq_api_key="groq-secret", nvidia_api_key="")
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client, retry_delays=(0.0,))
-
-    with pytest.raises(PermanentProviderError, match="model_not_found.*does not exist"):
-        run(llm.structured("System", "User", StructuredAnswer))
-    run(llm.close())
-
-
-def test_provider_chain_order_is_configurable_per_stage() -> None:
-    # Break caught: a deployment that wants NVIDIA first for a stage being unable to express it.
-    requests: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        return httpx.Response(
-            200,
-            json={"choices": [{"message": {"content": '{"answer":"nvidia-first"}'}}]},
-        )
-
-    config = replace(
-        CONFIG,
-        groq_api_key="groq-secret",
-        nvidia_api_key="nvidia-secret",
-        evaluation_provider_chain=("nvidia", "groq_fast", "groq"),
-    )
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client, retry_delays=(0.0,))
-
-    run(llm.structured("System", "User", StructuredAnswer, role="evaluation"))
-
-    assert requests[0].url.host == "integrate.api.nvidia.com"
-    assert llm.last_provider == "nvidia"
-    run(llm.close())
-
-
-def test_http_413_skips_same_provider_retry_and_immediately_falls_back() -> None:
-    # Break caught: retrying an oversized payload on Groq or treating provider capacity as a global permanent error.
-    requests: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        if request.url.host == "api.groq.com":
-            return httpx.Response(413, json={"error": "request too large"})
-        return httpx.Response(
-            200,
-            json={"choices": [{"message": {"content": '{"answer":"fallback"}'}}]},
-        )
-
-    config = replace(
-        CONFIG,
-        groq_api_key="groq-secret",
-        nvidia_api_key="nvidia-secret",
-        default_provider_chain=("groq", "nvidia"),
-    )
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client, retry_delays=(0.0, 0.0))
-
-    answer = run(llm.structured("System", "Large request", StructuredAnswer))
-
-    assert [request.url.host for request in requests] == [
-        "api.groq.com",
-        "integrate.api.nvidia.com",
-    ]
-    assert answer.answer == "fallback"
-    assert llm.last_provider == "nvidia"
-    run(llm.close())
-
-
-def test_structured_resets_stale_provider_provenance_before_a_later_failure() -> None:
-    # Break caught: exposing the prior successful provider after the current call failed.
-    requests = 0
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        nonlocal requests
-        requests += 1
-        if requests == 1:
-            return httpx.Response(
-                200,
-                json={"choices": [{"message": {"content": '{"answer":"first"}'}}]},
-            )
-        return httpx.Response(401, json={"error": "expired"})
-
-    async def scenario() -> None:
-        config = replace(CONFIG, groq_api_key="key", nvidia_api_key="")
-        client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-        llm = LLMClient(config, http_client=client)
-        assert (
-            await llm.structured("System", "First", StructuredAnswer)
-        ).answer == "first"
-        assert llm.last_provider == "groq"
-        with pytest.raises(PermanentProviderError):
-            await llm.structured("System", "Second", StructuredAnswer)
-        assert llm.last_provider is None
-        await llm.close()
-
-    run(scenario())
-
-
-def test_structured_accepts_fenced_json() -> None:
-    # Break caught: rejecting otherwise valid JSON solely because a provider fenced it.
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={
-                "choices": [
-                    {"message": {"content": '```json\n{"answer":"fenced value"}\n```'}}
-                ]
-            },
-        )
-
-    config = replace(CONFIG, groq_api_key="groq-secret", nvidia_api_key="")
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client)
-    assert (
-        run(llm.structured("System", "User", StructuredAnswer)).answer == "fenced value"
-    )
-    run(llm.close())
-
-
-def test_open_circuit_is_given_callable_and_never_creates_request_coroutine() -> None:
-    # Break caught: creating a coroutine before consulting an open circuit breaker.
-    class OpenBreaker:
-        async def call(self, operation):
-            assert callable(operation)
-            raise CircuitOpenError("open")
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        raise AssertionError("an open circuit must not issue a request")
-
-    config = replace(CONFIG, groq_api_key="groq-secret", nvidia_api_key="")
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    llm = LLMClient(config, http_client=client, groq_breaker=OpenBreaker())
-    with pytest.raises(CircuitOpenError):
-        run(llm.structured("System", "User", StructuredAnswer))
-    run(llm.close())
 
 
 def test_jina_headers_are_parsed_and_markdown_body_is_preserved() -> None:
@@ -1114,7 +483,7 @@ def test_providers_leave_clients_they_were_given_open() -> None:
     search_http = httpx.AsyncClient(transport=httpx.MockTransport(ok))
     jina_http = httpx.AsyncClient(transport=httpx.MockTransport(ok))
     local_http = httpx.AsyncClient(transport=httpx.MockTransport(ok))
-    search = TavilySearch(CONFIG, http_client=search_http)
+    search = TavilySearch(CONFIG, api_key="test-key", http_client=search_http)
     extractor = PageExtractor(CONFIG, jina_client=jina_http, local_client=local_http)
 
     run(search.close())
@@ -1127,7 +496,7 @@ def test_providers_leave_clients_they_were_given_open() -> None:
 
 def test_providers_close_the_clients_they_created() -> None:
     # Break caught: leaking connection pools a provider opened itself.
-    search = TavilySearch(CONFIG)
+    search = TavilySearch(CONFIG, api_key="test-key")
     extractor = PageExtractor(CONFIG)
 
     run(search.close())
@@ -1405,7 +774,7 @@ def test_tavily_reuses_a_successful_request_and_returns_independent_results() ->
 
     async def scenario() -> None:
         client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-        search = TavilySearch(CONFIG, http_client=client)
+        search = TavilySearch(CONFIG, api_key="test-key", http_client=client)
         first = await search.search(make_query(), make_brief(), 5)
         first[0].title = "Caller mutation"
         second = await search.search(make_query(), make_brief(), 5)
@@ -1430,7 +799,7 @@ def test_tavily_result_sensitive_input_change_bypasses_the_cache() -> None:
 
     async def scenario() -> None:
         client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-        search = TavilySearch(CONFIG, http_client=client)
+        search = TavilySearch(CONFIG, api_key="test-key", http_client=client)
         await search.search(make_query(), make_brief(), 5)
         await search.search(
             make_query(), make_brief().model_copy(update={"language": "hi"}), 5
@@ -1457,7 +826,10 @@ def test_tavily_cache_ttl_and_lru_eviction_use_the_injected_monotonic_clock() ->
         config = replace(CONFIG, cache_ttl_seconds=10, cache_maxsize=1)
         client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
         search = TavilySearch(
-            config, http_client=client, monotonic_clock=lambda: now[0]
+            config,
+            api_key="test-key",
+            http_client=client,
+            monotonic_clock=lambda: now[0],
         )
         first_query = make_query()
         second_query = first_query.model_copy(
@@ -1497,7 +869,7 @@ def test_tavily_same_key_concurrent_searches_share_one_producer() -> None:
 
     async def scenario() -> None:
         client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-        search = TavilySearch(CONFIG, http_client=client)
+        search = TavilySearch(CONFIG, api_key="test-key", http_client=client)
         first = asyncio.create_task(search.search(make_query(), make_brief(), 5))
         await started.wait()
         second = asyncio.create_task(search.search(make_query(), make_brief(), 5))
@@ -1527,7 +899,7 @@ def test_tavily_cancelled_waiter_leaves_the_shared_producer_for_other_waiters() 
 
     async def scenario() -> None:
         client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-        search = TavilySearch(CONFIG, http_client=client)
+        search = TavilySearch(CONFIG, api_key="test-key", http_client=client)
         cancelled_waiter = asyncio.create_task(
             search.search(make_query(), make_brief(), 5)
         )
@@ -1573,7 +945,7 @@ def test_tavily_failure_is_not_cached_and_close_cancels_pending_producers_idempo
 
     async def scenario() -> None:
         client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-        search = TavilySearch(CONFIG, http_client=client)
+        search = TavilySearch(CONFIG, api_key="test-key", http_client=client)
         with pytest.raises(httpx.HTTPStatusError):
             await search.search(make_query(), make_brief(), 5)
         assert await search.search(make_query(), make_brief(), 5) == []
@@ -1734,7 +1106,7 @@ def test_tavily_close_rejects_different_key_arriving_after_shutdown_begins() -> 
 
     async def scenario() -> None:
         client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-        search = TavilySearch(CONFIG, http_client=client)
+        search = TavilySearch(CONFIG, api_key="test-key", http_client=client)
         first_query = make_query().model_copy(update={"query": "close first"})
         second_query = make_query().model_copy(update={"query": "close second"})
         pending = asyncio.create_task(search.search(first_query, make_brief(), 5))
@@ -1800,7 +1172,7 @@ def test_tavily_close_leaves_no_cache_cleanup_task_for_completed_or_cancelled_pr
             lambda loop, context: unhandled_contexts.append(context)
         )
         client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-        search = TavilySearch(CONFIG, http_client=client)
+        search = TavilySearch(CONFIG, api_key="test-key", http_client=client)
         cleanup_gate = CleanupGateLock()
         # A controllable lock on purpose, to reproduce the cleanup race.
         search._cache._lock = cleanup_gate  # pyright: ignore[reportAttributeAccessIssue]

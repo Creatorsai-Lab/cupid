@@ -1,46 +1,11 @@
-import os
 from dataclasses import dataclass, field
 from math import isfinite
-
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
 @dataclass(frozen=True)
 class Config:
     """Immutable provider settings and hard limits for the research pipeline."""
 
-    groq_api_key: str = field(
-        default_factory=lambda: os.getenv("GROQ_API_KEY", ""), repr=False
-    )
-    groq_base_url: str = "https://api.groq.com/openai/v1"
-    groq_model: str = "openai/gpt-oss-120b"
-    groq_fast_model: str = "openai/gpt-oss-20b"
-    nvidia_api_key: str = field(
-        default_factory=lambda: os.getenv("NVIDIA_API_KEY", ""), repr=False
-    )
-    nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
-    # deepseek-v4-pro was retired (HTTP 410); v4.1-flash is the live successor on NVIDIA NIM.
-    nvidia_model: str = "deepseek-ai/deepseek-v4.1-flash"
-    # Per-stage provider chains, tried in order. Names: "groq" (groq_model),
-    # "groq_fast" (groq_fast_model), "nvidia" (nvidia_model). Groq meters tokens per
-    # model, so every stage uses the one 120b model: the 20b quota stays untouched for
-    # other agents, and a failed or rate-limited stage uses its deterministic fallback
-    # instead of spending a second model. Listing more names opts a stage into failover;
-    # NVIDIA's free endpoint measured 50-120s per call, beyond every stage timeout.
-    planning_provider_chain: tuple[str, ...] = ("groq",)
-    evaluation_provider_chain: tuple[str, ...] = ("groq",)
-    default_provider_chain: tuple[str, ...] = ("groq",)
-    # Groq's gpt-oss models spend hidden reasoning tokens that count against the quota
-    # (measured: 650-1,250 per evaluation at the default effort, 17 at "low"). Planning
-    # benefits from some deliberation; scoring pages against a rubric does not.
-    planning_reasoning_effort: str = "medium"
-    evaluation_reasoning_effort: str = "low"
-    tavily_api_key: str = field(
-        default_factory=lambda: os.getenv("TAVILY_API_KEY", ""), repr=False
-    )
-    searxng_url: str = field(default_factory=lambda: os.getenv("SEARXNG_URL", ""))
     jina_reader_base_url: str = "https://r.jina.ai/http://"
     blocked_domains: frozenset[str] = field(
         default_factory=lambda: frozenset(
@@ -207,30 +172,11 @@ class Config:
 
         if not isinstance(self.max_shortlist_size, int) or self.max_shortlist_size < 1:
             raise ValueError("max_shortlist_size must be a positive integer")
-        for field_name in (
-            "planning_provider_chain",
-            "evaluation_provider_chain",
-            "default_provider_chain",
-        ):
-            chain = tuple(getattr(self, field_name))
-            if not chain or any(
-                name not in {"groq", "groq_fast", "nvidia"} for name in chain
-            ):
-                raise ValueError(
-                    f'{field_name} must list one or more of "groq", "groq_fast", "nvidia"'
-                )
-            if len(set(chain)) != len(chain):
-                raise ValueError(f"{field_name} must not repeat a provider")
-            object.__setattr__(self, field_name, chain)
 
         for field_name in ("max_missing_brief_anchors", "max_missing_gap_declarations"):
             value = getattr(self, field_name)
             if not isinstance(value, int) or value < 0:
                 raise ValueError(f"{field_name} must be a non-negative integer")
-
-        for field_name in ("planning_reasoning_effort", "evaluation_reasoning_effort"):
-            if getattr(self, field_name) not in {"low", "medium", "high"}:
-                raise ValueError(f'{field_name} must be "low", "medium", or "high"')
 
         for field_name in ("evaluation_view_char_budget", "evaluation_view_min_chars"):
             value = getattr(self, field_name)

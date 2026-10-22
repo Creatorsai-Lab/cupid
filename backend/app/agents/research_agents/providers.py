@@ -26,7 +26,6 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
 import trafilatura
-from pydantic import BaseModel, ValidationError
 from trafilatura.metadata import extract_metadata
 
 from app.agents.research_agents.config import CONFIG, Config
@@ -46,40 +45,11 @@ from app.agents.research_agents.planning import _required_freshness_window
 
 _LOGGER = logging.getLogger(__name__)
 
-T = TypeVar("T", bound=BaseModel)
 V = TypeVar("V")
 
 
 class ProviderError(RuntimeError):
     """Base class for errors returned by an external provider."""
-
-
-class RetryableProviderError(ProviderError):
-    """A transient provider error which may be retried or failed over."""
-
-
-class PermanentProviderError(ProviderError):
-    """A provider error for which retrying the same request cannot help."""
-
-
-class RateLimitedProviderError(RetryableProviderError):
-    """HTTP 429: the per-minute token quota for this model is spent.
-
-    Retrying the same model within the pipeline budget is pointless (Groq asks for ~30s),
-    so the stage moves on to the next configured provider or its deterministic fallback.
-    """
-
-
-class ProviderCapacityError(ProviderError):
-    """A request exceeds one provider's capacity and should use the next provider."""
-
-
-class StructuredOutputError(ProviderError):
-    """The provider response was not valid for the requested Pydantic model."""
-
-
-class CircuitOpenError(ProviderError):
-    """A call was rejected because its provider circuit is open."""
 
 
 class ExtractionError(ProviderError):
@@ -235,287 +205,6 @@ class _ExtractionResult:
     metadata: dict[str, Any]
 
 
-class CircuitBreaker:
-    """Small asynchronous circuit breaker whose input is a lazy operation."""
-
-    def __init__(
-        self, failure_threshold: int = 3, recovery_seconds: float = 30.0
-    ) -> None:
-        self.failure_threshold = failure_threshold
-        self.recovery_seconds = recovery_seconds
-        self._failures = 0
-        self._opened_at: float | None = None
-
-    async def call(self, operation: Callable[[], Awaitable[T]]) -> T:
-        if self._opened_at is not None:
-            if time.monotonic() - self._opened_at < self.recovery_seconds:
-                raise CircuitOpenError("provider circuit is open")
-            self._opened_at = None
-            self._failures = 0
-        try:
-            result = await operation()
-        except Exception:
-            self._failures += 1
-            if self._failures >= self.failure_threshold:
-                self._opened_at = time.monotonic()
-            raise
-        self._failures = 0
-        self._opened_at = None
-        return result
-
-
-class LLMClient:
-    """Validated structured generation through Groq with optional NVIDIA fallback."""
-
-    def __init__(
-        self,
-        config: Config = CONFIG,
-        *,
-        http_client: httpx.AsyncClient | None = None,
-        groq_breaker: Any | None = None,
-        nvidia_breaker: Any | None = None,
-        retry_delays: Sequence[float] = (0.25, 0.75),
-    ) -> None:
-        self.config = config
-        self._client = http_client or httpx.AsyncClient(timeout=httpx.Timeout(15.0))
-        self._groq_breaker = groq_breaker or CircuitBreaker()
-        self._groq_fast_breaker = CircuitBreaker()
-        self._nvidia_breaker = nvidia_breaker or CircuitBreaker()
-        self._retry_delays = tuple(retry_delays)
-        self.last_provider: str | None = None
-
-    def _provider_chain(self, role: str | None) -> list[tuple[str, str, str, str, Any]]:
-        """Resolve the configured chain for a pipeline stage to concrete, credentialed providers."""
-        config = self.config
-        registry: dict[str, tuple[str, str, str, str, Any]] = {}
-        if config.groq_api_key:
-            registry["groq"] = (
-                "groq",
-                config.groq_base_url,
-                config.groq_model,
-                config.groq_api_key,
-                self._groq_breaker,
-            )
-            if config.groq_fast_model and config.groq_fast_model != config.groq_model:
-                registry["groq_fast"] = (
-                    "groq_fast",
-                    config.groq_base_url,
-                    config.groq_fast_model,
-                    config.groq_api_key,
-                    self._groq_fast_breaker,
-                )
-        if config.nvidia_api_key:
-            registry["nvidia"] = (
-                "nvidia",
-                config.nvidia_base_url,
-                config.nvidia_model,
-                config.nvidia_api_key,
-                self._nvidia_breaker,
-            )
-        chain = {
-            "planning": config.planning_provider_chain,
-            "evaluation": config.evaluation_provider_chain,
-        }.get(role or "", config.default_provider_chain)
-        return [registry[name] for name in chain if name in registry]
-
-    async def structured(
-        self,
-        system: str,
-        user: str,
-        response_model: type[T],
-        temperature: float = 0.2,
-        role: str | None = None,
-    ) -> T:
-        """Generate one schema-validated object, walking the stage's provider chain on failure.
-
-        ``role`` names the pipeline stage ("planning", "evaluation") and selects its configured
-        chain. Each provider generates once: an invalid answer is never repaired or resampled,
-        because every extra generation spends the free-tier quota again; the caller's
-        deterministic fallback takes over instead.
-        """
-        self.last_provider = None
-        providers = self._provider_chain(role)
-        if not providers:
-            raise PermanentProviderError(
-                "no LLM provider API key is configured for this stage"
-            )
-
-        last_error: Exception | None = None
-        for provider, base_url, model, api_key, breaker in providers:
-            messages = [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ]
-            try:
-                content = await self._complete(
-                    provider,
-                    base_url,
-                    model,
-                    api_key,
-                    messages,
-                    response_model,
-                    temperature,
-                    breaker,
-                    role=role,
-                )
-                try:
-                    result = _validate_structured(content, response_model)
-                except (
-                    json.JSONDecodeError,
-                    ValidationError,
-                    TypeError,
-                    ValueError,
-                ) as error:
-                    raise StructuredOutputError(str(error)) from error
-                self.last_provider = provider
-                return result
-            except (
-                PermanentProviderError,
-                RetryableProviderError,
-                ProviderCapacityError,
-                CircuitOpenError,
-                StructuredOutputError,
-            ) as error:
-                # Every provider's failure is logged; only the last one is raised, so without
-                # this line a Groq rate limit hides behind a fallback provider's error.
-                _LOGGER.warning(
-                    "%s structured generation failed for %s: %s",
-                    provider,
-                    response_model.__name__,
-                    error,
-                )
-                last_error = error
-                continue
-        if last_error is not None:
-            raise last_error
-        raise ProviderError("structured generation failed")
-
-    async def _complete(
-        self,
-        provider: str,
-        base_url: str,
-        model: str,
-        api_key: str,
-        messages: list[dict[str, str]],
-        response_model: type[BaseModel],
-        temperature: float,
-        breaker: Any,
-        *,
-        role: str | None = None,
-    ) -> str:
-        attempts = len(self._retry_delays) + 1
-        for attempt in range(attempts):
-            try:
-                # The coroutine is deliberately created inside this callable.  An open
-                # circuit therefore cannot leave an unawaited request coroutine behind.
-                return await breaker.call(
-                    lambda: self._send_completion(
-                        provider,
-                        base_url,
-                        model,
-                        api_key,
-                        messages,
-                        response_model,
-                        temperature,
-                        role=role,
-                    )
-                )
-            except (
-                httpx.ConnectError,
-                httpx.ConnectTimeout,
-                httpx.PoolTimeout,
-            ) as error:
-                # The request never reached the provider, so no tokens were spent: retrying is free.
-                if attempt >= attempts - 1:
-                    raise RetryableProviderError(
-                        f"{provider} connection failed: {error}"
-                    ) from error
-                await asyncio.sleep(self._retry_delays[attempt])
-            except httpx.TransportError as error:
-                # The request may have reached the model and spent tokens, so it is never resent.
-                raise RetryableProviderError(
-                    f"{provider} network request failed: {error}"
-                ) from error
-        raise AssertionError("unreachable")
-
-    async def _send_completion(
-        self,
-        provider: str,
-        base_url: str,
-        model: str,
-        api_key: str,
-        messages: list[dict[str, str]],
-        response_model: type[BaseModel],
-        temperature: float,
-        *,
-        role: str | None = None,
-    ) -> str:
-        if provider.startswith("groq"):
-            response_format: dict[str, Any] = {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": response_model.__name__,
-                    "strict": True,
-                    "schema": _normalize_groq_strict_schema(
-                        response_model.model_json_schema()
-                    ),
-                },
-            }
-        else:
-            response_format = {"type": "json_object"}
-
-        # This is a new object on every call, so provider-specific fields cannot
-        # leak into a later retry or fallback payload.
-        payload = {
-            "model": model,
-            "messages": [dict(message) for message in messages],
-            "temperature": temperature,
-            "response_format": response_format,
-        }
-        if provider.startswith("groq"):
-            payload["reasoning_effort"] = {
-                "planning": self.config.planning_reasoning_effort,
-                "evaluation": self.config.evaluation_reasoning_effort,
-            }.get(role or "", self.config.planning_reasoning_effort)
-        response = await self._client.post(
-            f"{base_url.rstrip('/')}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
-        )
-        if response.status_code == 413:
-            raise ProviderCapacityError(f"{provider} returned HTTP 413")
-        if response.status_code == 429:
-            raise RateLimitedProviderError(
-                f"{provider} returned HTTP 429 (per-minute token quota spent)"
-            )
-        if 500 <= response.status_code <= 599:
-            raise RetryableProviderError(
-                f"{provider} returned HTTP {response.status_code}"
-            )
-        if 400 <= response.status_code <= 499:
-            raise PermanentProviderError(
-                f"{provider} returned HTTP {response.status_code}: {_error_detail(response)}"
-            )
-        try:
-            response.raise_for_status()
-            content = response.json()["choices"][0]["message"]["content"]
-        except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as error:
-            raise RetryableProviderError(
-                f"{provider} returned an unusable response envelope"
-            ) from error
-        if not isinstance(content, str):
-            raise RetryableProviderError(
-                f"{provider} returned non-text structured content"
-            )
-        return content
-
-    async def close(self) -> None:
-        await self._client.aclose()
-
-
 class TavilySearch:
     """Tavily search adapter which returns snippets with explicit provenance."""
 
@@ -523,6 +212,7 @@ class TavilySearch:
         self,
         config: Config = CONFIG,
         *,
+        api_key: str,
         http_client: httpx.AsyncClient | None = None,
         now: Callable[[], datetime] | None = None,
         monotonic_clock: Callable[[], float] | None = None,
@@ -531,6 +221,7 @@ class TavilySearch:
         self._client = http_client or httpx.AsyncClient(
             timeout=httpx.Timeout(10.0), trust_env=False
         )
+        self._api_key = api_key  # from Cupid's settings; never logged
         self._owns_client = http_client is None
         self._now = now or (lambda: datetime.now(UTC))
         self._cache = _AsyncTTLCache(
@@ -621,7 +312,7 @@ class TavilySearch:
         response = await self._client.post(
             "https://api.tavily.com/search",
             headers={
-                "Authorization": f"Bearer {self.config.tavily_api_key}",
+                "Authorization": f"Bearer {self._api_key}",
                 "Content-Type": "application/json",
             },
             json=payload,
@@ -1003,56 +694,6 @@ class PageExtractor:
             await client.aclose()
 
 
-def _error_detail(response: httpx.Response) -> str:
-    """Return a bounded, single-line description of a provider error body for diagnostics."""
-    try:
-        body = response.json()
-    except ValueError:
-        body = response.text
-    if isinstance(body, dict):
-        error = body.get("error", body)
-        if isinstance(error, dict):
-            body = " ".join(
-                str(error.get(key))
-                for key in ("code", "type", "message")
-                if error.get(key)
-            )
-    return re.sub(r"\s+", " ", str(body))[:200]
-
-
-def _validate_structured[M: BaseModel](content: str, response_model: type[M]) -> M:
-
-    text = content.strip()
-    fenced = re.fullmatch(
-        r"```(?:json)?\s*(.*?)\s*```", text, flags=re.IGNORECASE | re.DOTALL
-    )
-    if fenced:
-        text = fenced.group(1).strip()
-    return response_model.model_validate(json.loads(text))
-
-
-def _normalize_groq_strict_schema(schema: dict[str, Any]) -> dict[str, Any]:
-    """Return a non-mutating Groq-strict copy of a JSON schema."""
-
-    normalized = copy.deepcopy(schema)
-
-    def visit(node: Any) -> None:
-        if isinstance(node, dict):
-            properties = node.get("properties")
-            if node.get("type") == "object" or isinstance(properties, dict):
-                node["additionalProperties"] = False
-                if isinstance(properties, dict):
-                    node["required"] = list(properties)
-            for value in node.values():
-                visit(value)
-        elif isinstance(node, list):
-            for value in node:
-                visit(value)
-
-    visit(normalized)
-    return normalized
-
-
 def _parse_jina(text: str) -> tuple[str | None, str | None, datetime | None, str]:
     title: str | None = None
     source_url: str | None = None
@@ -1151,19 +792,12 @@ def _tavily_country(locale: str | None) -> str | None:
 
 
 __all__ = [
-    "CircuitBreaker",
-    "CircuitOpenError",
     "DownloadError",
     "ExtractionError",
-    "LLMClient",
     "MalformedContentLengthError",
     "PageExtractor",
-    "PermanentProviderError",
-    "ProviderCapacityError",
     "ProviderError",
     "ResponseTooLargeError",
-    "RetryableProviderError",
-    "StructuredOutputError",
     "TavilySearch",
     "UnsafeRedirectError",
 ]

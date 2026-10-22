@@ -1,5 +1,6 @@
 # Ported tests pass deliberately invalid values to prove validation rejects them.
 # pyright: reportArgumentType=false
+from dataclasses import fields
 from datetime import UTC, datetime
 
 import pytest
@@ -360,24 +361,16 @@ def test_config_uses_required_bounded_defaults() -> None:
     assert CONFIG.cache_ttl_seconds == 21_600
 
 
-def test_config_repr_never_exposes_provider_api_keys() -> None:
-    config = Config(
-        groq_api_key="groq-secret-sentinel",
-        nvidia_api_key="nvidia-secret-sentinel",
-        tavily_api_key="tavily-secret-sentinel",
-    )
-
-    rendered = repr(config)
-    assert "groq-secret-sentinel" not in rendered
-    assert "nvidia-secret-sentinel" not in rendered
-    assert "tavily-secret-sentinel" not in rendered
+def test_config_holds_no_secrets() -> None:
+    # Break caught: a second secrets path. Keys come from Cupid's settings and go
+    # straight to the client that uses them; the config holds only tuning values.
+    assert [f.name for f in fields(Config) if f.name.endswith("_api_key")] == []
 
 
 def test_config_blocked_domains_are_immutable_and_no_public_searxng_fallback_exists() -> (
     None
 ):
     assert isinstance(CONFIG.blocked_domains, frozenset)
-    assert Config(searxng_url="").searxng_url == ""
     assert not hasattr(CONFIG, "searxng_fallback_instances")
     assert not hasattr(CONFIG, "cerebras_api_key")
     # Mutations on purpose: the config must be immutable.
@@ -400,40 +393,6 @@ def test_config_evaluation_policy_is_immutable_and_validated() -> None:
         Config(date_freshness_weight=-0.1)
     with pytest.raises(ValueError, match="max_shortlist_size"):
         Config(max_shortlist_size=0)
-
-
-def test_config_draws_every_stage_from_one_groq_model_only() -> None:
-    # Break caught: a run spending the second model's quota that other agents rely on, or a chain naming an unknown provider.
-    assert (
-        CONFIG.planning_provider_chain
-        == CONFIG.evaluation_provider_chain
-        == CONFIG.default_provider_chain
-        == ("groq",)
-    )
-    assert CONFIG.groq_model == "openai/gpt-oss-120b"
-    with pytest.raises(ValueError, match="evaluation_provider_chain"):
-        Config(evaluation_provider_chain=("openai",))
-    with pytest.raises(ValueError, match="must not repeat"):
-        Config(planning_provider_chain=("groq", "groq"))
-    with pytest.raises(ValueError, match="planning_provider_chain"):
-        Config(planning_provider_chain=())
-    assert (CONFIG.planning_reasoning_effort, CONFIG.evaluation_reasoning_effort) == (
-        "medium",
-        "low",
-    )
-    with pytest.raises(ValueError, match="evaluation_reasoning_effort"):
-        Config(evaluation_reasoning_effort="max")
-    assert isinstance(CONFIG.time_sensitive_score_weights, tuple)
-    assert isinstance(CONFIG.evergreen_score_weights, tuple)
-    assert sum(CONFIG.time_sensitive_score_weights) == pytest.approx(1.0)
-    assert sum(CONFIG.evergreen_score_weights) == pytest.approx(1.0)
-
-    with pytest.raises(ValueError, match="minimum_relevance_score"):
-        Config(minimum_relevance_score=10.1)
-    with pytest.raises(ValueError, match="exactly seven"):
-        Config(time_sensitive_score_weights=(1.0,))
-    with pytest.raises(ValueError, match="sum to 1"):
-        Config(evergreen_score_weights=(0.2,) * 7)
 
 
 def test_config_structural_and_optional_fourth_credibility_thresholds_are_validated() -> (
@@ -500,3 +459,19 @@ def test_config_requires_gap_minimum_remaining_budget_to_cover_evaluation_reserv
         equal_boundary.gap_min_remaining_seconds
         == equal_boundary.evaluation_reserve_seconds
     )
+
+
+def test_config_scores_and_weights_are_validated() -> None:
+    # Break caught: score weights that don't sum to 1, or scores outside 0-10,
+    # silently skewing how pages are ranked.
+    assert isinstance(CONFIG.time_sensitive_score_weights, tuple)
+    assert isinstance(CONFIG.evergreen_score_weights, tuple)
+    assert sum(CONFIG.time_sensitive_score_weights) == pytest.approx(1.0)
+    assert sum(CONFIG.evergreen_score_weights) == pytest.approx(1.0)
+
+    with pytest.raises(ValueError, match="minimum_relevance_score"):
+        Config(minimum_relevance_score=10.1)
+    with pytest.raises(ValueError, match="exactly seven"):
+        Config(time_sensitive_score_weights=(1.0,))
+    with pytest.raises(ValueError, match="sum to 1"):
+        Config(evergreen_score_weights=(0.2,) * 7)
