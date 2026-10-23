@@ -18,6 +18,7 @@ it("hydrates a valid backend session", async () => {
     data: {
       id: "00000000-0000-0000-0000-000000000001",
       email: "creator@example.com",
+      phone: null,
       full_name: "Test Creator",
       is_active: true,
       created_at: "2026-09-01T00:00:00Z",

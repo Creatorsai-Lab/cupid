@@ -12,11 +12,13 @@ services:
       POSTGRES_PASSWORD: cupid
       POSTGRES_DB: cupid_db
     ports:
-      - "5432:5432"
+      # host 5433: a native Postgres often already holds 5432.
+      # 127.0.0.1: reachable from this machine only, not the LAN.
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U cupid" ]
+      test: [ "CMD-SHELL", "pg_isready -U cupid -d cupid_db" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -25,7 +27,8 @@ services:
     image: redis:7-alpine
     container_name: cupid_redis
     ports:
-      - "6380:6379"
+      # No password, so never publish beyond localhost.
+      - "127.0.0.1:6380:6379"
     volumes:
       - redis_data:/data
 

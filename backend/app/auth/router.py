@@ -1,10 +1,17 @@
 """
-Auth endpoints. Sign-in is Google-only; signup and login are the same action.
+Auth endpoints. Sign-in is Google or phone OTP; signup and login are the same
+action.
 
     GET  /api/v1/auth/google/login     → redirect to Google consent
     GET  /api/v1/auth/google/callback  → find-or-create user, set cookie, bounce
+    POST /api/v1/auth/otp/send         → SMS a login code (app/auth/otp.py)
+    POST /api/v1/auth/otp/verify       → check code, find-or-create user, set cookie
     POST /api/v1/auth/logout           → clear cookie
     GET  /api/v1/auth/me               → current user from cookie
+    GET  /api/v1/auth/login-history    → current user's recent sign-ins
+
+Every successful sign-in is recorded (time, IP, user agent) for the login
+history shown in Settings.
 
 If the verified Google email already has an account we log in, otherwise we
 create one. New accounts land on /settings (onboarding); returning users land
@@ -15,7 +22,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import RedirectResponse
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,11 +30,36 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.deps import get_current_user
 from app.auth.google import build_auth_url, exchange_code, fetch_userinfo
 from app.auth.models import User
-from app.auth.schemas import AuthResponse, UserResponse
-from app.auth.service import get_user_by_email, link_google_identity
+from app.auth.otp import (
+    CODE_TTL_SECONDS,
+    RESEND_COOLDOWN_SECONDS,
+    normalize_phone,
+    send_code,
+    verify_code,
+)
+from app.auth.schemas import (
+    AuthResponse,
+    LoginEventResponse,
+    LoginHistoryResponse,
+    OtpSendData,
+    OtpSendRequest,
+    OtpSendResponse,
+    OtpVerifyRequest,
+    OtpVerifyResponse,
+    UserResponse,
+)
+from app.auth.service import (
+    get_user_by_email,
+    get_user_by_phone,
+    link_google_identity,
+    list_logins,
+    record_login,
+)
 from app.auth.session import COOKIE_KEY, create_access_token, set_auth_cookie
 from app.config import settings
+from app.core.client_ip import client_ip
 from app.core.db import get_db
+from app.core.errors import ForbiddenError
 from app.core.oauth_state import (
     consume_login_state,
     generate_state_token,
@@ -58,6 +90,7 @@ async def google_login(redis: Redis = Depends(get_redis)) -> RedirectResponse:
 
 @router.get("/google/callback")
 async def google_callback(
+    request: Request,
     code: str | None = Query(default=None),
     state: str | None = Query(default=None),
     error: str | None = Query(default=None),
@@ -107,11 +140,63 @@ async def google_callback(
         await db.commit()
         await db.refresh(user)
 
+    await record_login(db, user, "google", request)
+
     # Same session cookie the app already uses, then bounce to the frontend.
     dest = "/settings" if created else "/create"
     response = _bounce(f"/complete?next={dest}")
     set_auth_cookie(response, create_access_token(str(user.id)))
     return response
+
+
+# ── Phone OTP sign-in ─────────────────────────────────────────
+
+
+@router.post("/otp/send", response_model=OtpSendResponse)
+async def otp_send(
+    body: OtpSendRequest,
+    request: Request,
+    redis: Redis = Depends(get_redis),
+) -> OtpSendResponse:
+    """SMS a 6-digit login code. Rate-limited per phone and per IP."""
+    phone = normalize_phone(body.phone)
+    await send_code(redis, phone, client_ip(request))
+    return OtpSendResponse(
+        data=OtpSendData(expires_in=CODE_TTL_SECONDS, resend_in=RESEND_COOLDOWN_SECONDS)
+    )
+
+
+@router.post("/otp/verify", response_model=OtpVerifyResponse)
+async def otp_verify(
+    body: OtpVerifyRequest,
+    request: Request,
+    response: Response,
+    redis: Redis = Depends(get_redis),
+    db: AsyncSession = Depends(get_db),
+) -> OtpVerifyResponse:
+    """Check the code, find-or-create the user by phone, set the session cookie."""
+    phone = normalize_phone(body.phone)
+    await verify_code(redis, phone, body.code)
+
+    user = await get_user_by_phone(db, phone)
+    created = user is None
+    if user is None:
+        user = User(
+            full_name=f"Creator {phone[-4:]}", phone=phone, auth_provider="phone"
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        logger.info("[auth.otp] created user id=%s", user.id)
+    elif not user.is_active:
+        raise ForbiddenError("Account is disabled.")
+
+    await record_login(db, user, "phone", request)
+    set_auth_cookie(response, create_access_token(str(user.id)))
+    return OtpVerifyResponse(
+        data=UserResponse.model_validate(user),
+        next="/settings" if created else "/create",
+    )
 
 
 # ── Session ───────────────────────────────────────────────────
@@ -128,3 +213,16 @@ async def logout(response: Response):
 async def me(user: User = Depends(get_current_user)):
     """Return the currently authenticated user."""
     return AuthResponse(data=UserResponse.model_validate(user))
+
+
+@router.get("/login-history", response_model=LoginHistoryResponse)
+async def login_history(
+    limit: int = Query(20, ge=1, le=100),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> LoginHistoryResponse:
+    """The current user's most recent sign-ins, newest first."""
+    events = await list_logins(db, user.id, limit)
+    return LoginHistoryResponse(
+        data=[LoginEventResponse.model_validate(e) for e in events]
+    )

@@ -27,6 +27,7 @@ def mock_successful_google_response(monkeypatch, user: User):
     monkeypatch.setattr(oauth_google, "exchange_code", exchange_code)
     monkeypatch.setattr(oauth_google, "fetch_userinfo", fetch_userinfo)
     monkeypatch.setattr(oauth_google, "get_user_by_email", find_user)
+    monkeypatch.setattr(oauth_google, "record_login", AsyncMock())
 
     return consume_state, exchange_code, fetch_userinfo, find_user
 
@@ -56,6 +57,7 @@ async def test_callback_links_active_user_and_sets_cookie(monkeypatch) -> None:
     )
 
     response = await oauth_google.google_callback(
+        request=Mock(),
         code="google-code",
         state="valid-state",
         error=None,
@@ -112,6 +114,7 @@ async def test_callback_rejects_disabled_user_without_cookie(monkeypatch) -> Non
     )
 
     response = await oauth_google.google_callback(
+        request=Mock(),
         code="google-code",
         state="valid-state",
         error=None,

@@ -4,7 +4,13 @@ import { useState, useEffect } from "react";
 import { ConnectionsPanel } from "@/components/ConnectionsPanel";
 import { useAuthStore } from "@/lib/store";
 import { User, HelpCircle, Settings, Workflow } from "lucide-react";
-import { authApi, profileApi, entitlementApi, type Entitlement } from "@/lib/api";
+import {
+  authApi,
+  profileApi,
+  entitlementApi,
+  type Entitlement,
+  type LoginEvent,
+} from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 const TABS = [
@@ -311,7 +317,7 @@ function Field({
     </div>
   );
 }
-function PersonalizationTab({ userName, userEmail }: { userName?: string; userEmail?: string }) {
+function PersonalizationTab({ userName, userEmail }: { userName?: string; userEmail?: string | null }) {
   const [form, setForm] = useState<PersonalizationForm>({ ...EMPTY, name: userName ?? "" });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -623,6 +629,8 @@ function SettingsTab() {
         </div>
       </div>
 
+      <LoginHistory />
+
       {/* Danger Zone */}
       <div className="rounded-4xl border border-gray-200 bg-white p-6">
         <h3 className="mb-2 font-sans text-lg font-normal text-red-700">Danger: Signout</h3>
@@ -634,6 +642,88 @@ function SettingsTab() {
           Sign out
         </button>
       </div>
+    </div>
+  );
+}
+
+// "Chrome on Windows" from a user-agent string; good enough to recognise a device.
+function describeDevice(ua: string | null): string {
+  if (!ua) return "Unknown device";
+  const browser =
+    [
+      ["Edg/", "Edge"],
+      ["OPR/", "Opera"],
+      ["Firefox/", "Firefox"],
+      ["Chrome/", "Chrome"],
+      ["Safari/", "Safari"],
+    ].find(([token]) => ua.includes(token))?.[1] ?? "Browser";
+  const os =
+    [
+      ["Android", "Android"],
+      ["iPhone", "iOS"],
+      ["iPad", "iPadOS"],
+      ["Windows", "Windows"],
+      ["Mac OS X", "macOS"],
+      ["Linux", "Linux"],
+    ].find(([token]) => ua.includes(token))?.[1] ?? "unknown OS";
+  return `${browser} on ${os}`;
+}
+
+function LoginHistory() {
+  const [events, setEvents] = useState<LoginEvent[] | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    authApi
+      .loginHistory()
+      .then((res) => setEvents(res.data))
+      .catch(() => setFailed(true));
+  }, []);
+
+  return (
+    <div className="mb-6 rounded-4xl border border-gray-200 bg-white p-6">
+      <h3 className="mb-1 font-sans text-lg font-normal text-gray-900">Login history</h3>
+      <p className="mb-4 font-sans text-sm text-gray-500">
+        Your last 20 sign-ins. If you don&apos;t recognise one, sign out and contact support.
+      </p>
+
+      {failed ? (
+        <p className="text-sm text-red-600">Couldn&apos;t load login history.</p>
+      ) : events === null ? (
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      ) : events.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No sign-ins recorded yet.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="text-xs text-gray-500 uppercase">
+              <tr className="border-b border-gray-200">
+                <th className="py-2 pr-4 font-medium">Date &amp; time</th>
+                <th className="py-2 pr-4 font-medium">IP address</th>
+                <th className="py-2 pr-4 font-medium">Method</th>
+                <th className="py-2 font-medium">Device</th>
+              </tr>
+            </thead>
+            <tbody>
+              {events.map((e) => (
+                <tr key={e.id} className="border-b border-gray-100 last:border-0">
+                  <td className="py-2.5 pr-4 whitespace-nowrap text-gray-900">
+                    {new Date(e.created_at).toLocaleString(undefined, {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </td>
+                  <td className="py-2.5 pr-4 font-mono text-gray-700">{e.ip_address}</td>
+                  <td className="py-2.5 pr-4 text-gray-700 capitalize">{e.method}</td>
+                  <td className="py-2.5 text-gray-700" title={e.user_agent ?? undefined}>
+                    {describeDevice(e.user_agent)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

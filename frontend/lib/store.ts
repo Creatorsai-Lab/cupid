@@ -4,7 +4,7 @@ export type AuthStatus = "checking" | "authenticated" | "unauthenticated";
 
 export interface AuthUser {
   id: string;
-  email: string;
+  email: string | null;
   full_name: string;
 }
 

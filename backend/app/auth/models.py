@@ -5,7 +5,15 @@ import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, String
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,8 +32,14 @@ class User(Base):
         default=uuid.uuid4,
     )
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    email: Mapped[str] = mapped_column(
-        String(255), unique=True, nullable=False, index=True
+    # Nullable: phone-login users have no email. Every account has an email
+    # or a phone (ck_users_email_or_phone).
+    email: Mapped[str | None] = mapped_column(
+        String(255), unique=True, nullable=True, index=True
+    )
+    # Digits with country code, no "+" (e.g. 919999999999). Set by phone login.
+    phone: Mapped[str | None] = mapped_column(
+        String(15), unique=True, nullable=True, index=True
     )
     # Nullable: social-login users have no password.
     hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -60,6 +74,43 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
+    __table_args__ = (
+        CheckConstraint(
+            "email IS NOT NULL OR phone IS NOT NULL", name="ck_users_email_or_phone"
+        ),
+    )
+
     # __repr__ for debug print User object.
     def __repr__(self) -> str:
-        return f"<User {self.email}>"
+        return f"<User {self.email or self.phone}>"
+
+
+class LoginEvent(Base):
+    """One successful sign-in. Shown to the user as their login history."""
+
+    __tablename__ = "login_history"
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    # "google" or "phone".
+    method: Mapped[str] = mapped_column(String(16), nullable=False)
+    # 45 chars fits any IPv6 text form. See app/core/client_ip.py.
+    ip_address: Mapped[str] = mapped_column(String(45), nullable=False)
+    user_agent: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        # The only query: "this user's logins, newest first".
+        Index("ix_login_history_user_created", "user_id", "created_at"),
+    )

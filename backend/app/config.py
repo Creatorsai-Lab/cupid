@@ -30,8 +30,13 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = Field(
-        "postgresql+asyncpg://cupid:cupid@localhost:5432/cupid_db", repr=False
+        "postgresql+asyncpg://cupid:cupid@localhost:5433/cupid_db", repr=False
     )
+
+    # Reverse proxies in front of the app that append to X-Forwarded-For
+    # (production: Traefik = 1; add 1 more if Cloudflare proxying is on).
+    # 0 = trust no header and use the socket address. See app/core/client_ip.py.
+    trusted_proxy_count: int = 1
 
     # FRONTEND
     frontend_url: str = "http://localhost:3000"
@@ -56,6 +61,13 @@ class Settings(BaseSettings):
     # YouTube-connect callback above). Add this exact URI to the same Google
     # OAuth client's "Authorized redirect URIs".
     google_login_redirect_uri: str = "http://localhost:8000/api/v1/auth/google/callback"
+
+    # APITxT SMS OTP (phone login). Blank authkey = phone login disabled.
+    apitxt_authkey: str = Field("", repr=False)
+    apitxt_base_url: str = "https://apitxt.com"
+    # Dashboard SMS template id (DLT-approved, contains {otp}). None = the
+    # account's default OTP template.
+    apitxt_sms_template_id: str = ""
 
     # ── Admin ─────────────────────────────────────────────────────────────
     # Emails promoted to is_admin=True automatically at startup (the env

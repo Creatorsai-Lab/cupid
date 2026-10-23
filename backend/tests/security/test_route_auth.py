@@ -19,6 +19,8 @@ PUBLIC_ROUTES = {
         "GET",
         "/api/v1/auth/google/callback",
     ): "Google redirect; protected by OAuth state",
+    ("POST", "/api/v1/auth/otp/send"): "starts phone sign-in; rate-limited",
+    ("POST", "/api/v1/auth/otp/verify"): "finishes phone sign-in; code-gated",
     ("POST", "/api/v1/auth/logout"): "clears the cookie; harmless without one",
     ("GET", "/api/v1/connections/youtube/callback"): (
         "Google redirect; protected by OAuth state"
